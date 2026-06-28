@@ -4,6 +4,7 @@ import { FileText, Tag, Receipt } from 'lucide-react'
 import { DocumentSettingsTab } from './DocumentSettingsTab'
 import { LabelSettingsTab } from './LabelSettingsTab'
 import { ReceiptSettingsTab } from './ReceiptSettingsTab'
+import { usePublishDevTab } from '@/stores/devTabStore'
 
 // Unified printer hub: each print group prints to its own physical printer
 // (A4 documents / drug labels / cash receipts), so the operator maps all three
@@ -14,6 +15,7 @@ import { ReceiptSettingsTab } from './ReceiptSettingsTab'
 // button — so it sits on the top tab strip, not the sub-tab strip below it.
 export function PrintersTab({ onActions }: { onActions?: (node: ReactNode) => void }) {
   const [sub, setSub] = useState('documents')
+  usePublishDevTab(sub, 1) // DEV ONLY — surfaces open nested sub-tab file in TitleBar path
 
   // The hub fills the Settings content area (h-full): the sub-tab strip is pinned
   // at the top (shrink-0) and the active sub-tab owns the leftover height. The A4

@@ -4,9 +4,11 @@ import { Tag, Pill, ReceiptText } from 'lucide-react'
 import { CategoriesTab } from './CategoriesTab'
 import { DrugTypesTab } from './DrugTypesTab'
 import { ExpenseCategoriesTab } from './ExpenseCategoriesTab'
+import { usePublishDevTab } from '@/stores/devTabStore'
 
 export function ProductMgmtTab() {
   const [sub, setSub] = useState('categories')
+  usePublishDevTab(sub, 1) // DEV ONLY — surfaces open nested sub-tab file in TitleBar path
 
   return (
     <div className="h-full flex flex-col min-h-0">

@@ -13,6 +13,7 @@ import { Plus, Edit, Trash2, Stethoscope } from 'lucide-react'
 import type { LabelFormLookups } from '@/components/label/LabelFormDialog'
 import { LookupDeleteDialog } from '@/components/dialogs/LookupDeleteDialog'
 import { LabelPresetTab } from './LabelPresetTab'
+import { usePublishDevTab } from '@/stores/devTabStore'
 
 interface LookupRow { id: number; code: string; name_th: string; name_en?: string; name_mm?: string; name_zh?: string }
 
@@ -31,6 +32,7 @@ const emptyLookups: LabelFormLookups = {
 export function LabelLookupTab() {
   const { toast } = useToast()
   const [kind, setKind] = useState<string>('dosage')
+  usePublishDevTab(kind, 1) // DEV ONLY — surfaces 'preset' nested sub-tab file in TitleBar path
   const [lookups, setLookups] = useState<LabelFormLookups>(emptyLookups)
   const [q, setQ] = useState('')
 

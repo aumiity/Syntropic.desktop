@@ -11,6 +11,7 @@ const ROUTE_FILE_MAP: { pattern: string; file: string }[] = [
   { pattern: '/products/bundles/new',      file: 'src/pages/Products/EditBundle/index.tsx' },
   { pattern: '/products/bundles/:id/edit', file: 'src/pages/Products/EditBundle/index.tsx' },
   { pattern: '/products/bundles',          file: 'src/pages/Products/BundlesList.tsx' },
+  { pattern: '/products/print',            file: 'src/pages/Products/PrintTab/index.tsx' },
   { pattern: '/products/new',              file: 'src/pages/Products/EditProduct/index.tsx' },
   { pattern: '/products/:id/edit',         file: 'src/pages/Products/EditProduct/index.tsx' },
   { pattern: '/products',                  file: 'src/pages/Products/ProductsList.tsx' },
@@ -25,9 +26,12 @@ const ROUTE_FILE_MAP: { pattern: string; file: string }[] = [
   { pattern: '/manage/negative-stock',     file: 'src/pages/Manage/NegativeStock.tsx' },
   { pattern: '/manage',                    file: 'src/pages/Manage/Sales.tsx' },
   { pattern: '/reports/fda/khor-yor-9',   file: 'src/pages/Reports/KhorYor9.tsx' },
+  { pattern: '/reports/fda/khor-yor-10',  file: 'src/pages/Reports/KhorYor10.tsx' },
+  { pattern: '/reports/fda/khor-yor-11',  file: 'src/pages/Reports/KhorYor11.tsx' },
   { pattern: '/reports/fda/environment',  file: 'src/pages/Reports/EnvLog.tsx' },
   { pattern: '/reports/fda',              file: 'src/pages/Reports/FdaReports.tsx' },
   { pattern: '/reports/vat',              file: 'src/pages/Reports/VatReport.tsx' },
+  { pattern: '/reports/export',           file: 'src/pages/Reports/ExportHub.tsx' },
   { pattern: '/reports',                  file: 'src/pages/Reports/Dashboard.tsx' },
   { pattern: '/settings',                 file: 'src/pages/Settings/index.tsx' },
   { pattern: '/theme',                    file: 'src/pages/Theme/index.tsx' },
@@ -37,16 +41,34 @@ const ROUTE_FILE_MAP: { pattern: string; file: string }[] = [
 
 // DEV ONLY — for pages whose tab lives in local state (not the URL), map the
 // active tab value → its sub-file so the path display reaches the open tab.
-// Keyed by the route file resolved above, then by the published tab value.
-const SUBFILE_MAP: Record<string, Record<string, string>> = {
+// Keyed by the route file resolved above, then by the published tab value(s).
+// A node is either a leaf file string OR a branch object holding `_self` (the
+// file for the branch tab itself) plus its own nested children — so the path
+// can drill through tabs-within-tabs (e.g. การพิมพ์ › ใบเสร็จ).
+type SubNode = string | { [tab: string]: SubNode }
+const SUBFILE_MAP: Record<string, SubNode> = {
   'src/pages/Settings/index.tsx': {
     shop: 'src/pages/Settings/ShopTab.tsx',
     sales: 'src/pages/Settings/SalesTab.tsx',
-    'product-mgmt': 'src/pages/Settings/ProductMgmtTab.tsx',
+    'product-mgmt': {
+      _self: 'src/pages/Settings/ProductMgmtTab.tsx',
+      categories: 'src/pages/Settings/CategoriesTab.tsx',
+      expenses: 'src/pages/Settings/ExpenseCategoriesTab.tsx',
+      drugtypes: 'src/pages/Settings/DrugTypesTab.tsx',
+    },
     units: 'src/pages/Settings/UnitsTab.tsx',
-    'drug-usage': 'src/pages/Settings/DrugUsageTab.tsx',
-    printers: 'src/pages/Settings/PrintersTab.tsx',
+    'drug-usage': {
+      _self: 'src/pages/Settings/LabelLookupTab.tsx',
+      preset: 'src/pages/Settings/LabelPresetTab.tsx',
+    },
+    printers: {
+      _self: 'src/pages/Settings/PrintersTab.tsx',
+      documents: 'src/pages/Settings/DocumentSettingsTab.tsx',
+      labels: 'src/pages/Settings/LabelSettingsTab.tsx',
+      receipts: 'src/pages/Settings/ReceiptSettingsTab.tsx',
+    },
     database: 'src/pages/Settings/DatabaseTab.tsx',
+    permissions: 'src/pages/Settings/PermissionsTab.tsx',
   },
   'src/pages/Products/EditProduct/index.tsx': {
     general: 'src/pages/Products/EditProduct/GeneralTab.tsx',
@@ -63,15 +85,33 @@ const SUBFILE_MAP: Record<string, Record<string, string>> = {
   },
 }
 
-function matchFilePath(pathname: string, tab: string | null): string {
+// Walk the published tab chain down the nested SUBFILE_MAP. At each level, a
+// leaf string is the resolved file; a branch object's `_self` is the file for
+// the branch tab itself (used as the fallback if no deeper tab is open). Stops
+// at the first segment that has no entry, so partially-published chains still
+// resolve to the deepest known file.
+function resolveSubFile(file: string, tabs: string[]): string {
+  let node: SubNode | undefined = SUBFILE_MAP[file]
+  let resolved = file
+  for (const seg of tabs) {
+    if (node == null || typeof node === 'string') break
+    const next: SubNode | undefined = node[seg]
+    if (next == null) break
+    node = next
+    if (typeof node === 'string') resolved = node
+    else if (typeof node._self === 'string') resolved = node._self
+  }
+  return resolved
+}
+
+function matchFilePath(pathname: string, tabs: string[]): string {
   const norm = pathname || '/'
   for (const { pattern, file } of ROUTE_FILE_MAP) {
     const pp = pattern.split('/').filter(Boolean)
     const ap = norm.split('/').filter(Boolean)
     if (pp.length !== ap.length) continue
     if (pp.every((seg, i) => seg.startsWith(':') || seg === ap[i])) {
-      if (tab) return SUBFILE_MAP[file]?.[tab] ?? file
-      return file
+      return resolveSubFile(file, tabs)
     }
   }
   return norm
@@ -104,11 +144,11 @@ export function TitleBar() {
   const [copied, setCopied] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const location = useLocation()
-  const devTab = useDevTabStore((s) => s.tab)
+  const devTabs = useDevTabStore((s) => s.tabs)
   // DEV ONLY — role switch (admin <-> staff) for testing. REMOVE before release.
   const currentUser = useUserStore((s) => s.current)
 
-  const filePath = matchFilePath(location.pathname, devTab)
+  const filePath = matchFilePath(location.pathname, devTabs)
 
   // DEV ONLY — flip both the renderer store (UI gating) AND the authoritative
   // main-side session (IPC enforcement) so the whole stack reflects the new role.
