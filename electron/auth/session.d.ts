@@ -12,5 +12,4 @@ export type Override = {
     userId: number;
     password: string;
 };
-export declare function requireAdmin(e: IpcMainInvokeEvent, override?: Override): void;
 export {};

@@ -4,7 +4,7 @@ Repo-tracked project memory. Travels with git → available on every machine (Ma
 
 One line per memory. Detail lives in the linked file (read on demand).
 
-- [Role permissions system](project_role_permissions.md) — **PHASE 1+2 DONE 2026-06-28 (tsc PASS; in-app verify pending); เฟส 3 (matrix UI) รอ** — สิทธิ์ data-driven 3 role (owner/pharmacist/staff) × 3 สถานะ; 62 requireAdmin→requirePermission ครบ; SSOT = `docs/plans/Role_Permissions.html`
+- [Role permissions system](project_role_permissions.md) — **ครบทั้งแผน PHASE 1+2+3 DONE 2026-06-28 (tsc PASS; รอ click-test 3 role + boot)** — สิทธิ์ data-driven 3 role (owner/pharmacist/staff) × 3 สถานะ; 62 requireAdmin→requirePermission, requireAdmin def ลบแล้ว; Settings tab "สิทธิ์การใช้งาน" (owner-only matrix); SSOT = `docs/plans/Role_Permissions.html`
 - [UI Redesign Pass](project_ui_redesign_pass.md) — **ACTIVE 2026-06-06** — ปรับ UI ทีละหน้าตาม journey; SSOT = `docs/plans/ui-redesign-pass.md`; เสนอแผนต่อหน้าก่อนลงมือทุกหน้า
 - [Full Program Audit](project_full_program_audit.md) — **PLANNED 2026-06-10, PARKED รอหลัง VAT — อย่าเริ่มเชิงรุก** — แผน = `docs/plans/Full_Program_Audit.html` Section B (R0-R10, report-only)
 - [Refine schema checklist](project_refine_schema_checklist.md) — **เคลียร์รอบ 1 DONE 2026-06-25** — SSOT = `docs/refine_schema.md`; ทั้ง 6 รายการ (is_for_purchase, abbrev_tax_invoice, products.is_hidden, paper_size, env 6 threshold cols, chronic_diseases→note) ลบ/rename ที่ CREATE+IPC+types+UI+seed แล้ว **ไม่ทำ migration** (DB จะลบทิ้ง); carve-out: PrintTab/scripts ยังอ้าง dead (manual, ไม่ break แอป); เจอ dead ใหม่ จดต่อ `docs/refine_schema.md`

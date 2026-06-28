@@ -317,6 +317,12 @@ const api = {
     // Active users allowed to approve an override for a given permission key.
     listApprovers: (permKey: string) =>
       invoke('permissions:listApprovers', { permKey }) as Promise<Array<{ id: number; name: string; username: string; email: string; role: string }>>,
+    // Full editable matrix (pharmacist + staff × matrix keys). Owner-only.
+    getMatrix: () =>
+      invoke('permissions:getMatrix') as Promise<Array<{ role: string; permission: string; state: PermState }>>,
+    // Persist matrix edits (allow-listed server-side). Owner-only.
+    save: (changes: Array<{ role: string; permission: string; state: PermState }>) =>
+      invoke('permissions:save', { changes }) as Promise<{ ok: true }>,
   },
   // Dev (only registered when isDev=true in main.ts; will reject otherwise)
   dev: {

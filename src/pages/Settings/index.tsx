@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Store, FolderTree, Printer, ShoppingCart, Save, Database, Blocks, Stethoscope } from 'lucide-react'
+import { Store, FolderTree, Printer, ShoppingCart, Save, Database, Blocks, Stethoscope, ShieldCheck } from 'lucide-react'
 import { ShopTab } from './ShopTab'
 import { ProductMgmtTab } from './ProductMgmtTab'
 import { UnitsTab } from './UnitsTab'
@@ -11,7 +11,9 @@ import { DrugUsageTab } from './DrugUsageTab'
 import { PrintersTab } from './PrintersTab'
 import { SalesTab } from './SalesTab'
 import { DatabaseTab } from './DatabaseTab'
+import { PermissionsTab } from './PermissionsTab'
 import { usePublishDevTab } from '@/stores/devTabStore'
+import { useCan } from '@/hooks/useCan'
 
 export default function SettingsPage() {
   const [tab, setTab] = useState('shop')
@@ -21,6 +23,10 @@ export default function SettingsPage() {
   // The active การพิมพ์ sub-tab forwards its บันทึก button up here so it lands on
   // the MAIN tab row (same spot as the การขาย save button), not the sub-tab strip.
   const [printersActions, setPrintersActions] = useState<ReactNode>(null)
+  const [permissionsActions, setPermissionsActions] = useState<ReactNode>(null)
+  // The สิทธิ์การใช้งาน tab is owner-only (gated on permission.manage, which only
+  // the owner ever holds and which is never editable in the matrix).
+  const canManagePerms = useCan('permission.manage') !== 'off'
 
   // Full-bleed like Manage: the page runs full width so the form scrollers' bars
   // sit at the window edge. CAP re-centers each region (header, tab strip, form
@@ -49,6 +55,7 @@ export default function SettingsPage() {
             <TabsTrigger value="drug-usage"><Stethoscope /> วิธีใช้</TabsTrigger>
             <TabsTrigger value="printers"><Printer /> การพิมพ์</TabsTrigger>
             <TabsTrigger value="database"><Database /> ฐานข้อมูล</TabsTrigger>
+            {canManagePerms && <TabsTrigger value="permissions"><ShieldCheck /> สิทธิ์การใช้งาน</TabsTrigger>}
           </TabsList>
         </Tabs>
         {tab === 'sales' && (
@@ -59,6 +66,7 @@ export default function SettingsPage() {
         {tab === 'printers' && printersActions && (
           <div className="ml-auto flex items-center gap-2">{printersActions}</div>
         )}
+        {tab === 'permissions' && permissionsActions}
       </TabStrip>
       </div>
 
@@ -84,6 +92,7 @@ export default function SettingsPage() {
         )}
         {tab === 'printers' && <div className={tableTab}><PrintersTab onActions={setPrintersActions} /></div>}
         {tab === 'database' && <div className={formScroll}><div className={CAP}><DatabaseTab /></div></div>}
+        {tab === 'permissions' && canManagePerms && <div className={formScroll}><div className={CAP}><PermissionsTab onActions={setPermissionsActions} /></div></div>}
       </div>
     </div>
   )

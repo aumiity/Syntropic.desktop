@@ -1,7 +1,4 @@
 import type { IpcMainInvokeEvent } from 'electron'
-import { getDb } from '../db'
-import { verifySecret } from './hash'
-import { checkLocked, recordFailure, clearFailures } from './lockout'
 
 // Main-side session — the authoritative caller identity for IPC role enforcement
 // (User_Login_System.md §0.6 BL-1, R1/R2). Keyed by webContents.id so each
@@ -32,45 +29,8 @@ export function getSessionRole(e: IpcMainInvokeEvent): string | undefined {
   return sessions.get(e.sender.id)?.role
 }
 
+// Manager-override credential shape, forwarded to a gated IPC call's trailing
+// `override` arg and verified server-side by requirePermission (electron/auth/
+// permissions.ts). The legacy requireAdmin gate was removed once every call site
+// moved to data-driven requirePermission (role-permissions Phase 3).
 export type Override = { userId: number; password: string }
-
-// Gate an admin-only handler. The caller's session role is the primary check;
-// if the caller is NOT an admin but supplies a manager override credential, we
-// verify it inline (same lockout backoff as login, admin role required) and
-// allow the single action through. The override password/hash NEVER leaves main.
-// Throws 'FORBIDDEN' (renderer maps to a Thai toast) or the override failure
-// message. See §4.3.
-export function requireAdmin(e: IpcMainInvokeEvent, override?: Override): void {
-  if (getSessionRole(e) === 'owner') return
-
-  if (override && override.userId && override.password) {
-    const db = getDb()
-
-    const lock = checkLocked(db, override.userId)
-    if (lock.locked) {
-      const err = new Error('LOCKED') as Error & { remainingMs?: number }
-      err.remainingMs = lock.remainingMs
-      throw err
-    }
-
-    const row = db
-      .prepare(`SELECT id, role, password FROM users WHERE id = ? AND is_disabled = 0`)
-      .get(override.userId) as { id: number; role: string; password: string } | undefined
-
-    if (!row || row.role !== 'owner') {
-      recordFailure(db, override.userId)
-      throw new Error('รหัสผ่านไม่ถูกต้อง')
-    }
-
-    const { ok } = verifySecret(override.password, row.password)
-    if (!ok) {
-      recordFailure(db, override.userId)
-      throw new Error('รหัสผ่านไม่ถูกต้อง')
-    }
-
-    clearFailures(db, override.userId)
-    return
-  }
-
-  throw new Error('FORBIDDEN')
-}
