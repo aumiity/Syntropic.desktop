@@ -49,15 +49,45 @@ try{
   const gr2No=(await apiCall(page,'purchase.nextGRNumber')).value||'GR-2'
   const gr2=await apiCall(page,'purchase.save',{invoice_no:gr2No,supplier_id:supplierId,supplier_invoice_no:'INV-CREDIT',receive_date:localToday(),payment_type:'credit',is_paid:false,due_date:plusDays(30),vat_mode:'none',vat_rate:0,userId:admin.id,items:[{product_id:pid,lot_number:'LK',expiry_date:'2030-12-31',cost_price:5,sell_price:20,qty:10}]})
   if(!gr2.ok)throw new Error('gr2:'+gr2.error)
+  // credit-PAID 70 (is_paid today)
+  const gr3No=(await apiCall(page,'purchase.nextGRNumber')).value||'GR-3'
+  const gr3=await apiCall(page,'purchase.save',{invoice_no:gr3No,supplier_id:supplierId,supplier_invoice_no:'INV-PAID',receive_date:localToday(),payment_type:'credit',is_paid:true,due_date:plusDays(30),paid_date:localToday(),vat_mode:'none',vat_rate:0,userId:admin.id,items:[{product_id:pid,lot_number:'LP',expiry_date:'2030-12-31',cost_price:7,sell_price:20,qty:10}]})
+  if(!gr3.ok)throw new Error('gr3:'+gr3.error)
+  // credit-OVERDUE 80 (unpaid, due 5 days ago)
+  const gr4No=(await apiCall(page,'purchase.nextGRNumber')).value||'GR-4'
+  const gr4=await apiCall(page,'purchase.save',{invoice_no:gr4No,supplier_id:supplierId,supplier_invoice_no:'INV-OVERDUE',receive_date:localToday(),payment_type:'credit',is_paid:false,due_date:plusDays(-5),vat_mode:'none',vat_rate:0,userId:admin.id,items:[{product_id:pid,lot_number:'LO',expiry_date:'2030-12-31',cost_price:8,sell_price:20,qty:10}]})
+  if(!gr4.ok)throw new Error('gr4:'+gr4.error)
+  // CANCELLED 90 (save then cancel — stock untouched so cancel is allowed)
+  const gr5No=(await apiCall(page,'purchase.nextGRNumber')).value||'GR-5'
+  const gr5=await apiCall(page,'purchase.save',{invoice_no:gr5No,supplier_id:supplierId,supplier_invoice_no:'INV-CANCEL',receive_date:localToday(),payment_type:'credit',is_paid:false,due_date:plusDays(30),vat_mode:'none',vat_rate:0,userId:admin.id,items:[{product_id:pid,lot_number:'LX',expiry_date:'2030-12-31',cost_price:9,sell_price:20,qty:10}]})
+  if(!gr5.ok)throw new Error('gr5:'+gr5.error)
+  const gr5cancel=await apiCall(page,'purchase.cancel',{invoice_no:gr5No,reason:'e2e cancel',userId:admin.id})
+  if(!gr5cancel.ok||!gr5cancel.value?.success)throw new Error('gr5cancel:'+(gr5cancel.error||JSON.stringify(gr5cancel.value)))
 
   // ══════════ Part A — IPC sanity (admin window) ══════════
   const today=localToday()
   const fs1=await apiCall(page,'reports.financeSummary',{date_from:today,date_to:today,with_compare:true})
-  check('A1: financeSummary purchase_total=150 cash=100 credit=50 count=2', fs1.ok && Number(fs1.value?.purchase_total)===150 && Number(fs1.value?.purchase_cash)===100 && Number(fs1.value?.purchase_credit)===50 && Number(fs1.value?.purchase_count)===2, fs1.ok?JSON.stringify({t:fs1.value.purchase_total,c:fs1.value.purchase_cash,cr:fs1.value.purchase_credit,n:fs1.value.purchase_count,pay:fs1.value.payable_total,payc:fs1.value.payable_count}):fs1.error)
-  check('A2: payable_total=50 payable_count=1 (current outstanding)', fs1.ok && Number(fs1.value?.payable_total)===50 && Number(fs1.value?.payable_count)===1)
+  // 4 non-cancelled bills: cash100 + credit-unpaid50 + credit-paid70 + credit-overdue80 = 300 (cancelled 90 excluded)
+  check('A1: financeSummary purchase_total=300 cash=100 credit=200 count=4', fs1.ok && Number(fs1.value?.purchase_total)===300 && Number(fs1.value?.purchase_cash)===100 && Number(fs1.value?.purchase_credit)===200 && Number(fs1.value?.purchase_count)===4, fs1.ok?JSON.stringify({t:fs1.value.purchase_total,c:fs1.value.purchase_cash,cr:fs1.value.purchase_credit,n:fs1.value.purchase_count,pay:fs1.value.payable_total,payc:fs1.value.payable_count}):fs1.error)
+  // payable = current outstanding unpaid credit = 50 (unpaid) + 80 (overdue) = 130, 2 bills
+  check('A2: payable_total=130 payable_count=2 (current outstanding)', fs1.ok && Number(fs1.value?.payable_total)===130 && Number(fs1.value?.payable_count)===2)
   const tr1=await apiCall(page,'reports.salesPurchaseTrend',{date_from:today,date_to:today,granularity:'hour'})
   const bucketHasCount = tr1.ok && Array.isArray(tr1.value) && tr1.value.some(r=>Number(r.purchase_count)>0)
   check('A3: salesPurchaseTrend returns purchase_count per bucket', bucketHasCount, tr1.ok?('rows='+tr1.value.length+' sumCount='+tr1.value.reduce((s,r)=>s+(Number(r.purchase_count)||0),0)):tr1.error)
+
+  // ── purchase.history summary + grouped status filters ──
+  const hist=await apiCall(page,'purchase.history',{date_from:today,date_to:today,page:1,limit:50})
+  const sum=hist.ok?(hist.value.summary||{}):{}
+  check('A4: history summary paid_count=1', Number(sum.paid_count)===1, JSON.stringify(sum))
+  check('A5: history summary overdue_count=1', Number(sum.overdue_count)===1, JSON.stringify(sum))
+  const duenow=Math.max(0,Number(sum.unpaid_count)-Number(sum.overdue_count))
+  check('A6: 5-way exclusive (cash+paid+duenow+overdue+cancelled === count)', Number(sum.cash_count)+Number(sum.paid_count)+duenow+Number(sum.overdue_count)+Number(sum.cancelled_count)===Number(sum.count), JSON.stringify({...sum,duenow}))
+  const hPaid=await apiCall(page,'purchase.history',{date_from:today,date_to:today,payment_type:'paid',page:1,limit:50})
+  check('A7: filter paid → only credit+is_paid rows', hPaid.ok && hPaid.value.rows.length===1 && hPaid.value.rows.every(r=>r.payment_type==='credit'&&Number(r.is_paid)===1), hPaid.ok?('rows='+hPaid.value.rows.length):hPaid.error)
+  const hDue=await apiCall(page,'purchase.history',{date_from:today,date_to:today,payment_type:'duenow',page:1,limit:50})
+  check('A8: filter duenow → only unpaid credit not past due', hDue.ok && hDue.value.rows.length===1 && hDue.value.rows.every(r=>r.payment_type==='credit'&&Number(r.is_paid)===0&&(!r.due_date||r.due_date>=today)), hDue.ok?('rows='+hDue.value.rows.length):hDue.error)
+  const hOver=await apiCall(page,'purchase.history',{date_from:today,date_to:today,payment_type:'overdue',page:1,limit:50})
+  check('A9: filter overdue → only unpaid credit past due', hOver.ok && hOver.value.rows.length===1 && hOver.value.rows.every(r=>r.payment_type==='credit'&&Number(r.is_paid)===0&&r.due_date&&r.due_date<today), hOver.ok?('rows='+hOver.value.rows.length):hOver.error)
 
   // ══════════ Part B — admin UI ══════════
   page.on('console', m=>{ if(m.type()==='error') consoleErrors.push(m.text()) })
@@ -67,7 +97,7 @@ try{
   await page.locator('text=ประวัติการซื้อ').first().waitFor({state:'visible',timeout:45000})
   await page.waitForTimeout(1500) // let finance fetch resolve
 
-  const labels=['ยอดซื้อรวม','เงินสด','เครดิต','ค้างชำระ']
+  const labels=['ยอดซื้อรวม','เงินสด','เครดิต (ทั้งหมด)','ค้างชำระ (ทั้งหมด)']
   for(const l of labels){ check('B-strip: เห็นการ์ด "'+l+'"', await page.locator('text='+l).count()>0) }
   check('B: เห็นกราฟ "แนวโน้มการซื้อ"', await page.locator('text=แนวโน้มการซื้อ').count()>0)
   check('B: เห็น toggle "ยอดซื้อ"', await page.locator('button:has-text("ยอดซื้อ")').count()>0)
@@ -75,9 +105,12 @@ try{
   check('B: เห็นการ์ด "สถานะการซื้อ"', await page.locator('text=สถานะการซื้อ').count()>0)
   check('B: เห็นการ์ด "สรุปการซื้อ"', await page.locator('text=สรุปการซื้อ').count()>0)
 
-  // value binding: the ยอดซื้อรวม cell shows 150.00
+  // value binding: ยอดซื้อรวม = 300.00, ค้างชำระ (ทั้งหมด) = 130.00
   const stripText=await page.locator('[data-slot="metric-strip"]').first().innerText().catch(()=>'')
-  check('B: MetricStrip แสดงยอด 150.00 + ค้างชำระ 50.00', stripText.includes('150.00') && stripText.includes('50.00'), JSON.stringify(stripText.replace(/\n/g,' | ')))
+  check('B: MetricStrip แสดงยอด 300.00 + ค้างชำระ (ทั้งหมด) 130.00', stripText.includes('300.00') && stripText.includes('130.00'), JSON.stringify(stripText.replace(/\n/g,' | ')))
+
+  // table status badges (new 5-color taxonomy): ชำระแล้ว / ค้างชำระ / เกินกำหนด appear
+  for(const l of ['ชำระแล้ว','ค้างชำระ','เกินกำหนด']){ check('B-badge: เห็น label "'+l+'"', await page.locator('text='+l).count()>0) }
 
   await page.screenshot({path:pathMod.join(shotDir,'purchases-admin.png'),fullPage:false})
 
@@ -93,7 +126,7 @@ try{
     await prevBtn.first().click()
     await page.waitForTimeout(1500)
     const stripText2=await page.locator('[data-slot="metric-strip"]').first().innerText().catch(()=>'')
-    check('B: เปลี่ยนช่วงวันที่ (เดือนก่อน ว่าง) → ยอดอัปเดตเป็น 0.00 (ไม่ใช่ 150)', stripText2.includes('0.00') && !stripText2.includes('150.00'), JSON.stringify(stripText2.replace(/\n/g,' | ')))
+    check('B: เปลี่ยนช่วงวันที่ (เดือนก่อน ว่าง) → ยอดอัปเดตเป็น 0.00 (ไม่ใช่ 300)', stripText2.includes('0.00') && !stripText2.includes('300.00'), JSON.stringify(stripText2.replace(/\n/g,' | ')))
     // step back to this month
     await page.locator('button[title="ถัดไป"]').first().click()
     await page.waitForTimeout(1200)
@@ -119,6 +152,9 @@ try{
   check('C: staff ไม่เห็น "สถานะการซื้อ"', await page.locator('text=สถานะการซื้อ').count()===0)
   check('C: staff ไม่มี MetricStrip', await page.locator('[data-slot="metric-strip"]').count()===0)
   check('C: staff ยังเห็นตาราง "ประวัติการซื้อ"', await page.locator('text=ประวัติการซื้อ').count()>0)
+  // staff status cards (6): incl ชำระแล้ว + เกินกำหนด (new buckets)
+  check('C: staff เห็นการ์ด "ชำระแล้ว"', await page.locator('text=ชำระแล้ว').count()>0)
+  check('C: staff เห็นการ์ด "เกินกำหนด"', await page.locator('text=เกินกำหนด').count()>0)
   check('C: staff ไม่ white screen', (await page.locator('body').innerText()).length>50)
   await page.screenshot({path:pathMod.join(shotDir,'purchases-staff.png'),fullPage:false})
 

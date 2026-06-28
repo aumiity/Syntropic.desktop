@@ -342,7 +342,9 @@ export function registerPurchaseHandlers() {
         COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'cash'   THEN pr.invoice_no END) as cash_count,
         COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'credit' THEN pr.invoice_no END) as credit_count,
         COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'credit' AND pr.is_paid = 0 THEN pr.invoice_no END) as unpaid_count,
-        COUNT(DISTINCT CASE WHEN pr.status = 'cancelled' THEN pr.invoice_no END) as cancelled_count
+        COUNT(DISTINCT CASE WHEN pr.status = 'cancelled' THEN pr.invoice_no END) as cancelled_count,
+        COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'credit' AND pr.is_paid = 1 THEN pr.invoice_no END) as paid_count,
+        COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'credit' AND pr.is_paid = 0 AND pr.due_date IS NOT NULL AND date(pr.due_date) < date('now','localtime') THEN pr.invoice_no END) as overdue_count
       FROM purchase_receipts pr
       ${baseWhere}
     `).get(...params) as any)
@@ -351,6 +353,12 @@ export function registerPurchaseHandlers() {
     const rowParams = [...params]
     if (payment_type === 'unpaid') {
       rowConditions.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, NOT_CANCELLED)
+    } else if (payment_type === 'paid') {
+      rowConditions.push(`pr.payment_type = 'credit'`, `pr.is_paid = 1`, NOT_CANCELLED)
+    } else if (payment_type === 'duenow') {
+      rowConditions.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, `(pr.due_date IS NULL OR date(pr.due_date) >= date('now','localtime'))`, NOT_CANCELLED)
+    } else if (payment_type === 'overdue') {
+      rowConditions.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, `pr.due_date IS NOT NULL`, `date(pr.due_date) < date('now','localtime')`, NOT_CANCELLED)
     } else if (payment_type === 'cash' || payment_type === 'credit') {
       rowConditions.push(`pr.payment_type = ?`, NOT_CANCELLED); rowParams.push(payment_type)
     }
@@ -397,6 +405,8 @@ export function registerPurchaseHandlers() {
         credit_count: summary.credit_count,
         unpaid_count: summary.unpaid_count,
         cancelled_count: summary.cancelled_count,
+        paid_count: summary.paid_count,
+        overdue_count: summary.overdue_count,
       }
     }
   })

@@ -1,6 +1,6 @@
 ---
 name: project-finance-manage-panel
-description: Finance overview ใน Manage › ประวัติการขาย — admin แสดงตลอด+เลื่อนทั้งหน้า (rework 2026-06-25), staff เต็มจอเดิม
+description: Finance overview ใน Manage › Sales+Purchases — admin แสดงตลอด (rework 2026-06-25); Phase 2 Purchases + status taxonomy 5 bucket (2026-06-28), staff เต็มจอเดิม
 metadata:
   type: project
 ---
@@ -42,9 +42,36 @@ metadata:
   - การ์ดสถานะ = ค้างชำระ (`payable_total`) อิงยอดคงค้าง **ปัจจุบัน** (ไม่ผูกช่วงวันที่); ที่เหลืออิงช่วงวันที่
 - ยังเหลือเฟสถัดไป: LowStock / DeadStock / Expiry / NegativeStock
 
+### Phase 2 Ext — Purchases status taxonomy rework (DONE 2026-06-28; tsc PASS; e2e 36/36 real-Electron)
+
+**Problem:** filter/cards/badges เดิมปนสองแกนต่างกัน — "เครดิต" (payment TYPE) วางข้าง "ค้างชำระ" (credit STATUS) แต่ ค้างชำระ ⊂ เครดิต → overlap/double-representation; ไม่มีตัวกรองแยก เกินกำหนด
+
+**Solution — 5 bucket mutually exclusive (รวม = ทุกบิล):**
+- เงินสด (cash) / ชำระแล้ว (credit paid) / ค้างชำระ (credit unpaid NOT yet due = `'duenow'`) / เกินกำหนด (credit overdue) / ยกเลิก (cancelled)
+- key relation: `duenow = unpaid_count − overdue_count` (คำนวณ frontend; backend คืน cash_count + credit_count + unpaid_count + paid_count + overdue_count + cancelled_count + count)
+- overdue SQL: `due_date IS NOT NULL AND date(due_date) < date('now','localtime')`; duenow รวม NULL due_date ด้วย
+
+**Filter — GROUPED popover:**
+- ทั้งหมด · เงินสด · เครดิต (clickable group header, value=`'credit'`) → children indented: ชำระแล้ว=`'paid'` / ค้างชำระ=`'duenow'` / เกินกำหนด=`'overdue'` · ยกเลิก
+- payment_type filter values: `'cash'|'credit'|'paid'|'duenow'|'overdue'` (+ status `'cancelled'`)
+
+**สีต่อ concept — สม่ำเสมอทุกจุด (badge + statusCard + MetricCard):**
+cash=info / paid=success / duenow=amber / overdue=violet / cancelled=destructive
+
+**UX อื่นที่ปรับ:**
+- MetricStrip 2 card บนใช้ suffix "(ทั้งหมด)" สื่อยอดรวม-ร่ม: **"เครดิต (ทั้งหมด)"** (purchase_credit = เครดิตรวม) + **"ค้างชำระ (ทั้งหมด)"** (payable_total/payable_count = หนี้ค้างทั้งหมด = duenow+overdue) — กัน name clash กับ bucket "ค้างชำระ"(duenow) ใน breakdown/badge (เจ้าของเลือกคงป้าย bucket "ค้างชำระ" ไว้ ผู้ใช้ปรับความเข้าใจเอง)
+- staff MetricCards เพิ่มเป็น 6 (จำนวนบิล + 5 bucket)
+- table badge amber-outline label เปลี่ยน "เครดิต" → "ค้างชำระ" (สะท้อน bucket จริง)
+
+**Critical gotcha — localtime↔UTC off-by-one (generalizable rule):**
+SQL overdue ใช้ `date('now','localtime')`; frontend เดิม `today = new Date().toISOString().slice(0,10)` = UTC → ใน TH (UTC+7) ช่วง midnight–07:00 badge `isOverdue` กับ `overdue_count` ต่างกัน 1 วัน → bucket sum ≠ total
+**Fix:** frontend `today` ต้องสร้างจาก `getFullYear()/getMonth()/getDate()` (local) ไม่ใช่ `toISOString()` — **ใช้กับ date-vs-today ทุกจุดในแอป**
+
+**Files:** `electron/ipc/purchase.ts` (summary + row filter), `src/pages/Manage/Purchases.tsx` (taxonomy/colors/filter/cards/badge), `tests/e2e/verify-purchases-dashboard.mjs` (36 checks)
+
 ### ขอบเขตเจตนา
 
-- Phase 1 = Sales; **Phase 2 = Purchases (DONE)**; เฟสถัดไปขยายไป LowStock / DeadStock / Expiry / NegativeStock
+- Phase 1 = Sales; **Phase 2 = Purchases (DONE)** + status taxonomy rework (DONE 2026-06-28, e2e 36/36); เฟสถัดไปขยายไป LowStock / DeadStock / Expiry / NegativeStock
 - แผงตัวเลข **อิงช่วงวันที่อย่างเดียว** (ตั้งใจ) — ไม่ผูกช่องค้นหา / ตัวกรองสถานะ / VAT ของตาราง; ไม่ปิดแผงตอนผู้ใช้กรองข้อมูล
 - `financeSummary` ตัดบิล voided ออกจากยอดขาย → ใช้ info-soft note กำกับขอบเขตให้ชัด
 

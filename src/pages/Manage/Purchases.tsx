@@ -32,7 +32,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/comp
 import { delta } from '@/lib/delta'
 import { trendOf, compareLabelForMode, prevWindowForMode, granularityForMode } from '@/lib/finance-panel'
 import {
-  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, Settings2, Eye, Filter, MoreHorizontal, Percent,
+  X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, BadgeCheck, Settings2, Eye, Filter, MoreHorizontal, Percent,
   Coins, LineChart, ListChecks,
 } from 'lucide-react'
 
@@ -121,14 +121,16 @@ const PURCHASE_CHART_METRICS: Record<PurchaseChartMetric, {
 }
 
 // Status-breakdown colors — one color language across MetricStrip/MetricCard/this
-// card, all 4 distinct (no dup): เงินสด=info (info-outline badge), เครดิต(จ่ายแล้ว)=amber
-// (เครดิต family), ค้างชำระ=violet (distinct at-risk), ยกเลิก=destructive. unpaid ⊂ credit,
-// so the proportion uses เครดิต(จ่ายแล้ว)=credit−unpaid.
+// card. The 5 buckets are MUTUALLY EXCLUSIVE (every non-cancelled bill is exactly
+// one of cash / paid / duenow / overdue, plus cancelled), so they sum to the bill
+// count with no double-count: เงินสด=info, ชำระแล้ว=success, ค้างชำระ(ยังไม่ถึงกำหนด)=amber,
+// เกินกำหนด=violet (at-risk), ยกเลิก=destructive. All 5 distinct.
 const PURCHASE_STATUS_COLOR: Record<string, string> = {
-  cash:        'hsl(var(--info))',
-  credit_paid: 'hsl(var(--amber))',
-  unpaid:      'hsl(var(--violet))',
-  cancelled:   'hsl(var(--destructive))',
+  cash:      'hsl(var(--info))',
+  paid:      'hsl(var(--success))',
+  duenow:    'hsl(var(--amber))',
+  overdue:   'hsl(var(--violet))',
+  cancelled: 'hsl(var(--destructive))',
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────
@@ -165,9 +167,9 @@ export default function ManagePurchasesPage() {
   const [histDateMode, setHistDateMode] = useState<MultiDateMode>(prefs.dateMode)
   const [histDateFrom, setHistDateFrom] = useState(initialRange.from)
   const [histDateTo, setHistDateTo] = useState(initialRange.to)
-  const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'unpaid' | 'cancelled'>('all')
+  const [histPaymentFilter, setHistPaymentFilter] = useState<'all' | 'cash' | 'credit' | 'paid' | 'duenow' | 'overdue' | 'cancelled'>('all')
   const [histVatFilter, setHistVatFilter] = useState<'all' | 'vat' | 'novat'>('all')
-  const [histSummary, setHistSummary] = useState({ count: 0, cash_count: 0, credit_count: 0, unpaid_count: 0, cancelled_count: 0 })
+  const [histSummary, setHistSummary] = useState({ count: 0, cash_count: 0, credit_count: 0, unpaid_count: 0, cancelled_count: 0, paid_count: 0, overdue_count: 0 })
   const histSort = prefs.histSort
   const setHistSort = (next: SortState | ((prev: SortState) => SortState)) => {
     setPrefs({ histSort: typeof next === 'function' ? next(prefs.histSort) : next })
@@ -240,7 +242,7 @@ export default function ManagePurchasesPage() {
 
   const loadHistory = useCallback(async (
     page = 1,
-    filterOverride?: 'all' | 'cash' | 'credit' | 'unpaid' | 'cancelled',
+    filterOverride?: 'all' | 'cash' | 'credit' | 'paid' | 'duenow' | 'overdue' | 'cancelled',
     dateOverride?: { from: string; to: string },
     clearIfMissing = false,
   ) => {
@@ -254,7 +256,7 @@ export default function ManagePurchasesPage() {
         supplier_id: histSupplierId || undefined,
         date_from: dFrom || undefined,
         date_to: dTo || undefined,
-        payment_type: (filter === 'cash' || filter === 'credit' || filter === 'unpaid') ? filter : undefined,
+        payment_type: (filter === 'cash' || filter === 'credit' || filter === 'paid' || filter === 'duenow' || filter === 'overdue') ? filter : undefined,
         status: filter === 'cancelled' ? 'cancelled' : 'all',
         vat_filter: histVatFilter,
         sort_by: histSort.by,
@@ -309,11 +311,15 @@ export default function ManagePurchasesPage() {
   // ManageLayout renders MetricCard instead of the clickable StatCard).
   useEffect(() => {
     if (isAdmin) { setSlotSummary(null); return }
+    // 5 mutually-exclusive status buckets + a total — ค้างชำระ = unpaid not yet
+    // overdue (unpaid − overdue), so the 5 statuses sum to the bill count.
+    const staffDuenow = Math.max(0, histSummary.unpaid_count - histSummary.overdue_count)
     setSlotSummary([
       { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'เงินสด',    value: histSummary.cash_count.toLocaleString(),      icon: Banknote,      tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'เครดิต',    value: histSummary.credit_count.toLocaleString(),    icon: CreditCard,    tint: 'amber',        sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ค้างชำระ',  value: histSummary.unpaid_count.toLocaleString(),    icon: AlertTriangle, tint: 'violet',        sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ชำระแล้ว',  value: histSummary.paid_count.toLocaleString(),      icon: BadgeCheck,    tint: 'success',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'ค้างชำระ',  value: staffDuenow.toLocaleString(),                 icon: CreditCard,    tint: 'amber',        sub: 'รายการ', subClassName: 'text-base text-foreground' },
+      { label: 'เกินกำหนด', value: histSummary.overdue_count.toLocaleString(),   icon: AlertTriangle, tint: 'violet',       sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     ])
   }, [isAdmin, histSummary, setSlotSummary])
@@ -582,7 +588,14 @@ export default function ManagePurchasesPage() {
   const histSupplier = suppliers.find(s => s.id === histSupplierId) ?? null
   const editSupplier = suppliers.find(s => s.id === editSupplierId) ?? null
   const histTotalPages = histPageSize === 'all' ? 1 : Math.ceil(histTotal / histPageSize)
-  const today = new Date().toISOString().split('T')[0]
+  // LOCAL YYYY-MM-DD (not UTC) so the table's isOverdue badge agrees with the SQL
+  // date('now','localtime') used by the summary/filter counts. Also correct for the
+  // quick-pay paid_date and the edit-modal "วันนี้" shortcut.
+  const today = (() => {
+    const d = new Date()
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  })()
 
   return (
     <>
@@ -610,14 +623,15 @@ export default function ManagePurchasesPage() {
               const dCash   = delta(cash,   prev?.purchase_cash,   { invert: true })
               const dCredit = delta(credit, prev?.purchase_credit, { invert: true })
               const cmp = compareLabelForMode(histDateMode)
-              // unpaid ⊂ credit → split credit into จ่ายแล้ว (credit−unpaid) + ค้างชำระ
-              // so the 4 segments are disjoint and sum to all bills (no double-count).
-              const creditPaid = Math.max(0, histSummary.credit_count - histSummary.unpaid_count)
+              // 5 mutually-exclusive buckets summing to all bills (no double-count):
+              // duenow = unpaid credit not yet past due = unpaid − overdue.
+              const duenow = Math.max(0, histSummary.unpaid_count - histSummary.overdue_count)
               const statusTiles = [
-                { value: 'cash',        label: 'เงินสด',   count: histSummary.cash_count },
-                { value: 'credit_paid', label: 'เครดิต',   count: creditPaid },
-                { value: 'unpaid',      label: 'ค้างชำระ', count: histSummary.unpaid_count },
-                { value: 'cancelled',   label: 'ยกเลิก',   count: histSummary.cancelled_count },
+                { value: 'cash',      label: 'เงินสด',    count: histSummary.cash_count },
+                { value: 'paid',      label: 'ชำระแล้ว',  count: histSummary.paid_count },
+                { value: 'duenow',    label: 'ค้างชำระ',  count: duenow },
+                { value: 'overdue',   label: 'เกินกำหนด', count: histSummary.overdue_count },
+                { value: 'cancelled', label: 'ยกเลิก',    count: histSummary.cancelled_count },
               ]
               return (
                 <>
@@ -627,8 +641,8 @@ export default function ManagePurchasesPage() {
                     items={[
                       { label: 'ยอดซื้อรวม', value: fmt(total),  icon: Coins,        tint: 'primary',   compare: cmp, ...trendOf(dTotal) },
                       { label: 'เงินสด',     value: fmt(cash),   icon: Banknote,     tint: 'info-soft', compare: cmp, ...trendOf(dCash) },
-                      { label: 'เครดิต',     value: fmt(credit), icon: CreditCard,   tint: 'amber',     compare: cmp, ...trendOf(dCredit) },
-                      { label: 'ค้างชำระ',   value: fmt(finance.payable_total), icon: AlertTriangle, tint: 'violet', note: `${finance.payable_count.toLocaleString()} บิล` },
+                      { label: 'เครดิต (ทั้งหมด)', value: fmt(credit), icon: CreditCard, tint: 'amber',  compare: cmp, ...trendOf(dCredit) },
+                      { label: 'ค้างชำระ (ทั้งหมด)', value: fmt(finance.payable_total), icon: AlertTriangle, tint: 'violet', note: `${finance.payable_count.toLocaleString()} บิล · รวมทุกช่วงเวลา` },
                     ]}
                   />
 
@@ -663,7 +677,7 @@ export default function ManagePurchasesPage() {
                           { label: 'ยอดซื้อเฉลี่ย', value: `${fmt(perBill(total))}/บิล` },
                           { label: 'เงินสด',        value: fmt(cash) },
                           { label: 'เครดิต',        value: fmt(credit) },
-                          { label: 'ค้างชำระ (ปัจจุบัน)', value: fmt(finance.payable_total) },
+                          { label: 'ค้างชำระ (รวมทุกช่วงเวลา)', value: fmt(finance.payable_total) },
                         ],
                       })}
                     </div>
@@ -713,11 +727,15 @@ export default function ManagePurchasesPage() {
           </div>
           {/* Status filter popover — was previously the clickable summary cards */}
           {(() => {
-            const STATUS_OPTIONS: { value: typeof histPaymentFilter; label: string }[] = [
+            // Grouped status filter — the credit sub-statuses (ชำระแล้ว / ค้างชำระ /
+            // เกินกำหนด) are indented under เครดิต (ทั้งหมด). Every row is clickable.
+            const STATUS_OPTIONS: { value: typeof histPaymentFilter; label: string; indent?: boolean }[] = [
               { value: 'all',       label: 'ทั้งหมด' },
               { value: 'cash',      label: 'เงินสด' },
-              { value: 'credit',    label: 'เครดิต' },
-              { value: 'unpaid',    label: 'ค้างชำระ' },
+              { value: 'credit',    label: 'เครดิต (ทั้งหมด)' },
+              { value: 'paid',      label: 'ชำระแล้ว',  indent: true },
+              { value: 'duenow',    label: 'ค้างชำระ',  indent: true },
+              { value: 'overdue',   label: 'เกินกำหนด', indent: true },
               { value: 'cancelled', label: 'ยกเลิก' },
             ]
             return (
@@ -738,6 +756,7 @@ export default function ManagePurchasesPage() {
                       onClick={() => { setHistPaymentFilter(o.value); loadHistory(1, o.value, undefined, true) }}
                       className={cn(
                         'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
+                        o.indent && 'pl-7',
                         histPaymentFilter === o.value ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted',
                       )}
                     >
@@ -886,7 +905,7 @@ export default function ManagePurchasesPage() {
                                 ? <Badge variant="success-outline">ชำระแล้ว</Badge>
                                 : isOverdue
                                   ? <Badge variant="violet-outline">เกินกำหนด</Badge>
-                                  : <Badge variant="amber-outline">เครดิต</Badge>
+                                  : <Badge variant="amber-outline">ค้างชำระ</Badge>
                               : <Badge variant="info-outline">เงินสด</Badge>
                           }
                           {vatEnabled && h.vat_mode === 'inclusive' && <Badge variant="info-outline">VAT</Badge>}
