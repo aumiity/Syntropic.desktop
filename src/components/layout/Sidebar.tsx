@@ -105,7 +105,8 @@ export function Sidebar() {
   // role can see any finance report; settings shows for the owner or any role
   // granted settings.manage.
   const canReports = useCan('report.finance') !== 'off'
-  const canSettings = isAdmin || useCan('settings.manage') !== 'off'
+  const canSettingsManage = useCan('settings.manage') !== 'off'
+  const canSettings = isAdmin || canSettingsManage
   const visibleNavItems = mainNavItems.filter(item => {
     if (!item.adminOnly) return true
     if (item.to === '/reports') return canReports

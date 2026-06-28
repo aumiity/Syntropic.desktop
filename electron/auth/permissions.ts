@@ -64,10 +64,13 @@ export function requirePermission(e: IpcMainInvokeEvent, key: string, override?:
 
   // Approver qualifies iff owner, or their role grants this exact key as 'allow'.
   const approverOk = !!row && (row.role === 'owner' || stateFor(row.role, key) === 'allow')
-  if (!approverOk) {
-    recordFailure(db, override.userId)
-    throw new Error('รหัสผ่านไม่ถูกต้อง')
-  }
+
+  // Record a lockout failure ONLY on a genuine wrong-password attempt against an
+  // actual approver — NEVER on the not-an-approver branch. Otherwise a caller who
+  // knows a victim's userId could spam this with a key the victim doesn't hold
+  // and drive their shared login-lockout counter until they're locked out of
+  // real login (the counter is shared with auth:login).
+  if (!approverOk) throw new Error('รหัสผ่านไม่ถูกต้อง')
 
   const { ok } = verifySecret(override.password, row!.password)
   if (!ok) {
