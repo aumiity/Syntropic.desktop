@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>มูลค่าสินค้าคงคลัง — แผนงาน</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
+    --amber:#f59e0b; --amber-soft:#fef3c7;
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --red:#dc2626; --red-soft:#fee2e2; --green:#16a34a; --green-soft:#dcfce7;
+    --slate:#475569;
+    --info:#0284c7; --info-soft:#e0f2fe; --violet:#7c3aed;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI","Sarabun","Noto Sans Thai",sans-serif;
+    color:var(--ink);background:var(--bg);margin:0;padding:0;line-height:1.55;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+  header.hero{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;
+    border-radius:18px;padding:30px 32px;margin-bottom:28px;box-shadow:0 10px 30px -10px rgba(13,148,136,.5)}
+  header.hero h1{margin:0 0 6px;font-size:26px}
+  header.hero p{margin:0;opacity:.92;font-size:15px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600}
+  h2{font-size:20px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line);
+    display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--teal);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  h3{font-size:16px;margin:22px 0 8px;color:var(--teal-d)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f1f5f9;font-weight:700;color:var(--slate);font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.3px}
+  tr:last-child td{border-bottom:none}
+  code{background:#f1f5f9;padding:1.5px 6px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;color:var(--teal-d)}
+  .arrow{color:var(--amber);font-weight:800}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11.5px;font-weight:700}
+  .t-keep{background:var(--green-soft);color:var(--green)}
+  .t-skip{background:var(--red-soft);color:var(--red)}
+  .t-opt{background:var(--amber-soft);color:#b45309}
+  .t-gen{background:var(--teal-soft);color:var(--teal-d)}
+  .callout{border-left:4px solid var(--amber);background:var(--amber-soft);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .callout.teal{border-color:var(--teal);background:var(--teal-soft)}
+  .callout.red{border-color:var(--red);background:var(--red-soft)}
+  .callout.green{border-color:var(--green);background:var(--green-soft)}
+  .callout h4{margin:0 0 6px;font-size:14.5px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center}
+  .stat .v{font-size:24px;font-weight:800;color:var(--teal-d)}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+  ul.clean{margin:6px 0;padding-left:22px}
+  ul.clean li{margin:4px 0}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .ba-grid .col h4{margin:0 0 8px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ba-grid .before{border:1px solid var(--red-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .after{border:1px solid var(--green-soft);background:#fff;border-radius:12px;padding:14px 16px}
+  .ba-grid .before h4{color:var(--red)} .ba-grid .after h4{color:var(--green)}
+  @media(max-width:720px){.ba-grid{grid-template-columns:1fr}}
+  .diagram{overflow-x:auto;padding:8px 4px;margin:10px 0}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .flow .node{border:1.5px solid var(--teal);background:#fff;border-radius:10px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--teal-d);text-align:center;line-height:1.35}
+  .flow .node small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  .flow .node.warn{border-color:var(--amber);color:#b45309}
+  .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
+  .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
+  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+  /* ====== MOCKUP ของหน้าจริง ====== */
+  .mock{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg);
+    box-shadow:0 4px 16px -6px rgba(0,0,0,.12);margin:8px 0;font-size:13px}
+  .mock .mhead{background:#fff;padding:14px 18px 0}
+  .mock .mtitle{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:12px}
+  .mock .toptabs{display:flex;gap:4px;background:#f1f5f9;border:1px solid var(--line);
+    border-radius:10px;padding:4px;width:fit-content}
+  .mock .toptabs span{padding:6px 14px;border-radius:7px;font-weight:600;color:var(--muted);font-size:12.5px}
+  .mock .toptabs span.on{background:var(--teal);color:#fff}
+  .mock .subtabs{display:flex;gap:18px;border-bottom:1px solid var(--line);margin-top:14px;padding:0 2px}
+  .mock .subtabs span{padding:9px 2px 11px;font-weight:600;color:var(--muted);font-size:12.5px;
+    border-bottom:2px solid transparent;margin-bottom:-1px}
+  .mock .subtabs span.on{color:var(--teal-d);border-bottom-color:var(--teal)}
+  .mock .mbody{padding:16px 18px}
+  .mock .mcards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .mock .mcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;position:relative}
+  .mock .mcard .ci{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:8px;
+    display:grid;place-items:center;font-size:13px}
+  .mock .mcard .cl{font-size:11.5px;color:var(--muted);font-weight:600}
+  .mock .mcard .cv{font-size:21px;font-weight:800;margin-top:3px}
+  .mock .mcard .cs{font-size:11px;color:var(--muted);margin-top:1px}
+  .k-cost .ci{background:var(--teal-soft);color:var(--teal-d)} .k-cost .cv{color:var(--teal-d)}
+  .k-sale .ci{background:var(--info-soft);color:var(--info)} .k-sale .cv{color:var(--info)}
+  .k-margin .ci{background:var(--green-soft);color:var(--green)} .k-margin .cv{color:var(--green)}
+  .k-count .ci{background:#f1f5f9;color:var(--slate)} .k-count .cv{color:var(--ink)}
+  .mock .panel{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .mock .pstrip{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .mock .pstrip .pt{font-weight:700;font-size:14px}
+  .mock .pstrip .badge{background:#f1f5f9;border:1px solid var(--line);border-radius:6px;
+    padding:1px 8px;font-size:11.5px;color:var(--slate);font-weight:700}
+  .mock .pstrip .spacer{flex:1}
+  .mock .pstrip .search{border:1px solid var(--line);border-radius:8px;padding:6px 10px;
+    color:var(--muted);font-size:12px;width:190px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .mock .pstrip .fbtn{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;
+    color:var(--slate);background:#fff;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .mock table.mt{width:100%;border-collapse:collapse;font-size:12.5px;margin:0}
+  .mock table.mt th{background:#f8fafc;text-transform:none;letter-spacing:0;font-size:11.5px;
+    color:var(--slate);padding:9px 14px;border-bottom:1px solid var(--line)}
+  .mock table.mt td{padding:9px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+  .mock table.mt td.r,.mock table.mt th.r{text-align:right}
+  .mock table.mt td.c,.mock table.mt th.c{text-align:center}
+  .mock .eye{display:inline-grid;place-items:center;width:26px;height:26px;border:1px solid var(--line);
+    border-radius:7px;color:var(--slate);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .mock .pcat{color:var(--muted);font-size:11.5px}
+  .mock .pbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;
+    border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);background:#fff}
+  .mock .pbar b{color:var(--ink)}
+  .mock .pbar .tot{display:flex;gap:22px}
+  .mcap{font-size:12px;color:var(--muted);text-align:center;margin-top:6px;font-style:italic}
+  .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
+    font-size:13.5px;line-height:1.6}
+  .machine h3{color:#5eead4;margin-top:18px}
+  .machine h3:first-child{margin-top:0}
+  .machine code{background:rgba(148,163,184,.18);color:#7dd3fc}
+  .machine ol{padding-left:22px} .machine li{margin:6px 0}
+  .machine .step{border-left:2px solid #334155;padding-left:14px;margin:12px 0}
+  .machine .inv{color:#fca5a5;font-weight:600}
+  .machine pre{background:#020617;border:1px solid #1e293b;border-radius:8px;padding:12px 14px;
+    overflow-x:auto;font-size:12px;color:#cbd5e1;line-height:1.5}
+  .divider{height:2px;background:linear-gradient(90deg,var(--amber),transparent);margin:40px 0 0;border-radius:2px}
+  footer{margin-top:40px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>มูลค่าสินค้าคงคลัง (Inventory Valuation)</h1>
+    <p>แท็บใหม่ "มูลค่าคงคลัง" เป็นแท็บแรกสุดใต้ การจัดการ › สต็อคสินค้า — แสดงมูลค่ารวมของสินค้าทั้งหมดที่มีในคลัง (ทุน + ราคาขาย + กำไรคงค้าง) เฉพาะผู้มีสิทธิ์เห็นต้นทุน</p>
+    <div class="pillrow">
+      <span class="pill">ผ่าน audit 2 รอบ</span>
+      <span class="pill">เฟสเดียว (renderer + 1 IPC)</span>
+      <span class="pill">admin-only (cost.view)</span>
+      <span class="pill">2026-06-28</span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION A — สำหรับผู้ใช้อ่าน ============ -->
+
+  <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
+  <div class="card">
+    <p style="margin-top:0"><b>ปัญหา:</b> ตอนนี้แอปคำนวณมูลค่าสต็อกได้ (qty × ต้นทุน) แต่ไม่มีจุดไหนรวมยอด <b>ทุกตัวในคลัง</b> ให้ดูในที่เดียว — มูลค่าโผล่เฉพาะแบบกรองเงื่อนไขในแท็บ "ค้างสต็อก" และ "วันหมดอายุ" เท่านั้น</p>
+    <p><b>แผนนี้แก้:</b> เพิ่มแท็บ <b>"มูลค่าคงคลัง"</b> เป็น sub-tab แรกสุดของ "สต็อคสินค้า" รวมมูลค่าสินค้าทั้งหมดที่ยังมีของในล็อตเปิด (<code>is_closed=0</code>, จำนวนคงเหลือ > 0) แสดงเป็นการ์ดสรุปด้านบน + ตารางรายสินค้าเรียงจากมูลค่ามากไปน้อย กรองตามหมวดและค้นชื่อได้</p>
+    <p style="margin-bottom:0"><b>เสร็จแล้วได้:</b> เปิดแท็บเดียวเห็น "เงินจมในสต็อกตอนนี้เท่าไหร่" ทันที ทั้งมูลค่าต้นทุน มูลค่าตามราคาขาย และส่วนต่าง (กำไรที่ยังไม่ขาย) — ข้อมูลเป็นความลับทางการเงิน จึงเปิดให้เฉพาะคนที่มีสิทธิ์ "เห็นต้นทุน" (เจ้าของ/เภสัช) พนักงานทั่วไปจะไม่เห็นแท็บนี้เลย</p>
+  </div>
+
+  <h2><span class="n">2</span> โครงสร้าง / แผนผัง + หน้าตา (mockup)</h2>
+
+  <div class="card">
+    <h3 style="margin-top:0">เส้นทางข้อมูล (renderer ↔ IPC ↔ DB)</h3>
+    <div class="diagram"><div class="flow">
+      <div class="node">แท็บ "มูลค่าคงคลัง"<small>src/pages/Manage/InventoryValue.tsx</small></div>
+      <div class="ar">▶<small>window.api.reports</small></div>
+      <div class="node">preload bridge<small>electron/preload.ts</small></div>
+      <div class="ar">▶<small>IPC reports:inventoryValuation</small></div>
+      <div class="node warn">handler + gate<small>requirePermission('cost.view')</small></div>
+      <div class="ar">▶<small>SUM(qty×cost)</small></div>
+      <div class="node data">product_lots ⋈ products<small>is_closed=0 · qty>0</small></div>
+    </div></div>
+    <p class="mcap">ทุก node คือไฟล์/ช่องทาง/ตารางจริงในโปรเจกต์</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">หน้าตาหน้าจอ (จำลองตามดีไซน์จริง)</h3>
+    <div class="mock">
+      <div class="mhead">
+        <div class="mtitle">การจัดการ</div>
+        <div class="toptabs">
+          <span>ประวัติการขาย</span>
+          <span>ประวัติการซื้อ</span>
+          <span class="on">สต็อคสินค้า</span>
+          <span>ค่าใช้จ่าย</span>
+        </div>
+        <div class="subtabs">
+          <span class="on">มูลค่าคงคลัง</span>
+          <span>ค้างสต็อก</span>
+          <span>วันหมดอายุ</span>
+          <span>ต่ำกว่าจุดสั่งซื้อ</span>
+          <span>ติดลบ</span>
+        </div>
+      </div>
+      <div class="mbody">
+        <div class="mcards">
+          <div class="mcard k-cost">
+            <div class="ci">฿</div>
+            <div class="cl">มูลค่าทุนรวม</div>
+            <div class="cv">฿106,150</div>
+            <div class="cs">ราคาทุน (รวม VAT)</div>
+          </div>
+          <div class="mcard k-sale">
+            <div class="ci">฿</div>
+            <div class="cl">มูลค่าขายรวม</div>
+            <div class="cv">฿158,400</div>
+            <div class="cs">ราคาขาย (รวม VAT)</div>
+          </div>
+          <div class="mcard k-margin">
+            <div class="ci">↑</div>
+            <div class="cl">กำไรคงค้าง</div>
+            <div class="cv">฿52,250</div>
+            <div class="cs">ขาย − ทุน</div>
+          </div>
+          <div class="mcard k-count">
+            <div class="ci">▦</div>
+            <div class="cl">จำนวนสินค้า</div>
+            <div class="cv">485</div>
+            <div class="cs">รายการ (มีของในสต็อก)</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="pstrip">
+            <span class="pt">มูลค่าสินค้าคงคลัง</span>
+            <span class="badge">485</span>
+            <span class="spacer"></span>
+            <span class="search">ค้นหาชื่อสินค้า...</span>
+            <span class="fbtn">▾ หมวด: ทั้งหมด</span>
+          </div>
+          <table class="mt">
+            <thead>
+              <tr>
+                <th>สินค้า ⇅</th>
+                <th>หมวด</th>
+                <th class="r">คงเหลือ ⇅</th>
+                <th class="r">ทุน/หน่วย</th>
+                <th class="r">มูลค่าทุน ▼</th>
+                <th class="r">มูลค่าขาย ⇅</th>
+                <th class="c">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Paracetamol 500mg <span class="pcat">(820 เม็ด)</span></td><td class="pcat">ยาแก้ปวด</td><td class="r">820</td><td class="r">฿12.50</td><td class="r"><b>฿10,250</b></td><td class="r">฿16,400</td><td class="c"><span class="eye">◉</span></td></tr>
+              <tr><td>Amoxicillin 500mg</td><td class="pcat">ยาปฏิชีวนะ</td><td class="r">310</td><td class="r">฿28.00</td><td class="r"><b>฿8,680</b></td><td class="r">฿12,400</td><td class="c"><span class="eye">◉</span></td></tr>
+              <tr><td>Vitamin C 1000mg</td><td class="pcat">วิตามิน</td><td class="r">560</td><td class="r">฿8.20</td><td class="r"><b>฿4,592</b></td><td class="r">฿7,280</td><td class="c"><span class="eye">◉</span></td></tr>
+              <tr><td>ผ้าก๊อซ 3×3</td><td class="pcat">เวชภัณฑ์</td><td class="r">240</td><td class="r">฿15.00</td><td class="r"><b>฿3,600</b></td><td class="r">฿5,520</td><td class="c"><span class="eye">◉</span></td></tr>
+              <tr><td>แอลกอฮอล์ 70% 450ml</td><td class="pcat">ไม่มีหมวด</td><td class="r">95</td><td class="r">฿32.00</td><td class="r"><b>฿3,040</b></td><td class="r">฿4,560</td><td class="c"><span class="eye">◉</span></td></tr>
+            </tbody>
+          </table>
+          <div class="pbar">
+            <span>แสดง <b>485</b> รายการ</span>
+            <span class="tot">
+              <span>มูลค่าทุนรวม <b>฿106,150</b></span>
+              <span>มูลค่าขายรวม <b>฿158,400</b></span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="mcap">เลย์เอาต์มิเรอร์หน้า "ค้างสต็อก" — 4 zone ตามมาตรฐาน table-card (filter strip h-12 / column header / rows / status bar) · การ์ดสรุปยิงผ่าน setSummary เหมือนแท็บพี่น้อง</p>
+  </div>
+
+  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <div class="ba-grid">
+    <div class="col"><div class="before"><h4>ก่อน</h4>
+      <ul class="clean">
+        <li>ไม่มีจุดดูมูลค่าคงคลัง <b>รวมทั้งหมด</b></li>
+        <li>มูลค่าโผล่เฉพาะแบบกรอง: "ค้างสต็อก" (มูลค่าทุนรวม) + "วันหมดอายุ" (มูลค่าทั้งหมด)</li>
+        <li>อยากรู้เงินจมในสต็อกต้องเดา/ส่งออก Excel มานับเอง</li>
+        <li>สต็อคสินค้า มี 4 sub-tab: ค้างสต็อก · วันหมดอายุ · ต่ำกว่าจุดสั่งซื้อ · ติดลบ</li>
+      </ul>
+    </div></div>
+    <div class="col"><div class="after"><h4>หลัง</h4>
+      <ul class="clean">
+        <li>แท็บ <b>"มูลค่าคงคลัง"</b> เป็นอันแรก เปิดเห็นยอดรวมทันที</li>
+        <li>การ์ด: มูลค่าทุนรวม · มูลค่าขายรวม · กำไรคงค้าง · จำนวนสินค้า</li>
+        <li>ตารางรายสินค้า เรียงมูลค่ามาก→น้อย ค้นชื่อ + กรองหมวดได้</li>
+        <li>คลิก "สต็อคสินค้า" → admin ลงแท็บนี้, พนักงานลง "ค้างสต็อก" (ไม่เห็นแท็บนี้)</li>
+      </ul>
+    </div></div>
+  </div>
+
+  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
+  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
+    <li>เห็นมูลค่าเงินจมในสต็อก (ทุน/ราคาขาย/กำไรคงค้าง) ได้ในแท็บเดียว</li>
+    <li>ต่อยอดของเดิมล้วน ๆ — แพตเทิร์น table-card + setSummary + requirePermission ที่มีอยู่แล้ว ทำเร็ว กลมกลืน</li>
+    <li>ไม่แตะ schema / ไม่ migration / ไม่กระทบ flow อื่น (เพิ่ม IPC อ่านอย่างเดียว 1 ตัว)</li>
+    <li>ปลอดภัยด้านการเงิน — gate 3 ชั้น (ซ่อนแท็บ + redirect หน้า + requirePermission ฝั่ง main)</li>
+  </ul></div>
+  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
+    <li>เพิ่มไฟล์หน้าใหม่ 1 ไฟล์ + แตะ index/route/preload/reports รวม ~5 ไฟล์</li>
+    <li>ยอดรวมในแท็บนี้ <b>จะไม่ตรงเป๊ะ</b>กับผลรวมแท็บ "ค้างสต็อก/ต่ำกว่าจุดสั่งซื้อ" เพราะแท็บนี้ตั้งใจรวม<b>สินค้าปิดใช้งาน</b>ที่ยังมีของด้วย (ดูข้อควรระวัง)</li>
+  </ul></div>
+  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
+    <li><b>Rules-of-Hooks:</b> hook ทั้งหมดต้องอยู่เหนือ <code>if(!canCost) return &lt;Navigate/&gt;</code> เสมอ + ใส่ <code>if(!canCost) return</code> ในตัว effect (กันจอขาวตอนสลับ role)</li>
+    <li><b>สิทธิ์:</b> gate ด้วย <code>cost.view === 'allow'</code> (ไม่ใช่ <code>!== 'off'</code>) เพราะทั้งหน้าเป็นต้นทุน ถ้าไม่ allow IPC จะ throw ทั้งก้อน</li>
+    <li><b>มูลค่ารวม VAT:</b> ทั้ง <code>price_retail</code> และ lot <code>cost_price</code> เก็บเป็น gross อยู่แล้ว — กำไร = ขาย − ทุน ไม่ต้อง strip VAT</li>
+    <li><b>div-by-zero:</b> <code>HAVING qty_on_hand > 0</code> เป็นตัวกัน "ทุน/หน่วย" หารศูนย์ — ห้ามถอด HAVING</li>
+    <li>ห้าม emoji ใน UI · ใช้ lucide icon + semantic token เท่านั้น · bar=h-12 control=h-9</li>
+  </ul></div>
+
+  <h2><span class="n">5</span> UX / UI</h2>
+  <div class="card">
+    <ul class="clean" style="margin-top:0">
+      <li><b>ที่อยู่:</b> การจัดการ › สต็อคสินค้า › <b>มูลค่าคงคลัง</b> (sub-tab แรกสุด, icon <code>Coins</code>)</li>
+      <li><b>การ์ดสรุป (setSummary):</b> มูลค่าทุนรวม (tint <code>primary</code>) · มูลค่าขายรวม (<code>info-soft</code>) · กำไรคงค้าง (<code>success</code>) · จำนวนสินค้า (<code>secondary</code>)</li>
+      <li><b>ตาราง 7 คอลัมน์:</b> สินค้า · หมวด · คงเหลือ · ทุน/หน่วย (weighted) · มูลค่าทุน · มูลค่าขาย · จัดการ(ปุ่มดู <code>Eye</code> → หน้าแก้สินค้า) — เรียงเริ่มต้นที่ "มูลค่าทุน" มาก→น้อย, sortable</li>
+      <li><b>filter strip:</b> ชื่อหัวตาราง + Badge จำนวน + <code>SearchInput</code> ค้นชื่อ + ปุ่ม Popover กรองหมวด (มี "ไม่มีหมวด", ลิสต์ยาว scroll ได้)</li>
+      <li><b>status bar ล่าง:</b> "แสดง N รายการ" + มูลค่าทุนรวม + มูลค่าขายรวม</li>
+      <li><b>บทบาท:</b> เจ้าของ/เภสัช (cost.view=allow) เห็นและใช้ได้ · พนักงาน (off) ไม่เห็นแท็บ และเปิด URL ตรงก็ถูก redirect</li>
+      <li><b>ภาษาไทยทั้งหมด</b> · เงิน <code>฿{formatCurrency()}</code> · ไม่มีหน้าจอ staff เปลี่ยนแปลง</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>เกตสิทธิ์ <code>!== 'off'</code> พังเมื่อ role = override (หน้าทั้งหน้าเป็นต้นทุน → IPC throw)</td><td><span class="tag t-skip">MAJOR</span></td><td>เปลี่ยนเป็น <code>=== 'allow'</code> ทั้งซ่อนแท็บและ redirect</td></tr>
+        <tr><td>1</td><td>อ้าง "mirror DeadStock" สำหรับ Navigate แต่ DeadStock ไม่มี/ไม่ import</td><td><span class="tag t-opt">minor</span></td><td>ระบุ import <code>Navigate</code> ชัดเจนใน STEP 3</td></tr>
+        <tr><td>1</td><td>แท็บแรกแต่คลิก "สต็อคสินค้า" ยังลง dead-stock</td><td><span class="tag t-opt">minor</span></td><td>onValueChange top-tab: admin→inventory-value, อื่น→dead-stock</td></tr>
+        <tr><td>1</td><td>render loop ยัง map <code>STOCK_SUBTABS</code> ตรง ๆ</td><td><span class="tag t-opt">minor</span></td><td>ชี้ <code>.map</code> ไป <code>visibleStockSubtabs</code>, คง <code>.find</code> เดิม</td></tr>
+        <tr><td>1</td><td>หมวด NULL / สินค้าปิดใช้งาน / ล็อตติดลบ ไม่ได้ระบุ</td><td><span class="tag t-opt">minor</span></td><td>coalesce "ไม่มีหมวด" + จดเป็น decision ตั้งใจ</td></tr>
+        <tr><td>2</td><td><b>Rules-of-Hooks</b>: early return <code>&lt;Navigate/&gt;</code> อยู่เหนือ hook อื่น</td><td><span class="tag t-skip">MAJOR</span></td><td>hoist hook ทั้งหมดขึ้นบน guard + <code>if(!canCost) return</code> ในตัว effect</td></tr>
+        <tr><td>2</td><td>กรองหมวดควร key ที่ <code>category_id</code> ไม่ใช่ชื่อ (ชนกับชื่อจริง "ไม่มีหมวด")</td><td><span class="tag t-opt">minor</span></td><td>กรอง/derive ด้วย <code>category_id</code> (null=บัคเก็ต), ใช้ชื่อแสดงผลเท่านั้น</td></tr>
+        <tr><td>2</td><td>Popover หมวดยาวล้น (DeadStock มีแค่ 4 รายการคงที่)</td><td><span class="tag t-opt">minor</span></td><td>ใส่ <code>max-h-[..vh]</code> + <code>scrollbar-thin</code></td></tr>
+        <tr><td>2</td><td>ไม่ได้ระบุ loading/empty state + try/catch</td><td><span class="tag t-opt">minor</span></td><td>เพิ่มแถว loading/empty <code>colSpan={7}</code> + try/catch → toast</td></tr>
+        <tr><td>2</td><td>ยืนยัน fix รอบ 1 ทั้งหมด + path/column/line ทุกจุด</td><td><span class="tag t-keep">PASS</span></td><td>โครงสร้างถูกต้อง พร้อมลงมือ</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ============ SECTION B — สำหรับ Claude ทำงาน ============ -->
+
+  <h2><span class="n">B</span> แผนปฏิบัติงาน (Claude อ่านส่วนนี้แล้วลงมือ)</h2>
+  <div class="machine">
+    <h3>Definition of done</h3>
+    <ul>
+      <li>New sub-tab "มูลค่าคงคลัง" renders FIRST in the stock sub-strip, visible only when <code>useCan('cost.view') === 'allow'</code>.</li>
+      <li>Clicking the "สต็อคสินค้า" top-tab lands allow-roles on <code>/manage/inventory-value</code>, others on <code>/manage/dead-stock</code>.</li>
+      <li>Summary cards: มูลค่าทุนรวม / มูลค่าขายรวม / กำไรคงค้าง / จำนวนสินค้า.</li>
+      <li>Per-product table (สินค้า · หมวด · คงเหลือ · ทุน/หน่วย · มูลค่าทุน · มูลค่าขาย · จัดการ), default sort by cost value desc, sortable; name search + category filter (incl. "ไม่มีหมวด"); bottom h-12 bar shows count + cost total + retail total.</li>
+      <li>Staff blocked on all 3 layers (hidden tab + page Navigate redirect + IPC requirePermission). <code>npx tsc --noEmit</code> exits 0.</li>
+    </ul>
+
+    <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+    <ul>
+      <li><code>electron/ipc/reports.ts</code> — add handler <code>reports:inventoryValuation</code> inside <code>registerReportHandlers()</code> (fn @ line 91), near <code>reports:inactiveProducts</code> (~line 1008).</li>
+      <li><code>electron/preload.ts</code> — add bridge method in <code>reports:{}</code> block (after <code>inactiveCounts</code>, ~line 115).</li>
+      <li><code>src/pages/Manage/InventoryValue.tsx</code> — NEW page (structurally like <code>DeadStock.tsx</code> + a Navigate guard).</li>
+      <li><code>src/App.tsx</code> — lazy import + <code>&lt;Route path="inventory-value"&gt;</code> among manage children (~line 138).</li>
+      <li><code>src/pages/Manage/index.tsx</code> — STOCK_SUBTABS (first), resolveTab, resolveTopTab, visibility filter, top-tab landing nav.</li>
+    </ul>
+
+    <h3>ขั้นตอน</h3>
+    <ol>
+      <div class="step"><b>STEP 1 — IPC handler</b> in <code>electron/ipc/reports.ts</code> (inside <code>registerReportHandlers()</code>):
+        <pre>ipcMain.handle('reports:inventoryValuation', (_e) =&gt; {
+  requirePermission(_e, 'cost.view')   // throws FORBIDDEN for non-allow
+  const db = getDb()
+  return db.prepare(`
+    SELECT p.id AS product_id, p.trade_name,
+           COALESCE(c.name,'ไม่มีหมวด') AS category_name, p.category_id,
+           u.name AS unit_name,
+           COALESCE(SUM(pl.qty_on_hand),0)               AS qty_on_hand,
+           COALESCE(SUM(pl.qty_on_hand*pl.cost_price),0) AS cost_value,
+           COALESCE(SUM(pl.qty_on_hand),0)*p.price_retail AS retail_value
+    FROM products p
+    JOIN product_lots pl ON pl.product_id = p.id AND pl.is_closed = 0
+    LEFT JOIN product_categories c ON c.id = p.category_id
+    LEFT JOIN item_units u ON u.id = p.unit_id
+    WHERE p.is_bundle = 0
+    GROUP BY p.id HAVING qty_on_hand &gt; 0
+    ORDER BY cost_value DESC
+  `).all()
+})</pre>
+        <span class="inv">requirePermission(_e,'cost.view') signature = permissions.ts:39 (same whole-handler pattern as productVelocity reports.ts:1057). DELIBERATE: no is_disabled filter (valuation=all stock money; won't reconcile with dead-stock/low-stock which filter is_disabled=0 @ reports.ts:996,1031). HAVING qty_on_hand>0 also guards frontend cost/qty div-by-zero — DO NOT remove. price_retail + cost_price both VAT-inclusive gross → no VAT strip.</span>
+      </div>
+
+      <div class="step"><b>STEP 2 — preload</b> in <code>electron/preload.ts</code> reports block:<br>
+        <code>inventoryValuation: () =&gt; invoke('reports:inventoryValuation'),</code><br>
+        <span class="inv">window.api is inferred from this object; no separate type file. DeadStock calls reports via <code>(window.api.reports as any)</code> — keep that cast in the page.</span>
+      </div>
+
+      <div class="step"><b>STEP 3 — new page</b> <code>src/pages/Manage/InventoryValue.tsx</code>, modeled on <code>DeadStock.tsx</code>:
+        <ul>
+          <li><code>import { Navigate, useOutletContext, useNavigate } from 'react-router-dom'</code> (Navigate is NEW vs DeadStock).</li>
+          <li><span class="inv">HOIST ALL HOOKS FIRST</span>: <code>useNavigate</code>, <code>useOutletContext&lt;ManageOutletContext&gt;()</code>, <code>useCan('cost.view')</code>, all <code>useState</code> (rows, q, categoryFilter:number|'all' default 'all', sort default {by:'cost_value',dir:'desc'}, loading), all <code>useEffect</code> — THEN <code>const canCost = useCan(...)==='allow'; if (!canCost) return &lt;Navigate to="/manage/dead-stock" replace/&gt;</code>. Inside the load/setSummary effects, early-<code>return</code> when <code>!canCost</code> so a pre-redirect render doesn't call the IPC.</li>
+          <li>load: <code>try { const r = await (window.api.reports as any).inventoryValuation(); setRows(r ?? []) } catch(e){ toast(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ','error') } finally { setLoading(false) }</code></li>
+          <li>filteredRows: filter by q (trade_name, lowercase includes) + categoryFilter (compare <code>r.category_id</code>; treat <code>null</code> as the "ไม่มีหมวด" bucket); sort with <code>compareNameBuckets</code> for trade_name, numeric <code>cmp</code> (copy from DeadStock.tsx:51) for the rest.</li>
+          <li>totals: costTotal/retailTotal = reduce; marginTotal = retailTotal − costTotal; skuCount = filteredRows.length.</li>
+          <li>setSummary 4 MetricCards — ทุนรวม(<code>primary</code>), ขายรวม(<code>info-soft</code>), กำไรคงค้าง(<code>success</code>), จำนวนสินค้า(<code>secondary</code>); icons Coins/Tag/TrendingUp/Boxes. <code>setSummary(null)</code> on unmount.</li>
+          <li>category options: derive distinct <code>{id:category_id, name:category_name}</code> from rows ('all' + list); render in a Popover mirroring DeadStock.tsx:164-189 but add <code>max-h-[40vh] overflow-y-auto scrollbar-thin</code>.</li>
+          <li>Table via Table/TableHeader/TableBody/SortableTableHead (cols above); weighted ทุน/หน่วย = <code>qty>0 ? cost_value/qty : 0</code>; action col = <code>Button size="icon-lg" variant="elevated" tooltip="ดูรายละเอียดสินค้า"</code> with <code>Eye</code> → <code>navigate(`/products/${r.product_id}/edit`)</code>. loading row + empty row both <code>colSpan={7}</code>.</li>
+          <li>bottom bar: <code>px-5 h-12 bg-card border-t border-border flex items-center justify-between</code> → count (left) + cost total & retail total (right). <code>const baht = (v:number)=>`฿${formatCurrency(v)}`</code>.</li>
+        </ul>
+        <span class="inv">No emojis (lucide only); ui components only (no raw HTML except the established popover-item button pattern); semantic tokens only; bars h-12 / controls h-9; everything Thai.</span>
+      </div>
+
+      <div class="step"><b>STEP 4 — route</b> <code>src/App.tsx</code>: <code>const ManageInventoryValue = lazy(() =&gt; import('./pages/Manage/InventoryValue'))</code> + <code>&lt;Route path="inventory-value" element={&lt;ManageInventoryValue/&gt;} /&gt;</code> beside the other manage children (~line 138).</div>
+
+      <div class="step"><b>STEP 5 — sub-tab wiring</b> <code>src/pages/Manage/index.tsx</code>:
+        <ul>
+          <li>STOCK_SUBTABS: add as FIRST element <code>{ value:'inventory-value', to:'/manage/inventory-value', label:'มูลค่าคงคลัง', icon: Coins }</code> (import <code>Coins</code> from lucide-react).</li>
+          <li>resolveTab: add <code>if (pathname.startsWith('/manage/inventory-value')) return 'inventory-value'</code>.</li>
+          <li>resolveTopTab: include <code>'inventory-value'</code> in the set returning <code>'stock'</code>.</li>
+          <li>In ManageLayout: <code>const canCost = useCan('cost.view') === 'allow'</code> (useCan already imported @ line 10); <code>const visibleStockSubtabs = canCost ? STOCK_SUBTABS : STOCK_SUBTABS.filter(t =&gt; t.value !== 'inventory-value')</code>; change the sub-tab render <code>.map</code> (line 195) to iterate <code>visibleStockSubtabs</code>; KEEP the onValueChange <code>.find</code> on full STOCK_SUBTABS (line 193).</li>
+          <li>Top-tab landing: in the TOP Tabs onValueChange (lines 161-165), when <code>v==='stock'</code> call <code>navigate(canCost ? '/manage/inventory-value' : '/manage/dead-stock')</code>; other tabs use <code>tab.to</code> as before.</li>
+        </ul>
+        <span class="inv">SubTabValue/TabValue auto-derive from STOCK_SUBTABS const (index.tsx:30-31) — no type-file edit. resolveTopTab MUST include the new value or the "สต็อคสินค้า" top-tab won't highlight.</span>
+      </div>
+    </ol>
+
+    <h3>การ verify</h3>
+    <ul>
+      <li><code>npx tsc --noEmit</code> → exit 0.</li>
+      <li>Click-test as owner: "มูลค่าคงคลัง" is the first sub-tab AND active on entry to สต็อคสินค้า; 4 cards + table populate; search + category filter (incl. "ไม่มีหมวด") + sort + Eye work; bottom totals == cards.</li>
+      <li>Click-test as staff (DEV role-switch): sub-tab hidden; visiting <code>/manage/inventory-value</code> directly redirects to dead-stock; no white screen on role-switch (hooks hoisted).</li>
+    </ul>
+
+    <h3>จุดเสี่ยง + วิธีกัน</h3>
+    <ul>
+      <li><span class="inv">Rules-of-Hooks</span> → all hooks above the Navigate guard; effects early-return on <code>!canCost</code>.</li>
+      <li><span class="inv">Cost leak</span> → requirePermission('cost.view') in handler (authoritative) + hidden tab + page redirect.</li>
+      <li><span class="inv">div-by-zero</span> on ทุน/หน่วย → guard <code>qty>0 ? ... : 0</code>; keep SQL <code>HAVING qty_on_hand>0</code>.</li>
+      <li><span class="inv">Category collision</span> → filter on <code>category_id</code> not display name; null → "ไม่มีหมวด" bucket.</li>
+      <li><span class="inv">Cross-tab mismatch</span> (disabled products included) → intended; document, don't "fix" by adding is_disabled filter unless the operator asks.</li>
+    </ul>
+  </div>
+
+  <footer>สร้างโดย /write-plan · 2026-06-28</footer>
+
+</div>
+</body>
+</html>
