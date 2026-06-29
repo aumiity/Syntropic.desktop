@@ -35,13 +35,14 @@ export function TagProductSearchDialog({
   const [searching, setSearching] = useState(false)
 
   useEffect(() => {
-    if (open) { setQuery(''); setResults([]) }
+    if (open) { setQuery(''); setResults([]); setSearching(false) }
   }, [open])
 
   useEffect(() => {
     if (!open) return
     const q = query.trim()
-    if (!q) { setResults([]); return }
+    // เคลียร์ searching ด้วย (ไม่งั้นพิมพ์แล้วลบเร็ว ๆ → cleanup ตัด timer ก่อน finally → ค้าง true)
+    if (!q) { setResults([]); setSearching(false); return }
     setSearching(true)
     const t = setTimeout(async () => {
       try {

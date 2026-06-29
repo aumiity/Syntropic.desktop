@@ -1,7 +1,6 @@
-import { Button } from '@/components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, X, TriangleAlert, ClipboardPaste, RefreshCcw } from 'lucide-react'
+import { Plus, CircleX, TriangleAlert } from 'lucide-react'
 import type { TagCell } from '@/lib/tags/types'
 
 const FALLBACK_MSG: Record<Exclude<TagCell['barcode_source'], 'own'>, string> = {
@@ -17,36 +16,20 @@ export function GridEditor({
   cells,
   onAssignClick,
   onRemove,
-  onCopyFirst,
-  onClearAll,
 }: {
   cols: number
   rows: number
   cells: (TagCell | null)[]
   onAssignClick: (index: number) => void
   onRemove: (index: number) => void
-  onCopyFirst: () => void
-  onClearAll: () => void
 }) {
   const total = cols * rows
-  const hasAny = cells.some((c) => c != null)
-  const firstFilled = cells[0] != null
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Button variant="primary-soft" size="lg" className="h-9" disabled={!firstFilled} onClick={onCopyFirst}>
-          <ClipboardPaste className="size-4" /> วางทั้งหมด
-        </Button>
-        <Button variant="outline" size="lg" className="h-9" disabled={!hasAny} onClick={onClearAll}>
-          <RefreshCcw className="size-4" /> ล้างทั้งหมด
-        </Button>
-      </div>
-
-      <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, minmax(72px, 1fr))` }}
-      >
+    <div
+      className="grid gap-2"
+      style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, minmax(72px, 1fr))` }}
+    >
         {Array.from({ length: total }, (_, i) => {
           const cell = cells[i] ?? null
           if (!cell) {
@@ -65,44 +48,57 @@ export function GridEditor({
           return (
             <div
               key={i}
-              className="relative flex flex-col rounded-lg border border-border bg-card p-2 cursor-pointer hover:bg-surface-hover transition-colors"
+              // min-w-0 = ปล่อยให้ grid track 1fr (=minmax(auto,1fr)) ไม่โตตามชื่อยาว
+              // → ชื่อที่ overflow-x-clip ถูกตัด ปุ่มไม่ขยาย
+              className="relative flex min-w-0 flex-col rounded-lg border border-border bg-card p-2 cursor-pointer hover:bg-surface-hover transition-colors"
               onClick={() => onAssignClick(i)}
             >
-              {cell.barcode_source !== 'own' && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute left-1.5 top-1.5 z-10 text-warning"
-                      aria-label="คำเตือนบาร์โค้ด"
-                    >
-                      <TriangleAlert className="size-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 text-sm" onClick={(e) => e.stopPropagation()}>
-                    {FALLBACK_MSG[cell.barcode_source]}
-                  </PopoverContent>
-                </Popover>
-              )}
+              {/* X (remove) floats top-right (absolute) and does NOT reserve
+                  vertical space — content stays centered, never pushed down. The
+                  no-barcode warning lives inline on the digits line below. */}
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onRemove(i) }}
-                className="absolute right-1.5 top-1.5 z-10 text-muted-foreground hover:text-destructive transition-colors"
+                className="absolute right-1 top-1 z-10 text-muted-foreground hover:text-destructive transition-colors"
                 aria-label="ลบสินค้า"
               >
-                <X className="size-4" />
+                <CircleX className="size-3.5" />
               </button>
-              <div className="flex-1 min-h-0 flex flex-col justify-center pt-4">
-                <div className="text-sm font-semibold text-foreground overflow-x-clip overflow-y-visible line-clamp-2">{cell.name}</div>
-                <div className="text-xs text-muted-foreground">{cell.unit_name || '-'}</div>
-                <div className="text-sm font-bold text-primary">{formatCurrency(cell.price)}</div>
+              {/* 2 บรรทัด ซ้าย-ขวา: (1) ชื่อ · หน่วย  (2) เลขบาร์โค้ด · ราคา.
+                  overflow-x-clip (ไม่ใช่ truncate) กันตัดวรรณยุกต์บนของไทย */}
+              <div className="flex-1 min-h-0 flex flex-col justify-center gap-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="min-w-0 flex-1 text-sm font-semibold text-foreground overflow-x-clip overflow-y-visible whitespace-nowrap">{cell.name}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{cell.unit_name || '-'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  {cell.barcode_source !== 'own' ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex min-w-0 items-center gap-1 text-warning"
+                          aria-label="คำเตือนบาร์โค้ด"
+                        >
+                          <TriangleAlert className="size-3.5 shrink-0" />
+                          <span className="text-xs overflow-x-clip overflow-y-visible whitespace-nowrap">ไม่มีบาร์โค้ด</span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 text-sm" onClick={(e) => e.stopPropagation()}>
+                        {FALLBACK_MSG[cell.barcode_source]}
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <span className="min-w-0 flex-1 text-xs text-muted-foreground overflow-x-clip overflow-y-visible whitespace-nowrap">{cell.barcode}</span>
+                  )}
+                  <span className="shrink-0 text-sm font-bold text-primary">{formatCurrency(cell.price)}</span>
+                </div>
               </div>
             </div>
           )
         })}
       </div>
-    </div>
   )
 }
 

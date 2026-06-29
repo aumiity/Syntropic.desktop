@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { CheckRow } from '@/components/ui/checkbox'
+import { Checkbox, CheckRow } from '@/components/ui/checkbox'
+import { NumInput } from '@/components/ui/num-input'
 import { SectionCard } from '@/components/ui/card'
 import { ZoomControl } from '@/components/ui/zoom-control'
 import { QtyDialog } from '@/components/ui/qty-dialog'
 import { useToast } from '@/components/ui/toast'
 import { TagProductSearchDialog } from '@/components/dialogs/TagProductSearchDialog'
 import { GridEditor, padCells } from './GridEditor'
-import { Printer, FileText, PenLine } from 'lucide-react'
+import { PriceTagList } from './PriceTagList'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Printer, FileText, PenLine, AlignLeft, AlignCenter, AlignRight, ClipboardPaste, RefreshCcw, RotateCcw, Plus } from 'lucide-react'
 import {
-  priceTagPresets,
   resolveStickerLayout,
   resolvePriceTagPreset,
 } from '@/lib/tags/presets'
@@ -19,12 +21,14 @@ import { buildPriceTagHtml } from '@/lib/tags/priceTagHtml'
 import {
   BARCODE_STICKER_DEFAULTS,
   PRICE_TAG_DEFAULTS,
+  PRICE_TAG_STYLE_PRESETS,
   type BarcodeStickerForm,
   type PriceTagForm,
   type TagCell,
 } from '@/lib/tags/types'
 import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
 import { buildBlankLabelHtml, type BlankLabelShop } from '@/lib/label/blankLabel'
+import { useTagDraftStore } from '@/stores/tagDraftStore'
 
 type Mode = 'sticker' | 'pricetag' | 'blank'
 // A5 removed system-wide → A4 only (document_settings.paper_size is forced 'A4').
@@ -38,6 +42,10 @@ interface DocSettings {
 const A4_DIMS: Record<PaperSize, { w: number; h: number }> = {
   A4: { w: 210, h: 297 },
 }
+
+// Price-tag per-element display settings are HIDDEN for now — the "รูปแบบ" presets
+// cover them. Code is kept intact; flip this to `true` to bring the rows back.
+const SHOW_PRICETAG_DETAILS = false
 
 export default function PrintTab() {
   const { toast } = useToast()
@@ -56,8 +64,11 @@ export default function PrintTab() {
   // by hand. Pre-printed stock → uncheck; print-on-demand → keep checked.
   const [printDate, setPrintDate] = useState(true)
   // Cells are kept per mode so switching back and forth doesn't lose work.
+  // Sticker cells are page-local (quick to rebuild); the PRICE-TAG list lives in a
+  // draft store so it survives navigating away (selling to a walk-in) and back.
   const [stickerCells, setStickerCells] = useState<(TagCell | null)[]>([])
-  const [priceCells, setPriceCells] = useState<(TagCell | null)[]>([])
+  const priceCells = useTagDraftStore((s) => s.priceItems)
+  const setPriceCells = useTagDraftStore((s) => s.setPriceItems)
 
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchIdx, setSearchIdx] = useState<number | null>(null)
@@ -65,10 +76,19 @@ export default function PrintTab() {
   const [busy, setBusy] = useState(false)
   // Copies are chosen in a modal (QtyDialog) that pops up on พิมพ์, not inline.
   const [copiesOpen, setCopiesOpen] = useState(false)
+  // Reset-to-defaults confirm (resets only the active mode's display settings).
+  const [resetOpen, setResetOpen] = useState(false)
   // Sticker preview zoom — the label renders at true 1:1 mm (small on screen),
   // so let the user magnify it. Mirrors the drug-label preview (LabelsTab).
   const [zoom, setZoom] = useState(1)
   const ZOOM_MIN = 1, ZOOM_MAX = 2, ZOOM_STEP = 0.5
+  // Price-tag preview: the A4 page renders at real mm size (210×297mm ≈ 794×1123px),
+  // far bigger than the preview box. An <iframe> does NOT scale its inner document to
+  // the element size, so we transform:scale() the iframe to FIT the box (measured via
+  // ResizeObserver). Mirrors the sticker preview's scale technique (CSS `zoom` on a
+  // wrapper would not magnify the iframe's inner mm layout in lockstep).
+  const tagBoxRef = useRef<HTMLDivElement>(null)
+  const [tagFit, setTagFit] = useState(0.3)
 
   // Load all settings once on mount.
   useEffect(() => {
@@ -83,7 +103,8 @@ export default function PrintTab() {
       if (lbl) setLabel({ ...LABEL_DEFAULTS, ...lbl })
       if (dc) setDoc({ printer_name: dc.printer_name ?? '', paper_size: 'A4' })
       if (sk) setStickerCfg({ ...BARCODE_STICKER_DEFAULTS, ...sk })
-      if (pt) setPriceCfg({ ...PRICE_TAG_DEFAULTS, ...pt })
+      // preset is LOCKED to '50up' (picker removed) — ignore any older saved value.
+      if (pt) setPriceCfg({ ...PRICE_TAG_DEFAULTS, ...pt, preset: '50up' })
       setPrinters(((prs as any[]) ?? []).map((p) => p.name))
       if (sh) setShop(sh as BlankLabelShop)
       setLoaded(true)
@@ -91,31 +112,31 @@ export default function PrintTab() {
   }, [])
 
   // Resolved layout for the active mode → cols/rows for the grid + tooSmall.
-  // Sticker count is auto-derived from the label paper (no preset choice).
+  // Sticker count is auto-derived from the label paper; price tags are LOCKED to
+  // '50up' (5×10) — the per-sheet picker was removed.
   const layout = useMemo(
-    () => (mode === 'sticker' ? resolveStickerLayout(label) : resolvePriceTagPreset(priceCfg.preset, doc.paper_size)),
-    [mode, priceCfg.preset, label, doc.paper_size],
-  )
-  // Only price tags offer a per-sheet preset picker; stickers are auto.
-  const presets = useMemo(
-    () => (mode === 'pricetag' ? priceTagPresets(doc.paper_size) : []),
-    [mode, doc.paper_size],
+    () => (mode === 'sticker' ? resolveStickerLayout(label) : resolvePriceTagPreset('50up', doc.paper_size)),
+    [mode, label, doc.paper_size],
   )
 
   const cells = mode === 'sticker' ? stickerCells : priceCells
   const setCells = mode === 'sticker' ? setStickerCells : setPriceCells
   const maxCopies = mode === 'pricetag' ? 20 : 50
+  // Price tags = a DENSE ordered list (no null holes); the table caps it at 50.
+  const PRICE_MAX = layout.cols * layout.rows // 50 (5×10)
+  const priceItems = priceCells.filter((c): c is TagCell => c != null)
+  // Highlight the ready-made style whose values all match the current config.
+  const activeStyle = PRICE_TAG_STYLE_PRESETS.find(
+    (p) => Object.entries(p.values).every(([k, v]) => (priceCfg as unknown as Record<string, number>)[k] === v),
+  )?.key
 
-  // Keep each mode's cell array sized to its preset grid (slice/pad).
+  // Sticker keeps the fixed grid (slice/pad to the auto-derived count). Price tags
+  // are a dense list, so NO padding — items are appended/removed explicitly.
   const total = layout.cols * layout.rows
   useEffect(() => {
     const L = resolveStickerLayout(label)
     setStickerCells((c) => padCells(c, L.cols * L.rows))
   }, [label])
-  useEffect(() => {
-    const L = resolvePriceTagPreset(priceCfg.preset, doc.paper_size)
-    setPriceCells((c) => padCells(c, L.cols * L.rows))
-  }, [priceCfg.preset, doc.paper_size])
 
   // Clamp copies into the per-mode range whenever the mode changes.
   useEffect(() => { setCopies((c) => Math.min(Math.max(1, c), maxCopies)) }, [maxCopies])
@@ -151,19 +172,55 @@ export default function PrintTab() {
     return () => { cancelled = true; clearTimeout(t) }
   }, [mode, label, stickerCfg, priceCfg, cells, doc.paper_size, shop, printDate])
 
+  // Fit the A4 page to the preview WIDTH only (fills the block horizontally). The
+  // height follows the A4 aspect at natural size — if it's taller than the area,
+  // the MAIN page (the outer grid's overflow-y-auto) scrolls, NOT an inner bar.
+  // Measure the PREVIEW COLUMN width (stable; the box's own size must not feed back).
+  useEffect(() => {
+    if (mode !== 'pricetag') return
+    const el = tagBoxRef.current
+    if (!el) return
+    const PW = (210 * 96) / 25.4 // A4 width in CSS px @96dpi
+    const compute = () => {
+      const cw = el.clientWidth - 40 // card horizontal padding
+      if (cw > 0) setTagFit(Math.max(0.05, cw / PW))
+    }
+    compute()
+    const ro = new ResizeObserver(compute)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mode])
+
   const hasAny = cells.some((c) => c != null)
   // Blank labels need no product cells, so they're always printable. Sticker /
   // price-tag modes still require at least one assigned cell.
   const canPrint = mode === 'blank' ? true : hasAny
 
   const openSearch = (index: number) => { setSearchIdx(index); setSearchOpen(true) }
+  // Price-tag "เพิ่มสินค้า" → append mode (no target cell index).
+  const openAdd = () => { setSearchIdx(null); setSearchOpen(true) }
   const assignCell = (cell: TagCell) => {
+    // Price tags: APPEND to the list (no in-place replace; capped at PRICE_MAX).
+    if (mode === 'pricetag') { setPriceCells((arr) => arr.length >= PRICE_MAX ? arr : [...arr, cell]); return }
     if (searchIdx == null) return
     setCells((arr) => { const next = arr.slice(); next[searchIdx] = cell; return next })
   }
   const removeCell = (index: number) => setCells((arr) => { const next = arr.slice(); next[index] = null; return next })
   const copyFirst = () => setCells((arr) => { const f = arr[0]; return f ? arr.map(() => ({ ...f })) : arr })
-  const clearAll = () => setCells((arr) => arr.map(() => null))
+  const clearAll = () => { if (mode === 'pricetag') setPriceCells([]); else setCells((arr) => arr.map(() => null)) }
+
+  // Price-tag list row actions: duplicate (insert a copy after) / delete.
+  const duplicatePrice = (i: number) =>
+    setPriceCells((a) => a.length >= PRICE_MAX ? a : [...a.slice(0, i + 1), { ...(a[i] as TagCell) }, ...a.slice(i + 1)])
+  const removePrice = (i: number) => setPriceCells((a) => a.filter((_, j) => j !== i))
+
+  // รีเซ็ตการแสดงผลของโหมดปัจจุบันเป็นค่าเริ่มต้น (auto-persist effect เซฟให้เอง).
+  const resetSettings = () => {
+    if (mode === 'sticker') setStickerCfg(BARCODE_STICKER_DEFAULTS)
+    else setPriceCfg(PRICE_TAG_DEFAULTS)
+    setResetOpen(false)
+    toast('รีเซ็ตการตั้งค่าเป็นค่าเริ่มต้นแล้ว', 'success')
+  }
 
   // Resolve the printer label shown read-only above the preview.
   const printerName = mode === 'pricetag' ? doc.printer_name : label.printer_name
@@ -229,7 +286,7 @@ export default function PrintTab() {
         </Tabs>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-3 overflow-y-auto scrollbar-thin">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[5fr_4fr] gap-3 overflow-y-auto scrollbar-thin">
         {/* Right: settings + grid */}
         <div className="space-y-3 min-w-0 order-2">
           {mode === 'blank' ? (
@@ -255,78 +312,251 @@ export default function PrintTab() {
           </SectionCard>
           ) : (
           <>
-          <SectionCard title="ตั้งค่า" icon={FileText} tint="primary">
-            {/* Sticker count is auto-derived from the paper → no picker. Only
-                price tags choose a per-sheet preset. */}
+          <SectionCard
+            title="ตั้งค่า"
+            icon={FileText}
+            tint="primary"
+            right={
+              // Price tags restore defaults via the "รูปแบบ" presets → no reset button.
+              // Stickers have no presets, so they keep the reset.
+              mode === 'sticker' ? (
+                <Button variant="elevated" size="lg" className="h-9" onClick={() => setResetOpen(true)} tooltip="รีเซ็ตการตั้งค่าเป็นค่าเริ่มต้น">
+                  <RotateCcw className="size-4" /> รีเซ็ต
+                </Button>
+              ) : undefined
+            }
+          >
+            {/* Price tags are LOCKED to 50/sheet (5×10) — the per-sheet picker was
+                removed. Sticker count is auto-derived from the label paper. */}
             {mode === 'pricetag' && (
               <div className="space-y-2">
-                <div className="text-sm font-medium text-foreground">จำนวนต่อแผ่น</div>
+                <div className="text-sm font-medium text-foreground">รูปแบบสำเร็จรูป</div>
                 <div className="flex flex-wrap gap-2">
-                  {presets.map((p) => {
-                    const active = priceCfg.preset === p.key
-                    return (
-                      <Button
-                        key={p.key}
-                        variant={active ? 'default' : 'outline'}
-                        size="lg"
-                        className="h-9"
-                        disabled={p.layout.tooSmall && !active}
-                        onClick={() => setPriceCfg((c) => ({ ...c, preset: p.key }))}
-                      >
-                        {p.label}
-                      </Button>
-                    )
-                  })}
+                  {PRICE_TAG_STYLE_PRESETS.map((p) => (
+                    <Button
+                      key={p.key}
+                      variant={activeStyle === p.key ? 'default' : 'outline'}
+                      size="lg"
+                      className="h-9"
+                      onClick={() => setPriceCfg((c) => ({ ...c, ...p.values }))}
+                    >
+                      {p.label}
+                    </Button>
+                  ))}
                 </div>
+                {/* Yellow-fill toggle stays visible even while the detailed settings
+                    are hidden (it's the one option the operator toggles per print). */}
+                <CheckRow
+                  framed
+                  className="h-12 w-full"
+                  label="พื้นหลังสีเหลือง (แบบ 7-11)"
+                  checked={!!priceCfg.fill_yellow}
+                  onChange={(v) => setPriceCfg((c) => ({ ...c, fill_yellow: v ? 1 : 0 }))}
+                />
               </div>
             )}
 
+            {(mode === 'sticker' || SHOW_PRICETAG_DETAILS) && (
             <div className="space-y-2">
               <div className="text-sm font-medium text-foreground">การแสดงผล</div>
               {mode === 'sticker' ? (
-                // Sticker has few toggles → group all 3 inside ONE frame
-                // (shared border + row dividers), one per line.
+                // Each element owns ONE row: checkbox (toggle visibility) on the
+                // left + its size stepper on the right (greyed when hidden). The
+                // barcode-height row has no toggle (the barcode always prints when
+                // the product has one) — its label is indented to align with the rest.
                 <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
-                  <CheckRow className="h-12 px-3" label="ชื่อสินค้า" checked={!!stickerCfg.show_name} onChange={(v) => setStickerCfg((c) => ({ ...c, show_name: v ? 1 : 0 }))} />
-                  <CheckRow className="h-12 px-3" label="ตัวเลขบาร์โค้ด" checked={!!stickerCfg.show_digits} onChange={(v) => setStickerCfg((c) => ({ ...c, show_digits: v ? 1 : 0 }))} />
-                  <CheckRow className="h-12 px-3" label="ราคา" checked={!!stickerCfg.show_price} onChange={(v) => setStickerCfg((c) => ({ ...c, show_price: v ? 1 : 0 }))} />
+                  <div className="flex h-12 items-center justify-between px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!stickerCfg.show_name} onCheckedChange={(v) => setStickerCfg((c) => ({ ...c, show_name: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">ชื่อสินค้า</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {/* จัดวางชื่อ: ชิดซ้าย / กลาง / ชิดขวา (connected toggle, h-9) */}
+                      <Tabs value={stickerCfg.name_align} onValueChange={(v) => setStickerCfg((c) => ({ ...c, name_align: v }))}>
+                        <TabsList variant="toggle">
+                          <TabsTrigger value="left" className="px-2.5" disabled={!stickerCfg.show_name} aria-label="ชิดซ้าย"><AlignLeft /></TabsTrigger>
+                          <TabsTrigger value="center" className="px-2.5" disabled={!stickerCfg.show_name} aria-label="กึ่งกลาง"><AlignCenter /></TabsTrigger>
+                          <TabsTrigger value="right" className="px-2.5" disabled={!stickerCfg.show_name} aria-label="ชิดขวา"><AlignRight /></TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                      <NumInput stepper value={stickerCfg.font_name_pt} onChange={(n) => setStickerCfg((c) => ({ ...c, font_name_pt: n }))} className="w-16" min={6} max={20} step={1} disabled={!stickerCfg.show_name} />
+                      <span className="w-8 text-xs text-muted-foreground">pt</span>
+                    </div>
+                  </div>
+                  <div className="flex h-12 items-center justify-between px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!stickerCfg.show_digits} onCheckedChange={(v) => setStickerCfg((c) => ({ ...c, show_digits: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">ตัวเลขบาร์โค้ด</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <NumInput stepper value={stickerCfg.font_digits_pt} onChange={(n) => setStickerCfg((c) => ({ ...c, font_digits_pt: n }))} className="w-16" min={5} max={18} step={1} disabled={!stickerCfg.show_digits} />
+                      <span className="w-8 text-xs text-muted-foreground">pt</span>
+                    </div>
+                  </div>
+                  <div className="flex h-12 items-center justify-between px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!stickerCfg.show_price} onCheckedChange={(v) => setStickerCfg((c) => ({ ...c, show_price: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">ราคา</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <NumInput stepper value={stickerCfg.font_price_pt} onChange={(n) => setStickerCfg((c) => ({ ...c, font_price_pt: n }))} className="w-16" min={5} max={18} step={1} disabled={!stickerCfg.show_price} />
+                      <span className="w-8 text-xs text-muted-foreground">pt</span>
+                    </div>
+                  </div>
+                  <div className="flex h-12 items-center justify-between px-3">
+                    {/* บาร์โค้ดบังคับเปิดเสมอ (พิมพ์เมื่อสินค้ามีรหัส) — checkbox ติ๊ก+disable
+                        ไว้เพื่อให้แถวจัดแนวตรงกับแถวบน; ปรับได้แค่ "ความสูง" */}
+                    <label className="flex items-center gap-3 select-none" title="บาร์โค้ดพิมพ์เสมอเมื่อสินค้ามีรหัสบาร์โค้ด">
+                      <Checkbox checked disabled />
+                      <span className="text-sm text-muted-foreground">บาร์โค้ด</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">กว้าง</span>
+                      <NumInput stepper value={stickerCfg.barcode_w_mm} onChange={(n) => setStickerCfg((c) => ({ ...c, barcode_w_mm: n }))} className="w-16" min={15} max={38} step={0.5} />
+                      <span className="text-xs text-muted-foreground">สูง</span>
+                      <NumInput stepper value={stickerCfg.barcode_h_mm} onChange={(n) => setStickerCfg((c) => ({ ...c, barcode_h_mm: n }))} className="w-16" min={3} max={12} step={0.5} />
+                      <span className="w-8 text-xs text-muted-foreground">มม.</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  <CheckRow framed className="h-12" label="ชื่อสินค้า" checked={!!priceCfg.show_name} onChange={(v) => setPriceCfg((c) => ({ ...c, show_name: v ? 1 : 0 }))} />
-                  <CheckRow framed className="h-12" label="ราคา" checked={!!priceCfg.show_price} onChange={(v) => setPriceCfg((c) => ({ ...c, show_price: v ? 1 : 0 }))} />
-                  <CheckRow framed className="h-12" label="บาร์โค้ด" checked={!!priceCfg.show_barcode} onChange={(v) => setPriceCfg((c) => ({ ...c, show_barcode: v ? 1 : 0 }))} />
-                  <CheckRow framed className="h-12" label="รหัส" checked={!!priceCfg.show_code} onChange={(v) => setPriceCfg((c) => ({ ...c, show_code: v ? 1 : 0 }))} />
-                  <CheckRow framed className="h-12" label="หน่วย" checked={!!priceCfg.show_unit} onChange={(v) => setPriceCfg((c) => ({ ...c, show_unit: v ? 1 : 0 }))} />
-                  <CheckRow framed className="h-12" label="เส้นตัด" checked={!!priceCfg.show_cut_lines} onChange={(v) => setPriceCfg((c) => ({ ...c, show_cut_lines: v ? 1 : 0 }))} />
+                // Same treatment as the sticker rows: each element = checkbox +
+                // its own size stepper (greyed when hidden). เส้นตัด is a plain toggle.
+                <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-card divide-y divide-border">
+                  <div className="flex h-12 items-center justify-between px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!priceCfg.show_name} onCheckedChange={(v) => setPriceCfg((c) => ({ ...c, show_name: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">ชื่อสินค้า</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <NumInput stepper value={priceCfg.font_name_pt} onChange={(n) => setPriceCfg((c) => ({ ...c, font_name_pt: n }))} className="w-16" min={6} max={28} step={1} disabled={!priceCfg.show_name} />
+                      <span className="w-8 text-xs text-muted-foreground">pt</span>
+                    </div>
+                  </div>
+                  <div className="flex h-12 items-center justify-between px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!priceCfg.show_price} onCheckedChange={(v) => setPriceCfg((c) => ({ ...c, show_price: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">ราคา</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <NumInput stepper value={priceCfg.font_price_pt} onChange={(n) => setPriceCfg((c) => ({ ...c, font_price_pt: n }))} className="w-16" min={8} max={40} step={1} disabled={!priceCfg.show_price} />
+                      <span className="w-8 text-xs text-muted-foreground">pt</span>
+                    </div>
+                  </div>
+                  <div className="flex h-12 items-center justify-between px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!priceCfg.show_code} onCheckedChange={(v) => setPriceCfg((c) => ({ ...c, show_code: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">วันที่พิมพ์</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <NumInput stepper value={priceCfg.font_code_pt} onChange={(n) => setPriceCfg((c) => ({ ...c, font_code_pt: n }))} className="w-16" min={5} max={16} step={1} disabled={!priceCfg.show_code} />
+                      <span className="w-8 text-xs text-muted-foreground">pt</span>
+                    </div>
+                  </div>
+                  <div className="flex h-12 items-center justify-between px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!priceCfg.show_unit} onCheckedChange={(v) => setPriceCfg((c) => ({ ...c, show_unit: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">หน่วย</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <NumInput stepper value={priceCfg.font_unit_pt} onChange={(n) => setPriceCfg((c) => ({ ...c, font_unit_pt: n }))} className="w-16" min={5} max={16} step={1} disabled={!priceCfg.show_unit} />
+                      <span className="w-8 text-xs text-muted-foreground">pt</span>
+                    </div>
+                  </div>
+                  <div className="flex h-12 items-center justify-between px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!priceCfg.show_barcode} onCheckedChange={(v) => setPriceCfg((c) => ({ ...c, show_barcode: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">บาร์โค้ด</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {/* บาร์โค้ดเต็มความกว้างเสมอ (แบบ 7-11) → ปรับได้แค่ความสูง */}
+                      <span className="text-xs text-muted-foreground">สูง</span>
+                      <NumInput stepper value={priceCfg.barcode_h_mm} onChange={(n) => setPriceCfg((c) => ({ ...c, barcode_h_mm: n }))} className="w-16" min={3} max={16} step={0.5} disabled={!priceCfg.show_barcode} />
+                      <span className="w-8 text-xs text-muted-foreground">มม.</span>
+                    </div>
+                  </div>
+                  <div className="flex h-12 items-center px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!priceCfg.show_cut_lines} onCheckedChange={(v) => setPriceCfg((c) => ({ ...c, show_cut_lines: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">เส้นตัด</span>
+                    </label>
+                  </div>
+                  <div className="flex h-12 items-center px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!priceCfg.fill_yellow} onCheckedChange={(v) => setPriceCfg((c) => ({ ...c, fill_yellow: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">พื้นหลังสีเหลือง (แบบ 7-11)</span>
+                    </label>
+                  </div>
+                  <div className="flex h-12 items-center px-3">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <Checkbox checked={!!priceCfg.price_compact} onCheckedChange={(v) => setPriceCfg((c) => ({ ...c, price_compact: v === true ? 1 : 0 }))} />
+                      <span className="text-sm">ราคาแบบย่อ (ตัด .00 และ บาท)</span>
+                    </label>
+                  </div>
+                  <div className="flex h-12 items-center justify-between px-3">
+                    <span className="text-sm">ระยะห่างบรรทัด</span>
+                    <div className="flex items-center gap-1.5">
+                      <NumInput stepper value={priceCfg.line_gap_mm} onChange={(n) => setPriceCfg((c) => ({ ...c, line_gap_mm: n }))} className="w-16" min={0} max={6} step={0.5} />
+                      <span className="w-8 text-xs text-muted-foreground">มม.</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
+            )}
           </SectionCard>
 
-          <SectionCard title="รายการสินค้า" icon={Printer} tint="info-soft">
-            <GridEditor
-              cols={layout.cols}
-              rows={layout.rows}
-              cells={padCells(cells, total)}
-              onAssignClick={openSearch}
-              onRemove={removeCell}
-              onCopyFirst={copyFirst}
-              onClearAll={clearAll}
-            />
+          <SectionCard
+            title="รายการสินค้า"
+            icon={Printer}
+            tint="info-soft"
+            right={
+              mode === 'pricetag' ? (
+                <div className="flex items-center gap-2">
+                  <span className="mr-1 text-xs text-muted-foreground">{priceItems.length} / {PRICE_MAX}</span>
+                  <Button variant="primary-soft" size="lg" className="h-9" disabled={priceItems.length >= PRICE_MAX} onClick={openAdd}>
+                    <Plus className="size-4" /> เพิ่มสินค้า
+                  </Button>
+                  <Button variant="outline" size="lg" className="h-9" disabled={priceItems.length === 0} onClick={clearAll}>
+                    <RefreshCcw className="size-4" /> ล้างทั้งหมด
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button variant="primary-soft" size="lg" className="h-9" disabled={cells[0] == null} onClick={copyFirst}>
+                    <ClipboardPaste className="size-4" /> วางทั้งหมด
+                  </Button>
+                  <Button variant="outline" size="lg" className="h-9" disabled={!hasAny} onClick={clearAll}>
+                    <RefreshCcw className="size-4" /> ล้างทั้งหมด
+                  </Button>
+                </div>
+              )
+            }
+          >
+            {mode === 'pricetag' ? (
+              <PriceTagList items={priceItems} max={PRICE_MAX} onDuplicate={duplicatePrice} onRemove={removePrice} />
+            ) : (
+              <GridEditor
+                cols={layout.cols}
+                rows={layout.rows}
+                cells={padCells(cells, total)}
+                onAssignClick={openSearch}
+                onRemove={removeCell}
+              />
+            )}
           </SectionCard>
           </>
           )}
         </div>
 
         {/* Left: live preview + read-only printer/paper */}
-        <div className="min-w-0 order-1">
+        <div ref={tagBoxRef} className="min-w-0 order-1">
           <SectionCard
             title="ตัวอย่าง"
             icon={FileText}
             tint="amber"
-            fill
-            className="h-full"
+            fill={mode !== 'pricetag'}
+            className={mode === 'pricetag' ? undefined : 'h-full'}
             right={
               <div className="flex items-center gap-2">
                 {mode !== 'pricetag' && (
@@ -373,12 +603,31 @@ export default function PrintTab() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 min-h-0 flex items-center justify-center rounded-lg border border-border bg-muted overflow-hidden">
-                <iframe
-                  title="ตัวอย่างงานพิมพ์"
-                  srcDoc={previewHtml}
-                  className="w-full h-full border-0 bg-card"
-                />
+              // A4 fitted to the block WIDTH (fills horizontally), natural height. If
+              // taller than the viewport, the MAIN page scrolls (outer grid), not an
+              // inner scrollbar — so no maxHeight / overflow here.
+              <div className="flex justify-center">
+                <div
+                  className="shrink-0 overflow-hidden rounded-lg border border-border bg-white"
+                  style={{
+                    width: `calc(210mm * ${tagFit})`,
+                    height: `calc(297mm * ${tagFit})`,
+                    boxShadow: '0 4px 5px rgb(0 0 0 / 0.20), 0 12px 14px rgb(0 0 0 / 0.16)',
+                  }}
+                >
+                  <iframe
+                    title="ตัวอย่างงานพิมพ์"
+                    srcDoc={previewHtml}
+                    scrolling="no"
+                    className="block border-0 bg-white"
+                    style={{
+                      width: '210mm',
+                      height: '297mm',
+                      transform: `scale(${tagFit})`,
+                      transformOrigin: 'top left',
+                    }}
+                  />
+                </div>
               </div>
             )}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -413,6 +662,17 @@ export default function PrintTab() {
           setCopies(n)
           handlePrint(n)
         }}
+      />
+
+      {/* รีเซ็ตการตั้งค่าของโหมดปัจจุบันเป็นค่าเริ่มต้น (เตือนก่อน เพราะทับค่าที่ปรับไว้) */}
+      <ConfirmDialog
+        open={resetOpen}
+        onOpenChange={setResetOpen}
+        variant="warning"
+        title="รีเซ็ตการตั้งค่า"
+        description={`การตั้งค่าการแสดงผล${mode === 'sticker' ? 'สติ๊กเกอร์บาร์โค้ด' : 'ป้ายราคา'}ทั้งหมดจะกลับเป็นค่าเริ่มต้น`}
+        confirmLabel="รีเซ็ต"
+        onConfirm={resetSettings}
       />
     </div>
   )

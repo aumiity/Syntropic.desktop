@@ -51,7 +51,19 @@ const STICKER_BARCODE_H_MM = 7
 // 1.0 = strict, never shrink to fit more.
 const STICKER_FILL_TOLERANCE = 0.9
 
-export function resolveStickerLayout(paper: LabelSettingsForm): ResolvedLayout {
+// overrides (optional) = user-tunable per-element sticker sizes from
+// BarcodeStickerForm, overriding the STICKER_* defaults. Layout-only callers
+// (grid sizing) omit it and get the design defaults; the HTML builder passes the
+// saved sizes. digitsPt → fontMetaPt (sticker meta line = barcode digits).
+export function resolveStickerLayout(
+  paper: LabelSettingsForm,
+  overrides?: { namePt?: number; digitsPt?: number; pricePt?: number; barcodeHmm?: number },
+): ResolvedLayout {
+  const pick = (v: number | undefined, fallback: number) => (v != null && v > 0 ? v : fallback)
+  const namePt = pick(overrides?.namePt, STICKER_FONT_NAME_PT)
+  const digitsPt = pick(overrides?.digitsPt, STICKER_FONT_META_PT)
+  const pricePt = pick(overrides?.pricePt, STICKER_FONT_META_PT)
+  const barcodeHmm = pick(overrides?.barcodeHmm, STICKER_BARCODE_H_MM)
   // gap 0: cells touch so the grid draws as ONE continuous single-line table.
   const gapMm = 0
   const areaW = Math.max(0, paper.width_mm - paper.pad_left - paper.pad_right)
@@ -73,10 +85,10 @@ export function resolveStickerLayout(paper: LabelSettingsForm): ResolvedLayout {
     cols,
     rows,
     gapMm,
-    fontNamePt: STICKER_FONT_NAME_PT,
-    fontPricePt: STICKER_FONT_NAME_PT, // sticker has no separate price size (price is in the meta line)
-    fontMetaPt: STICKER_FONT_META_PT,
-    barcodeHeightMm: STICKER_BARCODE_H_MM,
+    fontNamePt: namePt,
+    fontPricePt: pricePt,
+    fontMetaPt: digitsPt, // sticker meta line = the barcode-digits span
+    barcodeHeightMm: barcodeHmm,
     cellWmm,
     cellHmm,
     tooSmall,
@@ -103,9 +115,13 @@ const PRICE_TAG_SPECS: Record<string, PriceTagSpec> = {
   '8up': { cols: 2, rows: 4, fontNamePt: 14, fontPricePt: 28, fontMetaPt: 10, barcodeHeightMm: 12 },
   '12up': { cols: 3, rows: 4, fontNamePt: 12, fontPricePt: 22, fontMetaPt: 9, barcodeHeightMm: 10 },
   '24up': { cols: 4, rows: 6, fontNamePt: 10, fontPricePt: 16, fontMetaPt: 8, barcodeHeightMm: 8 },
+  // 50/sheet (5×10) — the ONLY price-tag layout now (picker removed). The fonts
+  // here are just fallbacks; the real per-element sizes are user-tunable and read
+  // straight from PriceTagForm in priceTagHtml (mirrors the sticker overrides).
+  '50up': { cols: 5, rows: 10, fontNamePt: 9, fontPricePt: 14, fontMetaPt: 7, barcodeHeightMm: 8 },
 }
 
-const PRICE_TAG_ORDER = ['4up', '8up', '12up', '24up']
+const PRICE_TAG_ORDER = ['4up', '8up', '12up', '24up', '50up']
 
 const PRICE_TAG_LABEL: Record<string, string> = {
   '4up': '4 ป้ายต่อแผ่น',

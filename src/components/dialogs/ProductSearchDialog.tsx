@@ -151,7 +151,7 @@ export function ProductSearchDialog<Row>({
 
         {/* Results — flex-1, scrolls internally, empty space stays empty */}
         <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
-          {searching && rows.length === 0 ? (
+          {query && searching && rows.length === 0 ? (
             <div className="py-12 text-center text-foreground-subtle text-base">กำลังค้นหา...</div>
           ) : query && rows.length === 0 ? (
             <div className="py-12 text-center text-foreground-subtle text-base">ไม่พบสินค้า "{query}"</div>

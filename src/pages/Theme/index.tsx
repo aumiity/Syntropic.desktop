@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { Input, SearchInput } from '@/components/ui/input'
+import { NumInput } from '@/components/ui/num-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
@@ -148,6 +149,7 @@ export default function Theme() {
 
   // ── component showcase state ──
   const [inputVal, setInputVal] = useState('')
+  const [numVal, setNumVal] = useState(8)
   const [selectVal, setSelectVal] = useState('')
   const [checked, setChecked] = useState(false)
   const [switchOn, setSwitchOn] = useState(false)
@@ -717,6 +719,18 @@ export default function Theme() {
                 <DemoRow label="Filled — flat bg-input (opt-in via variant='filled'; the old default look)">
                   <Input variant="filled" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
                   <SearchInput variant="filled" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
+                </DemoRow>
+              </Section>
+
+              {/* ── NUM INPUT ── */}
+              <Section title="NumInput" path="src/components/ui/num-input.tsx">
+                <DemoRow label="stepper — number field + ▲▼ (press-and-hold auto-repeat); clamps to min/max, keeps a local text buffer so 0 is deletable">
+                  <NumInput stepper value={numVal} onChange={setNumVal} className="w-20" min={6} max={20} step={1} />
+                  <span className="text-sm text-muted-foreground">ค่า: {numVal} pt</span>
+                </DemoRow>
+                <DemoRow label="without stepper — plain number field; disabled">
+                  <NumInput value={numVal} onChange={setNumVal} className="w-24" />
+                  <NumInput stepper value={numVal} onChange={setNumVal} className="w-20" disabled />
                 </DemoRow>
               </Section>
 

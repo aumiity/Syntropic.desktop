@@ -7,6 +7,7 @@ import { FormField } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ZoomControl } from '@/components/ui/zoom-control'
+import { NumInput, useHoldRepeat } from '@/components/ui/num-input'
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select'
@@ -46,110 +47,10 @@ const presetKey = (w: number, h: number) => `${w}x${h}`
 // old height-scaled formula was replaced so each size looks good independently and
 // a custom size borrows the 80x50 standard.
 
-// Number input with a local string buffer — fixes the "can't delete the 0"
-// problem that controlled `value={number}` inputs have. Strategy: hold the
-// in-flight text locally so the user can clear / type freely; only commit a
-// real number to parent state. On blur, snap back to the parent's last good
-// value if the buffer is empty/invalid (keeps state consistent on focus loss).
-// Press-and-hold auto-repeat. `bind(fn)` returns pointer handlers for a button:
-// one immediate call, then repeat every 70ms after a 350ms hold, until pointer
-// up / leave / cancel / unmount. Shared by the NumInput steppers AND the
-// per-section position arrows so both feel identical.
-function useHoldRepeat() {
-  const ref = React.useRef<{ t?: ReturnType<typeof setTimeout>; i?: ReturnType<typeof setInterval> }>({})
-  const stop = React.useCallback(() => {
-    if (ref.current.t) clearTimeout(ref.current.t)
-    if (ref.current.i) clearInterval(ref.current.i)
-    ref.current = {}
-  }, [])
-  React.useEffect(() => stop, [stop])
-  return React.useCallback((fn: () => void) => ({
-    onPointerDown: () => { stop(); fn(); ref.current.t = setTimeout(() => { ref.current.i = setInterval(fn, 70) }, 350) },
-    onPointerUp: stop,
-    onPointerLeave: stop,
-    onPointerCancel: stop,
-  }), [stop])
-}
-
-function NumInput({
-  value, onChange, stepper, className, ...rest
-}: {
-  value: number
-  onChange: (n: number) => void
-  // `stepper` overlays chevron ▲▼ buttons inside the field for fine adjustment;
-  // they step by the `step` prop (default 1), clamped to min/max.
-  stepper?: boolean
-} & Omit<React.ComponentProps<typeof Input>, 'value' | 'onChange' | 'type'>) {
-  const [text, setText] = React.useState(String(value))
-  const [focused, setFocused] = React.useState(false)
-  React.useEffect(() => {
-    if (!focused) setText(String(value))
-  }, [value, focused])
-
-  const stepN = rest.step != null ? Number(rest.step) : 1
-  const minN  = rest.min  != null ? Number(rest.min)  : -Infinity
-  const maxN  = rest.max  != null ? Number(rest.max)  :  Infinity
-  // Latest value in a ref so the press-and-hold interval (below) reads the
-  // current value each tick instead of the stale one captured when it started.
-  const valueRef = React.useRef(value)
-  valueRef.current = value
-  // Step by ±step, clamped, rounded to kill float drift (0.1 steps → 1.2000001).
-  const bump = (dir: 1 | -1) => {
-    const base = Number.isFinite(valueRef.current) ? valueRef.current : 0
-    const n = Math.min(maxN, Math.max(minN, Math.round((base + dir * stepN) * 1000) / 1000))
-    setText(String(n))
-    if (n !== valueRef.current) onChange(n)
-  }
-
-  const bindHold = useHoldRepeat()
-
-  const input = (
-    <Input
-      type="number"
-      variant={rest.variant ?? 'elevated'}
-      {...rest}
-      className={stepper ? cn('w-full pr-6', className) : className}
-      value={text}
-      onFocus={e => { setFocused(true); rest.onFocus?.(e) }}
-      onChange={e => {
-        const v = e.target.value
-        setText(v)
-        if (v === '' || v === '-') return
-        const n = Number(v)
-        if (!Number.isNaN(n)) onChange(n)
-      }}
-      onBlur={e => {
-        setFocused(false)
-        if (text === '' || text === '-' || Number.isNaN(Number(text))) {
-          setText(String(value))
-        }
-        rest.onBlur?.(e)
-      }}
-    />
-  )
-
-  if (!stepper) return input
-
-  return (
-    <div className={cn('relative', className)}>
-      {input}
-      <div className="absolute inset-y-1 right-1 flex flex-col justify-center">
-        <Button type="button" variant="ghost" size="icon-xs" tabIndex={-1} disabled={rest.disabled}
-          className="h-1/2 w-5 min-h-0 rounded-sm px-0 text-muted-foreground hover:text-foreground"
-          {...bindHold(() => bump(1))}
-          tooltip="เพิ่ม">
-          <ChevronUp />
-        </Button>
-        <Button type="button" variant="ghost" size="icon-xs" tabIndex={-1} disabled={rest.disabled}
-          className="h-1/2 w-5 min-h-0 rounded-sm px-0 text-muted-foreground hover:text-foreground"
-          {...bindHold(() => bump(-1))}
-          tooltip="ลด">
-          <ChevronDown />
-        </Button>
-      </div>
-    </div>
-  )
-}
+// NumInput (number field + ▲▼ stepper) and useHoldRepeat (press-and-hold
+// auto-repeat) now live in src/components/ui/num-input.tsx — shared with the
+// barcode-sticker print tab. useHoldRepeat is still imported here for the
+// per-section position arrows below (same press-and-hold feel).
 
 // Position nudger for a section's X/Y offset, kept to a SINGLE line (h-9, same
 // as an input row). The middle is a vertical ▲▼ stepper for Y — the same compact

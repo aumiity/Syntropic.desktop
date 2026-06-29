@@ -602,10 +602,19 @@ export function initializeSchema(db: Database.Database) {
     -- the renderer form keys (dynamic-SQL save).
     CREATE TABLE IF NOT EXISTS barcode_sticker_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      preset      TEXT NOT NULL DEFAULT '4up',
-      show_name   INTEGER NOT NULL DEFAULT 1,
-      show_price  INTEGER NOT NULL DEFAULT 1,
-      show_digits INTEGER NOT NULL DEFAULT 1,
+      preset       TEXT NOT NULL DEFAULT '4up',
+      show_name    INTEGER NOT NULL DEFAULT 1,
+      show_price   INTEGER NOT NULL DEFAULT 1,
+      show_digits  INTEGER NOT NULL DEFAULT 1,
+      -- User-tunable per-element sticker sizes; override the preset defaults in
+      -- src/lib/tags/presets.ts (STICKER_FONT_* / STICKER_BARCODE_H_MM). name/
+      -- digits/price = pt per display-toggle row; barcode_h_mm = bar height (mm).
+      font_name_pt   REAL NOT NULL DEFAULT 8,
+      font_digits_pt REAL NOT NULL DEFAULT 7,
+      font_price_pt  REAL NOT NULL DEFAULT 7,
+      barcode_h_mm   REAL NOT NULL DEFAULT 7,
+      barcode_w_mm   REAL NOT NULL DEFAULT 34,
+      name_align     TEXT NOT NULL DEFAULT 'center',
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -615,13 +624,23 @@ export function initializeSchema(db: Database.Database) {
     -- src/lib/tags/presets.ts (e.g. A4 '8up' = 2×4).
     CREATE TABLE IF NOT EXISTS price_tag_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      preset         TEXT NOT NULL DEFAULT '8up',
+      preset         TEXT NOT NULL DEFAULT '50up',
       show_name      INTEGER NOT NULL DEFAULT 1,
       show_price     INTEGER NOT NULL DEFAULT 1,
-      show_barcode   INTEGER NOT NULL DEFAULT 0,
+      show_barcode   INTEGER NOT NULL DEFAULT 1,
       show_code      INTEGER NOT NULL DEFAULT 0,
       show_unit      INTEGER NOT NULL DEFAULT 1,
       show_cut_lines INTEGER NOT NULL DEFAULT 1,
+      fill_yellow    INTEGER NOT NULL DEFAULT 1,
+      price_compact  INTEGER NOT NULL DEFAULT 0,
+      line_gap_mm    REAL NOT NULL DEFAULT 1,
+      -- Per-element sizes (user-tunable, read in src/lib/tags/priceTagHtml.ts).
+      font_name_pt   REAL NOT NULL DEFAULT 9,
+      font_price_pt  REAL NOT NULL DEFAULT 18,
+      font_code_pt   REAL NOT NULL DEFAULT 7,
+      font_unit_pt   REAL NOT NULL DEFAULT 8,
+      barcode_h_mm   REAL NOT NULL DEFAULT 8,
+      barcode_w_mm   REAL NOT NULL DEFAULT 34,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -994,6 +1013,25 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE settings ADD COLUMN shop_postcode TEXT NOT NULL DEFAULT ''`,
     // User-chosen auto-backup destination folder (NULL = default userData/backups).
     `ALTER TABLE backup_settings ADD COLUMN backup_dir TEXT`,
+    // Barcode-sticker user-tunable per-element sizes — override the preset
+    // defaults in src/lib/tags/presets.ts. Defaults match the old fixed sizes.
+    `ALTER TABLE barcode_sticker_settings ADD COLUMN font_name_pt   REAL NOT NULL DEFAULT 8`,
+    `ALTER TABLE barcode_sticker_settings ADD COLUMN font_digits_pt REAL NOT NULL DEFAULT 7`,
+    `ALTER TABLE barcode_sticker_settings ADD COLUMN font_price_pt  REAL NOT NULL DEFAULT 7`,
+    `ALTER TABLE barcode_sticker_settings ADD COLUMN barcode_h_mm   REAL NOT NULL DEFAULT 7`,
+    `ALTER TABLE barcode_sticker_settings ADD COLUMN barcode_w_mm   REAL NOT NULL DEFAULT 34`,
+    `ALTER TABLE barcode_sticker_settings ADD COLUMN name_align     TEXT NOT NULL DEFAULT 'center'`,
+    // Price-tag per-element sizes (user-tunable, like the sticker form). The
+    // layout is locked to '50up' (5×10) now — the per-sheet picker was removed.
+    `ALTER TABLE price_tag_settings ADD COLUMN fill_yellow   INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE price_tag_settings ADD COLUMN price_compact INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE price_tag_settings ADD COLUMN line_gap_mm   REAL NOT NULL DEFAULT 1`,
+    `ALTER TABLE price_tag_settings ADD COLUMN font_name_pt  REAL NOT NULL DEFAULT 9`,
+    `ALTER TABLE price_tag_settings ADD COLUMN font_price_pt REAL NOT NULL DEFAULT 18`,
+    `ALTER TABLE price_tag_settings ADD COLUMN font_code_pt  REAL NOT NULL DEFAULT 7`,
+    `ALTER TABLE price_tag_settings ADD COLUMN font_unit_pt  REAL NOT NULL DEFAULT 8`,
+    `ALTER TABLE price_tag_settings ADD COLUMN barcode_h_mm  REAL NOT NULL DEFAULT 8`,
+    `ALTER TABLE price_tag_settings ADD COLUMN barcode_w_mm  REAL NOT NULL DEFAULT 34`,
     // First-run setup gate. setup_completed=0 forces the setup wizard before the
     // app is usable. ALTERs MUST precede the backfill UPDATE below (same array,
     // ordered) so the column exists when the UPDATE references it on first run.

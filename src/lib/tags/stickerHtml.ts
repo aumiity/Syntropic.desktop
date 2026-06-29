@@ -27,23 +27,25 @@ function priceStr(price: number): string {
 function cellHtml(cell: TagCell, cfg: BarcodeStickerForm, L: ReturnType<typeof resolveStickerLayout>): string {
   // STRICT: only the row's own barcode is ever set. No barcode → empty string →
   // we generate nothing and print name/price only (never fabricate from a code).
-  const svg = cell.barcode ? barcodeSvg(cell.barcode, { displayValue: false, flat: true, stretch: false }) : ''
-  // The barcode renders at its NATURAL aspect (stretch:false), so its real printed
-  // width = barcode-box height × (viewBox width / height), capped at the sticker
-  // width. We size the WHOLE content column to exactly this width and center it, so
-  // the name + digit line line up with the barcode edges instead of spilling past
-  // them. With no barcode there's nothing to align to → use the full sticker width.
-  const vb = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg)
-  const bcWmm = vb ? Math.min(L.refWmm, L.barcodeHeightMm * (parseFloat(vb[1]) / parseFloat(vb[2]))) : L.refWmm
+  // The barcode bars STRETCH to fill the user-set box (barcode_w_mm × barcode_h_mm),
+  // so any code length keeps the same footprint. The whole content column is sized to
+  // that width and centered, so the name + digit line line up with the barcode edges.
+  // With no barcode there's nothing to align to → use the full sticker design width.
+  const svg = cell.barcode ? barcodeSvg(cell.barcode, { displayValue: false, flat: true, stretch: true }) : ''
+  const wantW = cfg.barcode_w_mm > 0 ? cfg.barcode_w_mm : L.refWmm
+  const bcWmm = svg ? Math.min(L.refWmm, wantW) : L.refWmm
+
+  // Product-name horizontal alignment (left/center/right) — guard to the known set.
+  const nameAlign = cfg.name_align === 'left' || cfg.name_align === 'right' ? cfg.name_align : 'center'
 
   const parts: string[] = []
-  // Top line: product name, bold, centered over the barcode. Font size is FIXED —
-  // a name wider than the barcode is truncated with an ellipsis (clip), never
-  // shrunk, so every sticker keeps the same type size.
+  // Top line: product name, bold. Font size is FIXED — a name wider than the barcode
+  // is truncated with an ellipsis (clip), never shrunk, so every sticker keeps the
+  // same type size. text-align follows the user's name_align choice.
   if (cfg.show_name) {
     parts.push(
       `<div style="font-size:${L.fontNamePt}pt;font-weight:700;line-height:1;` +
-        `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center">${esc(cell.name)}</div>`,
+        `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:${nameAlign}">${esc(cell.name)}</div>`,
     )
   }
   if (svg) {
@@ -53,11 +55,13 @@ function cellHtml(cell: TagCell, cfg: BarcodeStickerForm, L: ReturnType<typeof r
   }
   // Bottom line: barcode digits on the LEFT, "ราคา X บาท" pushed to the RIGHT
   // edge (margin-left:auto), so price is right-aligned even when shown alone.
+  // digits + price share ONE line but each span carries its own pt (fontMetaPt =
+  // digits, fontPricePt = price); baseline-align so mixed sizes sit on one line.
   const meta: string[] = []
-  if (cfg.show_digits) meta.push(`<span>${esc(cell.barcode)}</span>`)
-  if (cfg.show_price) meta.push(`<span style="margin-left:auto">${priceStr(cell.price)} บาท</span>`)
+  if (cfg.show_digits) meta.push(`<span style="font-size:${L.fontMetaPt}pt">${esc(cell.barcode)}</span>`)
+  if (cfg.show_price) meta.push(`<span style="margin-left:auto;font-size:${L.fontPricePt}pt">${priceStr(cell.price)} บาท</span>`)
   if (meta.length) {
-    parts.push(`<div style="display:flex;width:100%;font-size:${L.fontMetaPt}pt;line-height:1;white-space:nowrap">${meta.join('')}</div>`)
+    parts.push(`<div style="display:flex;width:100%;align-items:baseline;line-height:1;white-space:nowrap">${meta.join('')}</div>`)
   }
   // Center a column that is exactly the barcode's width within the sticker cell.
   return `<div style="width:${bcWmm}mm;margin:0 auto;display:flex;flex-direction:column">${parts.join('')}</div>`
@@ -69,7 +73,12 @@ export async function buildBarcodeStickerHtml(
   cells: (TagCell | null)[],
   copies: number,
 ): Promise<string> {
-  const L = resolveStickerLayout(paper)
+  const L = resolveStickerLayout(paper, {
+    namePt: cfg.font_name_pt,
+    digitsPt: cfg.font_digits_pt,
+    pricePt: cfg.font_price_pt,
+    barcodeHmm: cfg.barcode_h_mm,
+  })
   const fontFaceCss = await buildPrintFontFaceCss(paper.font_family)
   const familyStack = `'${paper.font_family}', sans-serif`
   const n = L.cols * L.rows

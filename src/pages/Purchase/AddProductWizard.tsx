@@ -768,23 +768,23 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                   </div>
                 </div>
 
-                {/* แถวป้าย = grid 3 คอลัมน์ตรงกับช่องด้านบน: ล็อตซ้ำใต้ Lot No. (คอลัมน์ 1) + อายุคงเหลือใต้วันหมดอายุ (คอลัมน์ 3, สีตามความเร่งด่วน) */}
+                {/* แถวป้าย = flex ยืดตามเนื้อหา: ล็อตซ้ำชิดซ้าย + อายุคงเหลือ/หมดอายุชิดขวา (ไม่ล็อกกว้าง ข้อความบรรทัดเดียว) */}
                 {(matchedLot || expMonths !== null) && (
-                  <div className="mt-3 grid grid-cols-3 gap-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
                     {matchedLot && (
-                      <div className="col-start-1 w-max inline-flex items-center gap-1.5 rounded-lg border border-amber-strong/30 bg-amber-soft/50 px-3 py-1.5 text-xs text-amber-strong">
+                      <div className="w-max inline-flex items-center gap-1.5 rounded-lg border border-amber-strong/30 bg-amber-soft/50 px-3 py-1.5 text-xs text-amber-strong">
                         <AlertTriangle className="size-3.5 shrink-0" />
                         <span className="whitespace-nowrap">ล็อต {matchedLot.lot_number} มีอยู่แล้วในสต็อก</span>
                       </div>
                     )}
                     {expMonths !== null && (
-                      <div className={`col-start-3 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs ${
+                      <div className={`ml-auto w-max inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs ${
                         expMonths <= 0 ? 'border-destructive bg-destructive text-destructive-foreground'
                         : expMonths <= 6 ? 'border-destructive/30 bg-destructive-soft/50 text-destructive'
                         : expMonths <= 12 ? 'border-border bg-muted/50 text-foreground-subtle'
                         : 'border-primary/30 bg-primary-soft/50 text-primary'}`}>
                         <ClockAlert className="size-3.5 shrink-0" />
-                        <span>{expMonths <= 0 ? 'สินค้าหมดอายุแล้ว — โปรดตรวจสอบวันที่อีกครั้ง' : `เหลืออายุ ${expMonths} เดือน`}</span>
+                        <span className="whitespace-nowrap">{expMonths <= 0 ? 'สินค้าหมดอายุแล้ว — โปรดตรวจสอบวันที่อีกครั้ง' : `เหลืออายุ ${expMonths} เดือน`}</span>
                       </div>
                     )}
                   </div>

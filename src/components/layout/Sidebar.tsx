@@ -9,6 +9,7 @@ import {
 import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useGRDraftStore } from '@/stores/grDraftStore'
+import { useTagDraftStore } from '@/stores/tagDraftStore'
 import { usePermission } from '@/hooks/usePermission'
 import { useCan } from '@/hooks/useCan'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -123,6 +124,9 @@ export function Sidebar() {
   // In-progress goods-receive line items — red count badge on "การรับสินค้า".
   // Selector returns a number, so this only re-renders when the count changes.
   const grDraftCount = useGRDraftStore(s => s.draft?.rows.length ?? 0)
+  // In-progress price-tag list — red count badge on "สินค้า" (it lives at
+  // /products/print). Survives navigating to the POS and back (tagDraftStore).
+  const tagDraftCount = useTagDraftStore(s => s.priceItems.filter(Boolean).length)
 
   const btnClass = cn(
     'flex items-center justify-center h-11 w-full rounded-xl transition-colors',
@@ -182,6 +186,7 @@ export function Sidebar() {
             collapsed={collapsed}
             countBadge={
               item.to === '/purchase' ? grDraftCount
+              : item.to === '/products' ? tagDraftCount
               : item.to === '/manage' ? negativeStockCount
               : undefined
             }
