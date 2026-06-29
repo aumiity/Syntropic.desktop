@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -88,7 +88,6 @@ export default function ManageLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const canExpense = useCan('expense.manage') !== 'off'
-  const canFinancePanel = useCan('report.finance') !== 'off'
   const visibleTopTabs = useMemo(() => TOP_TABS.filter(t => !('adminOnly' in t && t.adminOnly) || canExpense), [canExpense])
   const current = resolveTab(location.pathname)
   const topTab = resolveTopTab(current)
@@ -132,25 +131,9 @@ export default function ManageLayout() {
   const summary = summaryState?.tab === current ? summaryState.cards : null
   const tabActions = tabActionsState?.tab === current ? tabActionsState.node : null
   const subTabActions = subTabActionsState?.tab === current ? subTabActionsState.node : null
-  // The Sales + Purchases tabs scroll the whole page together (summary cards +
-  // finance card + history table) for roles that see the finance panel. Every
-  // other tab keeps the fixed full-height card.
-  const scrollPage = (current === 'sales' || current === 'purchases') && canFinancePanel
-
-  // The header + tab strip sit ABOVE the page scroller (they don't scroll), so
-  // wheeling over them wouldn't move the page. Forward those wheel events into the
-  // scroller. Only active on the admin Sales page-scroll; pointers already over
-  // the scroller — including its empty side margins and the nested history table —
-  // are left to native scroll.
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const forwardWheel = useCallback((e: React.WheelEvent) => {
-    const el = scrollRef.current
-    if (!el || el.contains(e.target as Node)) return
-    el.scrollTop += e.deltaY
-  }, [])
 
   return (
-    <div className="flex flex-col h-full pt-4 pb-4 gap-2" onWheel={scrollPage ? forwardWheel : undefined}>
+    <div className="flex flex-col h-full pt-4 pb-4 gap-2">
       <div className={CAP}>
         <PageHeader title="การจัดการ" />
       </div>
@@ -222,18 +205,8 @@ export default function ManageLayout() {
           breathing room collapses together with the card row. The inner
           AnimatePresence still cross-fades the card set when moving between two
           tabs that both have cards. */}
-      {/* scrollPage (admin Sales) makes this region the page scroller so the
-          summary cards scroll away with the finance card + table. Other tabs
-          stay fixed-height (no overflow) — unchanged behaviour. */}
-      {/* scrollPage: the scroller is full-bleed so its scrollbar sits at the
-          window edge and the empty side margins are scrollable; the inner CAP
-          column keeps the content centered at max-w-7xl (tables don't stretch). */}
-      <div
-        ref={scrollRef}
-        className={scrollPage
-          ? 'flex-1 min-h-0 overflow-y-auto scrollbar-thin'
-          : 'flex-1 min-h-0 flex flex-col'}>
-      <div className={`${CAP} flex flex-col gap-2 ${scrollPage ? '' : 'flex-1 min-h-0'}`}>
+      <div className="flex-1 min-h-0 flex flex-col">
+      <div className={`${CAP} flex flex-col gap-2 flex-1 min-h-0`}>
       <AnimatePresence initial={false}>
         {summary && summary.length > 0 && (
           <motion.div
@@ -269,9 +242,7 @@ export default function ManageLayout() {
       {/* Tabs without summary cards (สต๊อคติดลบ, ค่าใช้จ่าย) would otherwise butt
           right up against the TabStrip divider — the summary block's pt-3 is what
           gives the other tabs their breathing room. Restore that gap here. */}
-      <div className={scrollPage
-        ? `flex flex-col shrink-0 ${summary && summary.length > 0 ? '' : 'pt-3'}`
-        : `flex flex-1 min-h-0 flex-col ${summary && summary.length > 0 ? '' : 'pt-3'}`}>
+      <div className={`flex flex-1 min-h-0 flex-col ${summary?.length ? '' : 'pt-3'}`}>
         <Outlet context={ctx} />
       </div>
       </div>

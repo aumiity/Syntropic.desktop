@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useOutletContext } from 'react-router-dom'
 import { useToast } from '@/components/ui/toast'
@@ -24,16 +24,8 @@ import { PurchaseReceiptDialog } from '@/components/dialogs/PurchaseReceiptDialo
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import type { Supplier, ProductLot } from '@/types'
 import type { ManageOutletContext } from './index'
-import { useCan } from '@/hooks/useCan'
-import { MetricStrip, SectionCard } from '@/components/ui/card'
-import { TrendChart, type TrendDatum } from '@/components/ui/charts/trend-chart'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
-import { delta } from '@/lib/delta'
-import { trendOf, compareLabelForMode, prevWindowForMode, granularityForMode } from '@/lib/finance-panel'
 import {
   X, Building2, Banknote, CreditCard, FileText, AlertTriangle, Ban, Check, BadgeCheck, Settings2, Eye, Filter, MoreHorizontal, Percent,
-  Coins, LineChart, ListChecks,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -94,45 +86,6 @@ const PURCHASES_DEFAULTS: PurchasesPrefs = {
   showColStatus: true,
 }
 
-// ── Finance overview (admin only) ────────────────────────────────────────────
-// Subset of reports:financeSummary's payload (preload returns `any`, so cast).
-// The panel shows date-window purchase totals + the CURRENT outstanding payable.
-interface PurchaseFinanceSummary {
-  purchase_total: number
-  purchase_cash: number
-  purchase_credit: number
-  purchase_count: number
-  // Accounts payable is CURRENT outstanding (not date-bound).
-  payable_total: number
-  payable_count: number
-  // Previous equal-length window — drives the "vs ช่วงก่อน" trend line.
-  previous: { purchase_total: number; purchase_cash: number; purchase_credit: number } | null
-}
-
-// The trend chart has 2 modes — purchase value or bill count over the range.
-type PurchaseChartMetric = 'purchase' | 'bills'
-const PURCHASE_CHART_METRICS: Record<PurchaseChartMetric, {
-  label: string
-  bar: { key: string; name: string; color: string }
-  valueFormat: 'currency' | 'int'
-}> = {
-  purchase: { label: 'ยอดซื้อ',  bar: { key: 'purchase_total', name: 'ยอดซื้อ',  color: 'hsl(var(--primary))' }, valueFormat: 'currency' },
-  bills:    { label: 'จำนวนบิล', bar: { key: 'purchase_count', name: 'จำนวนบิล', color: 'hsl(var(--info))' },    valueFormat: 'int' },
-}
-
-// Status-breakdown colors — one color language across MetricStrip/MetricCard/this
-// card. The 5 buckets are MUTUALLY EXCLUSIVE (every non-cancelled bill is exactly
-// one of cash / paid / duenow / overdue, plus cancelled), so they sum to the bill
-// count with no double-count: เงินสด=info, ชำระแล้ว=success, ค้างชำระ(ยังไม่ถึงกำหนด)=amber,
-// เกินกำหนด=violet (at-risk), ยกเลิก=destructive. All 5 distinct.
-const PURCHASE_STATUS_COLOR: Record<string, string> = {
-  cash:      'hsl(var(--info))',
-  paid:      'hsl(var(--success))',
-  duenow:    'hsl(var(--amber))',
-  overdue:   'hsl(var(--violet))',
-  cancelled: 'hsl(var(--destructive))',
-}
-
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ManagePurchasesPage() {
@@ -141,10 +94,6 @@ export default function ManagePurchasesPage() {
   // VAT column + filter only surface once the shop is VAT-registered (input VAT
   // exists). Matches the hide-when-NO-VAT rule used across the app.
   const { vatEnabled } = useShopVat()
-  // The finance overview panel (and its page-level scroll) shows for any role
-  // that can see finance reports — not just the owner. The staff MetricCard slot
-  // stays for non-admins.
-  const isAdmin = useCan('report.finance') !== 'off'
 
   const [prefs, setPrefs] = usePagePrefs<PurchasesPrefs>('purchases', PURCHASES_DEFAULTS)
 
@@ -181,16 +130,6 @@ export default function ManagePurchasesPage() {
   const showColTotal = prefs.showColTotal
   const showColStatus = prefs.showColStatus
   const [loadingHist, setLoadingHist] = useState(false)
-
-  // Finance overview (admin-only) — always shown, no toggle. Chart bucket size is
-  // derived from the date mode; chartMetric picks which series the bar chart shows.
-  const gran = granularityForMode(histDateMode)
-  const [chartMetric, setChartMetric] = useState<PurchaseChartMetric>('purchase')
-  // Hovered status in the breakdown card — links the proportion bar to its legend.
-  const [hoveredStatus, setHoveredStatus] = useState<string | null>(null)
-  const [finance, setFinance] = useState<PurchaseFinanceSummary | null>(null)
-  const [trend, setTrend] = useState<TrendDatum[]>([])
-  const [finLoading, setFinLoading] = useState(false)
 
   // Receipt detail dialog — selectedInvoice drives PurchaseReceiptDialog
   // (loads items itself); receiptItems is hydrated via onLoad so openEditBill
@@ -279,38 +218,10 @@ export default function ManagePurchasesPage() {
     }
   }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, histVatFilter, histPageSize, histSort, selectedInvoice])
 
-  // Admin-only fetch — the finance panel is always shown for admins. Gated on
-  // isAdmin (the IPCs also requirePermission('report.finance')). Date-window only:
-  // driven by the MultiDatePicker, NOT the table's q/supplier/status/VAT filters.
+  // All roles see the same plain view: count MetricCards in the parent summary
+  // slot. The status filter lives in the filter strip's Filter popover. The
+  // finance numbers now live only on the Dashboard.
   useEffect(() => {
-    if (!isAdmin) return
-    let cancelled = false
-    const r = window.api.reports as any
-    setFinLoading(true)
-    Promise.all([
-      r.financeSummary({ date_from: histDateFrom, date_to: histDateTo, with_compare: true, ...prevWindowForMode(histDateMode, histDateFrom, histDateTo) }),
-      r.salesPurchaseTrend({ date_from: histDateFrom, date_to: histDateTo, granularity: gran }),
-    ])
-      .then(([f, tr]) => {
-        if (cancelled) return
-        setFinance((f ?? null) as PurchaseFinanceSummary | null)
-        setTrend((tr ?? []) as TrendDatum[])
-      })
-      .catch((e: any) => {
-        if (cancelled) return
-        toast(e?.message ? `โหลดภาพรวมการเงินไม่สำเร็จ: ${e.message}` : 'โหลดภาพรวมการเงินไม่สำเร็จ', 'error')
-        setTrend([])
-      })
-      .finally(() => { if (!cancelled) setFinLoading(false) })
-    return () => { cancelled = true }
-  }, [isAdmin, histDateMode, histDateFrom, histDateTo, gran, toast])
-
-  // Passive MetricCard snapshot of the q/date set (STAFF only — admins get the
-  // in-page สถานะการซื้อ card instead, so the parent slot is cleared for them).
-  // The status filter lives in the filter strip's Filter popover (no onClick →
-  // ManageLayout renders MetricCard instead of the clickable StatCard).
-  useEffect(() => {
-    if (isAdmin) { setSlotSummary(null); return }
     // 5 mutually-exclusive status buckets + a total — ค้างชำระ = unpaid not yet
     // overdue (unpaid − overdue), so the 5 statuses sum to the bill count.
     const staffDuenow = Math.max(0, histSummary.unpaid_count - histSummary.overdue_count)
@@ -322,7 +233,7 @@ export default function ManagePurchasesPage() {
       { label: 'เกินกำหนด', value: histSummary.overdue_count.toLocaleString(),   icon: AlertTriangle, tint: 'violet',       sub: 'รายการ', subClassName: 'text-base text-foreground' },
       { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     ])
-  }, [isAdmin, histSummary, setSlotSummary])
+  }, [histSummary, setSlotSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).
@@ -599,100 +510,10 @@ export default function ManagePurchasesPage() {
 
   return (
     <>
-      {/* Admin: natural-height stack (finance card above history table) — the
-          page scroll lives in the parent Manage layout so the summary cards scroll
-          too. Staff keeps the original single full-height card. */}
-      <div className={isAdmin ? 'flex flex-col gap-3' : 'flex flex-1 flex-col min-h-0'}>
+      <div className="flex flex-1 flex-col min-h-0">
 
-        {/* ── Finance overview — admin only, always shown (no toggle) ── */}
-        {isAdmin && (
-          <div className="shrink-0 flex flex-col gap-3">
-            {finLoading ? (
-              <div className="h-[180px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
-            ) : finance == null ? null : (() => {
-              const total = finance.purchase_total
-              const cash = finance.purchase_cash
-              const credit = finance.purchase_credit
-              const bills = finance.purchase_count
-              const fmt = (v: number) => formatCurrency(v)
-              // Guard divide-by-zero (no purchases → 0, not NaN).
-              const perBill = (v: number) => (bills > 0 ? v / bills : 0)
-              const prev = finance.previous
-              // Purchase totals are money-OUT → cost-style: a rise reads red (invert).
-              const dTotal  = delta(total,  prev?.purchase_total,  { invert: true })
-              const dCash   = delta(cash,   prev?.purchase_cash,   { invert: true })
-              const dCredit = delta(credit, prev?.purchase_credit, { invert: true })
-              const cmp = compareLabelForMode(histDateMode)
-              // 5 mutually-exclusive buckets summing to all bills (no double-count):
-              // duenow = unpaid credit not yet past due = unpaid − overdue.
-              const duenow = Math.max(0, histSummary.unpaid_count - histSummary.overdue_count)
-              const statusTiles = [
-                { value: 'cash',      label: 'เงินสด',    count: histSummary.cash_count },
-                { value: 'paid',      label: 'ชำระแล้ว',  count: histSummary.paid_count },
-                { value: 'duenow',    label: 'ค้างชำระ',  count: duenow },
-                { value: 'overdue',   label: 'เกินกำหนด', count: histSummary.overdue_count },
-                { value: 'cancelled', label: 'ยกเลิก',    count: histSummary.cancelled_count },
-              ]
-              return (
-                <>
-                  {/* 4 headline cards — value + a colored trend vs the previous window. */}
-                  <MetricStrip
-                    className="h-[9.1rem]"
-                    items={[
-                      { label: 'ยอดซื้อรวม', value: fmt(total),  icon: Coins,        tint: 'primary',   compare: cmp, ...trendOf(dTotal) },
-                      { label: 'เงินสด',     value: fmt(cash),   icon: Banknote,     tint: 'info-soft', compare: cmp, ...trendOf(dCash) },
-                      { label: 'เครดิต (ทั้งหมด)', value: fmt(credit), icon: CreditCard, tint: 'amber',  compare: cmp, ...trendOf(dCredit) },
-                      { label: 'ค้างชำระ (ทั้งหมด)', value: fmt(finance.payable_total), icon: AlertTriangle, tint: 'violet', note: `${finance.payable_count.toLocaleString()} บิล · รวมทุกช่วงเวลา` },
-                    ]}
-                  />
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                    <SectionCard
-                      icon={LineChart} title="แนวโน้มการซื้อ" tint="neutral"
-                      className="lg:col-span-2"
-                      fill
-                      right={
-                        <Tabs value={chartMetric} onValueChange={(v) => setChartMetric(v as PurchaseChartMetric)}>
-                          <TabsList variant="segmented">
-                            {(Object.keys(PURCHASE_CHART_METRICS) as PurchaseChartMetric[]).map(m => (
-                              <TabsTrigger key={m} value={m} className="text-sm px-3">{PURCHASE_CHART_METRICS[m].label}</TabsTrigger>
-                            ))}
-                          </TabsList>
-                        </Tabs>
-                      }
-                    >
-                      <div className="h-full min-h-[180px]">
-                        <TrendChart
-                          data={trend} granularity={gran} height="100%" variant="bar"
-                          bars={[PURCHASE_CHART_METRICS[chartMetric].bar]}
-                          valueFormat={PURCHASE_CHART_METRICS[chartMetric].valueFormat}
-                        />
-                      </div>
-                    </SectionCard>
-                    {/* Right column — status breakdown above the purchase-summary card. */}
-                    <div className="lg:col-span-1 flex flex-col gap-3">
-                      {purchaseStatusCard({ tiles: statusTiles, total: histSummary.count, hovered: hoveredStatus, onHover: setHoveredStatus })}
-                      {purchaseSummaryCard({
-                        rows: [
-                          { label: 'ยอดซื้อเฉลี่ย', value: `${fmt(perBill(total))}/บิล` },
-                          { label: 'เงินสด',        value: fmt(cash) },
-                          { label: 'เครดิต',        value: fmt(credit) },
-                          { label: 'ค้างชำระ (รวมทุกช่วงเวลา)', value: fmt(finance.payable_total) },
-                        ],
-                      })}
-                    </div>
-                  </div>
-                </>
-              )
-            })()}
-          </div>
-        )}
-
-        {/* ── History table-card — admin: fixed height, scrolls internally;
-            staff: fills the viewport (original behaviour). ── */}
-        <div className={isAdmin
-          ? 'shrink-0 bg-card rounded-card shadow-card border border-border overflow-hidden flex flex-col'
-          : 'flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden'}>
+        {/* ── History table-card — fills the viewport. ── */}
+        <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
 
         {/* Filter strip — title cluster left, search/filters right */}
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
@@ -843,9 +664,7 @@ export default function ManagePurchasesPage() {
         </div>
 
         {/* Table */}
-        <div className={isAdmin
-          ? 'h-[34rem] [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card'
-          : 'flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card'}>
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -1276,133 +1095,5 @@ export default function ManagePurchasesPage() {
       />
       {overrideCancel.dialog}
     </>
-  )
-}
-
-// "สรุปการซื้อ" card — a flat key–value list (description left, figure right). Fed
-// pre-formatted rows so the helper stays presentational. Lowercase render helper
-// called inline (not a component — same sanctioned pattern as Sales' summaryCard).
-function purchaseSummaryCard(opts: {
-  // A row is either a single value (spans the two value columns) or a pair of
-  // cells split across the 2nd/3rd columns. Purchases only passes single-value
-  // rows; the cells branch is kept for parity with Sales (dead here, harmless).
-  rows: { label: string; value?: string; cells?: [string, string] }[]
-  className?: string
-}) {
-  const { rows, className } = opts
-  return (
-    <SectionCard icon={ListChecks} title="สรุปการซื้อ" tint="neutral" className={cn('shrink-0', className)}>
-      <div className="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-4 gap-y-2 text-sm">
-        {rows.map((r, i) => (
-          <React.Fragment key={i}>
-            <span className="text-muted-foreground min-w-0 truncate">{r.label}</span>
-            {r.cells ? (
-              <>
-                <span className="text-right font-semibold text-foreground">{r.cells[0]}</span>
-                <span className="text-right font-semibold text-foreground">{r.cells[1]}</span>
-              </>
-            ) : (
-              <span className="col-span-2 text-right font-semibold text-foreground">{r.value}</span>
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-    </SectionCard>
-  )
-}
-
-// "สถานะการซื้อ" card — a compact payment-status breakdown (read-only, no filtering):
-// icon + title over the bill count, one proportion bar, then a color legend. Status
-// FILTERING lives in the toolbar popover, so this card stays purely informational.
-// Tile type is the REDUCED shape ({value,label,count}) — colors come from
-// PURCHASE_STATUS_COLOR, not a per-tile field.
-interface PurchaseStatusTile { value: string; label: string; count: number }
-function purchaseStatusCard(opts: {
-  tiles: readonly PurchaseStatusTile[]
-  total: number
-  hovered: string | null
-  onHover: (v: string | null) => void
-  className?: string
-}) {
-  const { tiles, total, hovered, onHover, className } = opts
-  // Percentage base = sum of the (disjoint) segments, INDEPENDENT of the header
-  // total (which counts all invoices). || 1 guards divide-by-zero.
-  const sum = tiles.reduce((s, t) => s + t.count, 0) || 1
-  // Bar segments = only non-zero statuses (so gaps don't double up on empties).
-  const segs = tiles.filter(t => t.count > 0)
-  // Shared highlight: hovering any status fades the rest in BOTH bar and legend.
-  const dim = (v: string) => (hovered != null && hovered !== v ? 'opacity-40' : 'opacity-100')
-  const tip = (t: PurchaseStatusTile) => (
-    <>
-      <div className="flex items-center gap-2">
-        <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: PURCHASE_STATUS_COLOR[t.value] }} />
-        <span className="font-semibold text-popover-foreground">{t.label}</span>
-        <span className="text-muted-foreground">{((t.count / sum) * 100).toFixed(1)}%</span>
-      </div>
-      <div className="mt-0.5 text-xs text-muted-foreground">{t.count.toLocaleString()} บิล</div>
-    </>
-  )
-  return (
-    <SectionCard className={cn('shrink-0', className)}>
-      {/* Header — plain (neutral) icon box + title over a muted bill-count line */}
-      <div className="flex items-center gap-3">
-        <TintIcon icon={FileText} tint="neutral" size="sm" />
-        <div className="min-w-0">
-          <h3 className="text-base font-semibold text-foreground leading-snug">สถานะการซื้อ</h3>
-          <p className="text-sm text-muted-foreground">{total.toLocaleString()} บิล</p>
-        </div>
-      </div>
-
-      {/* Bar + legend share one TooltipProvider and one `hovered` state. */}
-      <TooltipProvider>
-        {/* Proportion bar — only the two outer ends are rounded; inner edges square. */}
-        <div className="flex h-3 gap-1">
-          {segs.map((t, i) => {
-            const ends = i === 0 && i === segs.length - 1 ? 'rounded-full'
-              : i === 0 ? 'rounded-l-full'
-              : i === segs.length - 1 ? 'rounded-r-full'
-              : ''
-            return (
-            <Tooltip key={t.value}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onMouseEnter={() => onHover(t.value)}
-                  onMouseLeave={() => onHover(null)}
-                  className={cn('h-full cursor-default border-0 p-0 transition-opacity', ends, dim(t.value))}
-                  style={{ width: `${(t.count / sum) * 100}%`, minWidth: 6, backgroundColor: PURCHASE_STATUS_COLOR[t.value] }}
-                />
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                {tip(t)}
-              </TooltipContent>
-            </Tooltip>
-            )
-          })}
-        </div>
-
-        {/* Legend — color dot + label; hover highlights this status in both. */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-          {tiles.map(t => (
-            <Tooltip key={t.value}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onMouseEnter={() => onHover(t.value)}
-                  onMouseLeave={() => onHover(null)}
-                  className={cn('flex cursor-default items-center gap-1.5 text-sm transition-opacity', dim(t.value))}
-                >
-                  <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: PURCHASE_STATUS_COLOR[t.value] }} />
-                  <span className="text-muted-foreground">{t.label}</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                {tip(t)}
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
-      </TooltipProvider>
-    </SectionCard>
   )
 }
