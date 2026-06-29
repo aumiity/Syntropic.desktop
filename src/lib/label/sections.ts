@@ -264,3 +264,47 @@ export function buildSectionStyle(def: SectionDef, form: LabelSettingsForm): CSS
     whiteSpace: 'pre-line',
   }
 }
+
+// These four sections never render as their OWN line — each folds into a host
+// row's right side (print_date → shop, qty → shop_line_id, barcode → product,
+// expiry → dosage). They never get a slot of their own (reserved or otherwise).
+export function isFoldedSection(key: SectionKey): boolean {
+  return key === 'print_date' || key === 'barcode' || key === 'qty' || key === 'expiry'
+}
+
+// Is this top-level row enabled by its show-toggle(s)? The four folded rows
+// (shop / shop_line_id / product / dosage) light up when EITHER their own text
+// or their folded-in partner is on; every other row reads its single
+// `show_<key>` column. This is the SINGLE predicate behind both render paths'
+// "render vs reserve" decision (was the old `.filter` in LabelPaper / html.ts).
+export function isSectionToggledOn(key: SectionKey, form: LabelSettingsForm): boolean {
+  switch (key) {
+    case 'shop':         return !!form.show_shop || !!form.show_print_date
+    case 'shop_line_id': return !!form.show_shop_line_id || !!form.show_qty
+    case 'product':      return !!form.show_product || !!form.show_barcode
+    case 'dosage':       return !!form.show_dosage || !!form.show_expiry
+    default:             return !!form[`show_${key}` as keyof LabelSettingsForm]
+  }
+}
+
+// A hidden, space-reserving placeholder for a row whose show-toggle is OFF, so
+// turning a line off leaves its slot EMPTY instead of collapsing the layout —
+// every other line keeps its exact position (lines are independent; option 1,
+// owner decision 2026-06-29). Reserves ONE line of the row's own font height
+// (text) or the rule's thickness (line), keeps the section_gap marginTop, and is
+// invisible (`visibility:hidden`, no offset — an unseen slot needs no nudge).
+// Both LabelPaper and renderLabelSectionsHtml build the placeholder from this so
+// the reserved height matches 1:1. Caller supplies a non-breaking space as the
+// child for text rows (forces the line box); line rows need no child.
+export function buildReservedSlotStyle(def: SectionDef, form: LabelSettingsForm): CSSProperties {
+  const base: CSSProperties = {
+    marginTop:  `${form.section_gap}pt`,
+    visibility: 'hidden',
+    position:   'relative',
+  }
+  if (def.kind === 'line') {
+    return { ...base, borderTop: '0.5pt solid #000', width: '100%' }
+  }
+  const fontSize = form[`font_size_${def.key}` as keyof LabelSettingsForm] as number
+  return { ...base, fontSize: `${fontSize}pt`, whiteSpace: 'normal' }
+}

@@ -10,7 +10,10 @@
 // so the POS print path and the /products/print tab produce identical output.
 import type { CSSProperties } from 'react'
 import { esc, buildPrintFontFaceCss } from '@/lib/print/fonts'
-import { SECTIONS, buildSectionStyle, type LabelSettingsForm } from './sections'
+import {
+  SECTIONS, buildSectionStyle, isFoldedSection, isSectionToggledOn,
+  buildReservedSlotStyle, type LabelSettingsForm,
+} from './sections'
 import { styleToCss } from './html'
 
 export interface BlankLabelShop {
@@ -196,6 +199,18 @@ function lineIdQtyRow(settings: LabelSettingsForm, shop: BlankLabelShop | null):
 function renderBlankInner(settings: LabelSettingsForm, shop: BlankLabelShop | null, printDate: boolean): string {
   const out: string[] = []
   for (const sec of SECTIONS) {
+    // Lines are INDEPENDENT (option 1, owner decision 2026-06-29) — same as the
+    // real label. Folded rows get no slot; a row toggled OFF reserves an
+    // invisible placeholder (buildReservedSlotStyle) so the rows below keep their
+    // position and the blank stays in lock-step with the real label's rhythm. A
+    // row toggled ON but with no write-in data still collapses (pushes '' →
+    // filtered) exactly as before.
+    if (isFoldedSection(sec.key)) continue
+    if (!isSectionToggledOn(sec.key, settings)) {
+      const slot = styleToCss(buildReservedSlotStyle(sec, settings))
+      out.push(`<div style="${slot}">${sec.kind === 'line' ? '' : '&nbsp;'}</div>`)
+      continue
+    }
     const css = styleToCss(buildSectionStyle(sec, settings))
     switch (sec.key) {
       case 'shop':

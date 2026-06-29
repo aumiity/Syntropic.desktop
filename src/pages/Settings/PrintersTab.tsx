@@ -25,11 +25,11 @@ export function PrintersTab({ onActions }: { onActions?: (node: ReactNode) => vo
   return (
     <div className="flex flex-col gap-3 h-full min-h-0">
       <div className="flex items-center gap-2 shrink-0">
-        <Tabs value={sub} onValueChange={setSub}>
-          <TabsList variant="line">
-            <TabsTrigger value="documents" className="flex-none px-4 py-2"><FileText /> เอกสาร A4</TabsTrigger>
-            <TabsTrigger value="labels" className="flex-none px-4 py-2"><Tag /> ฉลากยา</TabsTrigger>
-            <TabsTrigger value="receipts" className="flex-none px-4 py-2"><Receipt /> ใบเสร็จ</TabsTrigger>
+        <Tabs value={sub} onValueChange={setSub} className="flex-1">
+          <TabsList variant="line" className="w-full">
+            <TabsTrigger value="documents" className="flex-1 px-4 py-2"><FileText /> เอกสาร A4</TabsTrigger>
+            <TabsTrigger value="labels" className="flex-1 px-4 py-2"><Tag /> ฉลากยา</TabsTrigger>
+            <TabsTrigger value="receipts" className="flex-1 px-4 py-2"><Receipt /> ใบเสร็จ</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>

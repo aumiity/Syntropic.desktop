@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
@@ -64,6 +65,11 @@ export function UnitsTab() {
     <div className="h-full flex flex-col min-h-0">
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <TintIcon icon={Ruler} tint="neutral" size="sm" />
+            <h3 className="text-lg font-semibold text-foreground">หน่วยนับ</h3>
+            <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+          </div>
           <SearchInput
             variant="elevated"
             value={q}

@@ -5,7 +5,8 @@
 // preview and print stay 1:1.
 import { type CSSProperties } from 'react'
 import {
-  SECTIONS, buildSectionStyle, type SectionKey, type LabelSettingsForm,
+  SECTIONS, buildSectionStyle, isFoldedSection, isSectionToggledOn,
+  buildReservedSlotStyle, type SectionKey, type LabelSettingsForm,
 } from '@/lib/label/sections'
 import { barcodeSvg } from '@/lib/label/barcode'
 
@@ -17,27 +18,21 @@ interface Props {
 }
 
 export function LabelPaper({ settings, content, date }: Props) {
-  // Visible sections in order; for text sections, skip when there's no content
-  // (lines always render). marginTop is killed on the first rendered element so
-  // it sits flush at the padding edge (matches the print HTML `div:first-child`
-  // rule).
-  // Four sections are never their OWN line — they fold into another section's
-  // flex row (right side): `print_date` → into `shop`, `qty` → into
-  // `shop_line_id`, `barcode` → into `product`, `expiry` → into `dosage`. Skip
-  // them here; the host row shows when EITHER its own text or its folded-in
-  // partner is enabled.
-  const visible = SECTIONS.filter(s => {
-    if (s.key === 'print_date') return false
-    if (s.key === 'barcode') return false
-    if (s.key === 'qty') return false
-    if (s.key === 'expiry') return false
-    if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
-    if (s.key === 'shop_address') return !!settings.show_shop_address
-    if (s.key === 'shop_line_id') return !!settings.show_shop_line_id || !!settings.show_qty
-    if (s.key === 'product') return !!settings.show_product || !!settings.show_barcode
-    if (s.key === 'dosage') return !!settings.show_dosage || !!settings.show_expiry
-    return settings[`show_${s.key}` as keyof LabelSettingsForm]
-  })
+  // Lines are INDEPENDENT (option 1, owner decision 2026-06-29): every top-level
+  // row keeps a FIXED slot. A row whose show-toggle is OFF renders an invisible,
+  // space-reserving placeholder (buildReservedSlotStyle) instead of being dropped,
+  // so turning a line off no longer pulls the lines below it up — each line stays
+  // exactly where it was. We therefore iterate ALL of SECTIONS (no more `.filter`)
+  // and decide render-vs-reserve per row via isSectionToggledOn.
+  //
+  // Four sections are never their OWN line — they fold into another row's flex
+  // (right side): `print_date` → `shop`, `qty` → `shop_line_id`, `barcode` →
+  // `product`, `expiry` → `dosage`. Those get NO slot at all (isFoldedSection),
+  // reserved or otherwise. marginTop is killed on the first rendered/reserved
+  // element so it sits flush at the padding edge (matches the print HTML
+  // `div:first-child` rule). A row toggled ON but with empty content still
+  // collapses (its branch returns null) — same as before; only the toggle drives
+  // reservation.
 
   // The configured family. Multi-word names (e.g. "Bai Jamjuree") MUST be
   // quoted in CSS. We re-apply this on EVERY text element below — not just the
@@ -81,7 +76,15 @@ export function LabelPaper({ settings, content, date }: Props) {
           configured size and the paper above clips any overflow). */}
       <div style={{ width: '100%', height: '100%' }}>
       <div style={{ transformOrigin: 'top left' }}>
-      {visible.map(s => {
+      {SECTIONS.map(s => {
+        // Folded rows never get a slot (they ride a host row's right side).
+        if (isFoldedSection(s.key)) return null
+        // Toggled OFF → reserve an invisible slot so the layout below stays put.
+        if (!isSectionToggledOn(s.key, settings)) {
+          const slot: CSSProperties = buildReservedSlotStyle(s, settings)
+          if (first) { slot.marginTop = 0; first = false }
+          return <div key={s.key} style={slot}>{s.kind === 'line' ? undefined : '\u00A0'}</div>
+        }
         const style: CSSProperties = buildSectionStyle(s, settings)
         if (s.kind === 'line') {
           if (first) { style.marginTop = 0; first = false }

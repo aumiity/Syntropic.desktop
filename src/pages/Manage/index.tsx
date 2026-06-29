@@ -183,19 +183,19 @@ export default function ManageLayout() {
             })}
           </TabsList>
         </Tabs>
-        {tabActions && <div className="ml-auto flex items-center">{tabActions}</div>}
+        {(tabActions ?? subTabActions) && <div className="ml-auto flex items-center">{tabActions ?? subTabActions}</div>}
         </TabStrip>
       </div>
 
       {isStock && (
         <div className={CAP}>
         <div className="flex items-center gap-3 h-12 shrink-0">
-          <Tabs value={current} onValueChange={(v) => { const sub = STOCK_SUBTABS.find(t => t.value === v); if (sub) navigate(sub.to) }}>
-            <TabsList variant="line">
+          <Tabs value={current} className="flex-1" onValueChange={(v) => { const sub = STOCK_SUBTABS.find(t => t.value === v); if (sub) navigate(sub.to) }}>
+            <TabsList variant="line" className="w-full">
               {STOCK_SUBTABS.map(({ value, label, icon: Icon }) => {
                 const showBadge = value === 'negative-stock' && negativeStockCount > 0
                 return (
-                  <TabsTrigger key={value} value={value} className="flex-none px-4 py-2">
+                  <TabsTrigger key={value} value={value} className="flex-1 px-4 py-2">
                     <Icon />
                     <span className="relative inline-block">
                       {label}
@@ -210,7 +210,6 @@ export default function ManageLayout() {
               })}
             </TabsList>
           </Tabs>
-          {subTabActions && <div className="ml-auto flex items-center">{subTabActions}</div>}
         </div>
         </div>
       )}

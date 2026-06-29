@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { SortableTableBody, SortableRow } from '@/components/ui/sortable'
@@ -123,6 +124,11 @@ export function ExpenseCategoriesTab() {
             </>
           ) : (
             <>
+              <div className="flex items-center gap-3 shrink-0">
+                <TintIcon icon={Tag} tint="neutral" size="sm" />
+                <h3 className="text-lg font-semibold text-foreground">หมวดหมู่ค่าใช้จ่าย</h3>
+                <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+              </div>
               <SearchInput
                 variant="elevated"
                 value={q}

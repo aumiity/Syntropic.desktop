@@ -243,6 +243,7 @@ export default function ManageExpiryPage() {
   useEffect(() => {
     setSubTabActions(
       <ExportButton
+        className="h-10"
         onExport={() => window.api.exports.expiry({
           filter,
           category_id: categoryId !== '0' ? Number(categoryId) : undefined,

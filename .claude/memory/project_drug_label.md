@@ -5,6 +5,15 @@ metadata:
   type: project
 ---
 
+## Status — 2026-06-29 (บรรทัดอิสระ: ปิดบรรทัดแล้วบรรทัดอื่นไม่เลื่อน — "เว้น slot") — tsc PASS, in-app verify pending
+
+เจ้าของขอให้ทุกบรรทัดของฉลากเป็น **อิสระต่อกันจริง ๆ — ปิด (show_X=0) บรรทัดใดแล้วบรรทัดที่เหลือต้องไม่ขยับ**. เลือก **ข้อ 1 "เว้น slot คงที่"** (ไม่เอา absolute/canvas เพราะฉลากหลายภาษาข้อความยาวจะหลุดกรอบ — flow ยัง wrap+ดันบรรทัดล่างให้). กลไก: เดิม path render ทำ `.filter()` ตัดบรรทัดที่ปิดออกจาก flow → บรรทัดล่างเลื่อนขึ้น. เปลี่ยนเป็น **คงบรรทัดที่ปิดไว้เป็น placeholder ล่องหนที่จองความสูง 1 บรรทัด** (`visibility:hidden` + `&nbsp;`/` `, ไม่มี offset).
+- **SSOT `sections.ts` เพิ่ม 3 helper (ทุก path เรียกร่วม กัน drift):** `isFoldedSection(key)` (print_date/barcode/qty/expiry = พับขวา host ไม่มี slot เลย), `isSectionToggledOn(key,form)` (predicate เดียวแทน filter เก่า — shop/shop_line_id/product/dosage = OR กับ partner ที่พับ; ที่เหลือ `show_<key>`), `buildReservedSlotStyle(def,form)` (slot ล่องหน: text=`font_size_<key>`+`section_gap` marginTop; line=borderTop 0.5pt).
+- **แก้ 3 dual-render path ให้ตรงกัน 1:1:** `LabelPaper.tsx` (preview React: Settings designer + LabelsTab), `html.ts renderLabelSectionsHtml` (พิมพ์จริง/สลิป), **+ `blankLabel.ts renderBlankInner` (ฟอร์มเปล่าเขียนเอง — มิเรอร์ด้วยเพื่อคง row-parity กับ real label ตาม invariant)**. ทุกที่: `.map(ทุก SECTIONS)` → folded=ข้าม, toggled-off=push reserved slot, else=render เดิม.
+- **marginTop บรรทัดแรก=0:** React ใช้ flag `first` (placeholder/real ตัวแรกที่ render ได้ → 0); print ใช้ CSS `.label-fit > div:first-child` (placeholder เป็น div จริง = first child). สอดคล้องกัน.
+- **เงื่อนไขจอง = show-toggle ปิดเท่านั้น.** บรรทัดที่ **เปิดอยู่แต่ content ว่าง** ยัง collapse เหมือนเดิม (print-time สินค้าข้อมูลน้อย) — ใน designer SAMPLE_CONTENT เต็มเลยตำแหน่งนิ่ง 100%.
+- **ข้อจำกัดที่ยอมรับ (แจ้งเจ้าของแล้ว):** slot จองแค่ **1 บรรทัด** → ถ้าบรรทัดที่ปิดเดิมยาวจน wrap 2 บรรทัด การ toggle จะขยับ 1 บรรทัด (รู้ shown-height ของบรรทัดที่ปิดไม่ได้). เคสทั่วไป (1 บรรทัด) นิ่งสนิท.
+
 ## Status — 2026-06-20e (สลับ fold: barcode → แถวชื่อยา, qty → แถวที่อยู่/เบอร์) — tsc PASS, in-app verify pending
 
 เจ้าของขอย้าย barcode ออกจากแถวที่อยู่/เบอร์ (ยาวไป) → ไปพับขวา**แถวชื่อยา (product)** แทน qty; แล้วเอา **qty (สั้น) ขึ้นไปพับขวาแถว "ที่อยู่ร้าน / เบอร์โทร"** แทนที่ barcode. = **สลับ host ของ qty ↔ barcode**:

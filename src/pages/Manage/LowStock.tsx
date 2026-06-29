@@ -145,6 +145,7 @@ export default function ManageLowStockPage() {
   useEffect(() => {
     setSubTabActions(
       <ExportButton
+        className="h-10"
         onExport={() => window.api.exports.lowStock({
           q: q.trim() || undefined,
           category_id: categoryId !== '0' ? Number(categoryId) : undefined,

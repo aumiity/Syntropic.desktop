@@ -13,10 +13,10 @@ export function ProductMgmtTab() {
   return (
     <div className="h-full flex flex-col min-h-0">
       <Tabs value={sub} onValueChange={setSub}>
-        <TabsList variant="line">
-          <TabsTrigger value="categories" className="flex-none px-4 py-2"><Tag /> หมวดหมู่สินค้า</TabsTrigger>
-          <TabsTrigger value="expenses" className="flex-none px-4 py-2"><ReceiptText /> หมวดหมู่ค่าใช้จ่าย</TabsTrigger>
-          <TabsTrigger value="drugtypes" className="flex-none px-4 py-2"><Pill /> ประเภทของยา</TabsTrigger>
+        <TabsList variant="line" className="w-full">
+          <TabsTrigger value="categories" className="flex-1 px-4 py-2"><Tag /> หมวดหมู่สินค้า</TabsTrigger>
+          <TabsTrigger value="expenses" className="flex-1 px-4 py-2"><ReceiptText /> หมวดหมู่ค่าใช้จ่าย</TabsTrigger>
+          <TabsTrigger value="drugtypes" className="flex-1 px-4 py-2"><Pill /> ประเภทของยา</TabsTrigger>
         </TabsList>
       </Tabs>
 

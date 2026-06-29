@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -119,15 +121,20 @@ export function LabelLookupTab() {
   return (
     <div className="h-full flex flex-col min-h-0 gap-4">
       <Tabs value={kind} onValueChange={v => { setKind(v); setQ('') }}>
-        <TabsList variant="line">
-          {KINDS.map(k => <TabsTrigger key={k.key} value={k.key} className="flex-none px-4 py-2">{k.label}</TabsTrigger>)}
-          <TabsTrigger value="preset" className="flex-none px-4 py-2">preset วิธีใช้</TabsTrigger>
+        <TabsList variant="line" className="w-full">
+          {KINDS.map(k => <TabsTrigger key={k.key} value={k.key} className="flex-1 px-4 py-2">{k.label}</TabsTrigger>)}
+          <TabsTrigger value="preset" className="flex-1 px-4 py-2">preset วิธีใช้</TabsTrigger>
         </TabsList>
       </Tabs>
 
       {kind === 'preset' ? <LabelPresetTab /> : (
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <TintIcon icon={Stethoscope} tint="neutral" size="sm" />
+            <h3 className="text-lg font-semibold text-foreground">{kindDef?.label ?? 'รายการคำแปล'}</h3>
+            <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+          </div>
           <SearchInput variant="elevated" value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาชื่อรายการ..." />
           <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" onClick={openAdd}>
             <Plus className="size-4" /> เพิ่มรายการ

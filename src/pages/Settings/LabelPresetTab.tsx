@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { TintIcon } from '@/components/ui/tint-icon'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -77,6 +79,11 @@ export function LabelPresetTab() {
     <div className="flex flex-1 flex-col min-h-0">
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            <TintIcon icon={ListChecks} tint="neutral" size="sm" />
+            <h3 className="text-lg font-semibold text-foreground">preset วิธีใช้ยา</h3>
+            <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+          </div>
           <SearchInput variant="elevated" value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาชื่อ preset..." />
           <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" onClick={openAdd}>
             <Plus className="size-4" /> เพิ่ม preset

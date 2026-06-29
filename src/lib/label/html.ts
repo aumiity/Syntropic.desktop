@@ -5,7 +5,10 @@
 // LabelsTab print action (composeLabelContent). The two render paths can't be
 // one function (React vs HTML string), so they share everything below instead.
 import type { CSSProperties } from 'react'
-import { SECTIONS, buildSectionStyle, type LabelSettingsForm, type SectionKey } from './sections'
+import {
+  SECTIONS, buildSectionStyle, isFoldedSection, isSectionToggledOn,
+  buildReservedSlotStyle, type LabelSettingsForm, type SectionKey,
+} from './sections'
 import { esc, buildPrintFontFaceCss, buildFallbackFontFaceCss } from '@/lib/print/fonts'
 import { barcodeSvg } from './barcode'
 
@@ -25,24 +28,23 @@ export function renderLabelSectionsHtml(
   content: Partial<Record<SectionKey, string>>,
   date: string,
 ): string {
+  // Lines are INDEPENDENT (option 1, owner decision 2026-06-29) — mirror of
+  // LabelPaper. A row toggled OFF renders an invisible, space-reserving
+  // placeholder (buildReservedSlotStyle) instead of being dropped, so turning a
+  // line off leaves its slot empty and the lines below stay put. We iterate ALL
+  // of SECTIONS (no `.filter`); the 4 folded rows (print_date / barcode / qty /
+  // expiry) get no slot at all; the first DOM child's marginTop is zeroed by the
+  // `.label-fit > div:first-child` CSS rule (placeholders are real divs, so the
+  // first reserved/real div lands flush at the padding edge — matches React).
   return SECTIONS
-    // `print_date` folds into the shop flex row, `qty` into the shop_line_id row,
-    // `barcode` into the product row, `expiry` into the dosage row (see below) —
-    // never their own line; each host row shows when EITHER its own text or its
-    // folded-in partner is enabled.
-    .filter(s => {
-      if (s.key === 'print_date') return false
-      if (s.key === 'barcode') return false
-      if (s.key === 'qty') return false
-      if (s.key === 'expiry') return false
-      if (s.key === 'shop') return !!settings.show_shop || !!settings.show_print_date
-      if (s.key === 'shop_address') return !!settings.show_shop_address
-      if (s.key === 'shop_line_id') return !!settings.show_shop_line_id || !!settings.show_qty
-      if (s.key === 'product') return !!settings.show_product || !!settings.show_barcode
-      if (s.key === 'dosage') return !!settings.show_dosage || !!settings.show_expiry
-      return settings[`show_${s.key}` as keyof LabelSettingsForm]
-    })
     .map(s => {
+      // Folded rows never get a slot (they ride a host row's right side).
+      if (isFoldedSection(s.key)) return ''
+      // Toggled OFF → reserve an invisible slot so the layout below stays put.
+      if (!isSectionToggledOn(s.key, settings)) {
+        const slot = styleToCss(buildReservedSlotStyle(s, settings))
+        return `<div style="${slot}">${s.kind === 'line' ? '' : '&nbsp;'}</div>`
+      }
       if (s.kind === 'line') {
         return `<div style="${styleToCss(buildSectionStyle(s, settings))}"></div>`
       }

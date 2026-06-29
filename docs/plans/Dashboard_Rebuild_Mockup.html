@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard ใหม่ — Mockup ศูนย์บัญชาการ</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#ffffff; --border:#e2e8f0; --muted:#64748b; --fg:#0f172a; --fg-sub:#94a3b8;
+    --primary:#0d9488; --primary-soft:#ccfbf1;
+    --success:#16a34a; --success-soft:#dcfce7;
+    --amber:#d97706; --amber-soft:#fef3c7; --amber-strong:#b45309;
+    --violet:#7c3aed; --violet-soft:#ede9fe; --violet-strong:#6d28d9;
+    --info:#2563eb; --info-soft:#dbeafe; --info-sfg:#1d4ed8;
+    --destructive:#dc2626; --destructive-soft:#fee2e2;
+    --warning:#ea580c; --warning-soft:#ffedd5;
+    --muted-bg:#f1f5f9;
+  }
+  *{box-sizing:border-box}
+  body{font-family:"Inter","IBM Plex Sans Thai","Noto Sans Thai",-apple-system,"Segoe UI",sans-serif;
+    background:var(--bg);color:var(--fg);margin:0;font-size:15px;line-height:1.45}
+  .frame{max-width:1280px;margin:0 auto;padding:18px 22px 60px}
+  .note{font-size:12.5px;color:var(--muted);background:#fff;border:1px solid var(--border);
+    border-radius:10px;padding:8px 12px;margin:0 0 14px}
+  .pagehead{display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px}
+  .pagehead h1{font-size:22px;margin:0;font-weight:700}
+  .tabstrip{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px}
+  .tabs{display:inline-flex;background:var(--muted-bg);border-radius:10px;padding:3px;gap:2px}
+  .tab{font-size:13.5px;font-weight:600;color:var(--muted);padding:6px 14px;border-radius:8px;display:inline-flex;align-items:center;gap:6px}
+  .tab.active{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .toolbar{display:flex;align-items:center;gap:8px}
+  .ctl{height:36px;border:1px solid var(--border);background:#fff;border-radius:9px;display:inline-flex;align-items:center;gap:7px;padding:0 12px;font-size:13.5px;font-weight:600;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .ctl.ghost{color:var(--muted)}
+  .band{font-size:11.5px;font-weight:700;color:var(--fg-sub);text-transform:uppercase;letter-spacing:.6px;margin:18px 2px 9px;display:flex;align-items:center;gap:9px}
+  .band .rule{flex:1;height:1px;background:var(--border)}
+  .band .hint{font-weight:600;text-transform:none;letter-spacing:0;font-size:11px}
+  .grid{display:grid;gap:12px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);padding:14px 16px}
+  .card-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .card-h .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:none}
+  .card-h h3{font-size:14.5px;margin:0;font-weight:700}
+  .card-h .sub{font-size:12px;color:var(--muted);font-weight:500}
+  .card-h .right{margin-left:auto;display:flex;align-items:center;gap:6px}
+  .seg{display:inline-flex;background:var(--muted-bg);border-radius:8px;padding:2px;gap:2px}
+  .seg b{font-size:11.5px;font-weight:600;color:var(--muted);padding:4px 10px;border-radius:6px}
+  .seg b.on{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .sq{height:30px;min-width:30px;border:1px solid var(--border);border-radius:8px;background:#fff;display:grid;place-items:center;color:var(--muted);box-shadow:0 1px 2px rgba(0,0,0,.04);font-size:12px;padding:0 8px}
+  /* KPI hero */
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .kpi .top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .kpi .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:none}
+  .kpi .lbl{font-size:12px;color:var(--muted);font-weight:600;line-height:1.2}
+  .kpi .val{font-size:21px;font-weight:800;letter-spacing:-.4px;line-height:1.1}
+  .kpi .foot{display:flex;align-items:center;gap:5px;margin-top:5px;font-size:11px}
+  .kpi .d{font-weight:700} .kpi .d.up{color:var(--success)} .kpi .d.down{color:var(--destructive)}
+  .kpi .cmp{color:var(--fg-sub)}
+  /* combined trend */
+  .chartwrap{position:relative;height:218px;margin-top:4px}
+  .gchart{height:200px;display:flex;align-items:flex-end;gap:9px;padding:6px 2px 0}
+  .gcol{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:3px;height:100%}
+  .gcol i{width:10px;border-radius:4px 4px 0 0}
+  .pline{position:absolute;left:2px;right:2px;top:6px;height:200px;width:calc(100% - 4px);pointer-events:none}
+  .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--fg-sub);padding:4px 4px 0}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px}
+  .legend b{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);font-weight:500}
+  .legend b s{width:10px;height:10px;border-radius:3px;text-decoration:none}
+  .legend b s.ln{width:14px;height:3px;border-radius:2px}
+  /* status + averages card */
+  .segbar{display:flex;height:11px;gap:3px;margin:10px 0 9px}
+  .segbar i{height:100%;border-radius:3px}
+  .segbar i:first-child{border-radius:99px 3px 3px 99px}
+  .segbar i:last-child{border-radius:3px 99px 99px 3px}
+  .hr{height:1px;background:var(--border);margin:12px 0}
+  .kv{display:grid;grid-template-columns:1fr auto;gap:7px 14px;font-size:12.5px}
+  .kv .k{color:var(--muted)} .kv .v{text-align:right;font-weight:700}
+  .kv .v small{font-weight:600;color:var(--muted);font-size:10.5px;margin-left:6px}
+  /* top list */
+  .list{display:flex;flex-direction:column}
+  .li{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--border)}
+  .li:last-child{border-bottom:none}
+  .li .rk{width:21px;height:21px;border-radius:7px;background:var(--muted-bg);display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--muted);flex:none}
+  .li .nm{font-size:12.5px;font-weight:600;min-width:0;line-height:1.25}
+  .li .nm small{display:block;font-weight:500;color:var(--fg-sub);font-size:10.5px}
+  .li .vv{margin-left:auto;font-size:12.5px;font-weight:700;white-space:nowrap}
+  .li .vv.pos{color:var(--success)}
+  /* alerts */
+  .alerts{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .alert{display:flex;align-items:center;gap:11px;border-radius:11px;padding:10px 12px;cursor:pointer}
+  .alert .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.55)}
+  .alert .t{font-size:12.5px;font-weight:700;line-height:1.2}
+  .alert .n{font-size:11px;opacity:.8}
+  .alert .chev{margin-left:auto;opacity:.5}
+  .big{font-size:25px;font-weight:800;letter-spacing:-.4px}
+  .exrow{display:flex;flex-direction:column;gap:9px;margin-top:11px}
+  .exrow .l{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
+  .exrow .l b{font-weight:700}
+  .bar{height:7px;border-radius:99px;background:var(--muted-bg);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--violet),var(--info))}
+  .tp{background:var(--primary-soft);color:var(--primary)} .ts{background:var(--success-soft);color:var(--success)}
+  .ta{background:var(--amber-soft);color:var(--amber-strong)} .tv{background:var(--violet-soft);color:var(--violet-strong)}
+  .ti{background:var(--info-soft);color:var(--info-sfg)} .td{background:var(--destructive-soft);color:var(--destructive)}
+  .tw{background:var(--warning-soft);color:var(--warning)} .tn{background:var(--muted-bg);color:var(--muted)}
+  .icn{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .icn.sm{width:14px;height:14px}
+  @media(max-width:1040px){.kpis{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="frame">
+  <p class="note">Mockup "ศูนย์บัญชาการ" — จัดตามหัวข้อ (ไม่แบ่งบล็อกขาย/ซื้อ) · ข้อมูลตัวอย่าง · ตัวเลือกช่วงเวลาตัวเดียวบน toolbar คุมทั้งหน้า (ยกเว้นแจ้งเตือน + ค่าใช้จ่ายแยกหมวด)</p>
+
+  <svg width="0" height="0" style="position:absolute"><defs>
+    <g id="i-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></g>
+    <g id="i-wallet"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-2a2 2 0 0 1 0-4"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></g>
+    <g id="i-coins"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/></g>
+    <g id="i-trend"><path d="M3 17 9 11l4 4 8-8"/><path d="M16 7h5v5"/></g>
+    <g id="i-pct"><path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></g>
+    <g id="i-line"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></g>
+    <g id="i-cart"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 2-1.58l1.65-7.42H5.12"/></g>
+    <g id="i-truck"><path d="M14 18V6a1 1 0 0 0-1-1H2v12"/><path d="M14 9h4l4 4v5h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></g>
+    <g id="i-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></g>
+    <g id="i-trophy"><path d="M6 9a6 6 0 0 0 12 0V3H6z"/><path d="M6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3M9 21h6M12 17v4"/></g>
+    <g id="i-store"><path d="M3 9 4 4h16l1 5M4 9v11h16V9M9 20v-6h6v6"/></g>
+    <g id="i-pkgx"><path d="m7.5 4.27 9 5.15M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0L18 5"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></g>
+    <g id="i-clock"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g>
+    <g id="i-hour"><path d="M5 22h14M5 2h14M7 22v-4.2a2 2 0 0 1 .6-1.4L12 12M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12M7 2v4.2a2 2 0 0 0 .6 1.4L12 12M17 2v4.2a2 2 0 0 1-.6 1.4L12 12"/></g>
+    <g id="i-pminus"><path d="M16 16h6M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></g>
+    <g id="i-chev"><path d="m9 18 6-6-6-6"/></g>
+    <g id="i-cal"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g>
+    <g id="i-refresh"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></g>
+    <g id="i-swap"><path d="M16 3l4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></g>
+    <g id="i-list"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></g>
+  </defs></svg>
+
+  <!-- header + tabs -->
+  <div class="pagehead"><h1>รายงาน</h1></div>
+  <div class="tabstrip">
+    <div class="tabs">
+      <span class="tab active"><svg class="icn sm"><use href="#i-line"/></svg> แดชบอร์ด</span>
+      <span class="tab">ภาษี (VAT)</span>
+      <span class="tab">รายงาน อย.</span>
+      <span class="tab">ส่งออก Excel</span>
+    </div>
+    <div class="toolbar">
+      <span class="ctl"><svg class="icn sm"><use href="#i-cal"/></svg> เดือนนี้ · 01/06/2026–29/06/2026</span>
+      <span class="ctl ghost"><svg class="icn sm"><use href="#i-refresh"/></svg> รีเฟรช</span>
+    </div>
+  </div>
+
+  <!-- ===== BAND 1 — KPI รวม ===== -->
+  <div class="band">ภาพรวมผลประกอบการ <span class="rule"></span></div>
+  <div class="kpis">
+    <div class="kpi"><div class="top"><span class="ic tp"><svg class="icn sm"><use href="#i-coins"/></svg></span><span class="lbl">ยอดขาย</span></div><div class="val">฿342,890</div><div class="foot"><span class="d up">▲ 12.4%</span><span class="cmp">vs เดือนก่อน</span></div></div>
+    <div class="kpi"><div class="top"><span class="ic ts"><svg class="icn sm"><use href="#i-trend"/></svg></span><span class="lbl">กำไร</span></div><div class="val">฿101,590</div><div class="foot"><span class="d up">▲ 21.0%</span><span class="cmp">vs เดือนก่อน</span></div></div>
+    <div class="kpi"><div class="top"><span class="ic tv"><svg class="icn sm"><use href="#i-pct"/></svg></span><span class="lbl">กำไร %</span></div><div class="val">29.6%</div><div class="foot"><span class="d up">▲ 2.1%</span><span class="cmp">vs เดือนก่อน</span></div></div>
+    <div class="kpi"><div class="top"><span class="ic ti"><svg class="icn sm"><use href="#i-truck"/></svg></span><span class="lbl">ยอดซื้อ</span></div><div class="val">฿268,400</div><div class="foot"><span class="d down">▲ 7.8%</span><span class="cmp">vs เดือนก่อน</span></div></div>
+    <div class="kpi"><div class="top"><span class="ic ta"><svg class="icn sm"><use href="#i-bell"/></svg></span><span class="lbl">ค้างชำระ</span></div><div class="val">฿62,300</div><div class="foot"><span class="cmp">17 บิล · รวมทุกช่วง</span></div></div>
+    <div class="kpi"><div class="top"><span class="ic tw"><svg class="icn sm"><use href="#i-wallet"/></svg></span><span class="lbl">ค่าใช้จ่าย</span></div><div class="val">฿18,450</div><div class="foot"><span class="d up">▼ 6.2%</span><span class="cmp">vs เดือนก่อน</span></div></div>
+  </div>
+
+  <!-- ===== BAND 2 — แนวโน้มรวม + สถานะ/เฉลี่ย ===== -->
+  <div class="band">แนวโน้ม &amp; องค์ประกอบ <span class="rule"></span></div>
+  <div class="grid" style="grid-template-columns:1.9fr 1fr;align-items:start">
+    <!-- combined trend -->
+    <div class="card">
+      <div class="card-h">
+        <span class="ic tn"><svg class="icn sm"><use href="#i-line"/></svg></span>
+        <div><h3>แนวโน้มรวม — ขาย · ซื้อ · กำไร</h3><div class="sub">แกนเวลาเดียวกัน · รายวัน</div></div>
+        <div class="right"><span class="seg"><b class="on">รวม</b><b>ขาย</b><b>ซื้อ</b><b>กำไร</b></span></div>
+      </div>
+      <div class="legend" style="margin-bottom:4px">
+        <b><s style="background:var(--primary)"></s>ยอดขาย</b>
+        <b><s style="background:var(--info)"></s>ยอดซื้อ</b>
+        <b><s class="ln" style="background:var(--amber)"></s>กำไร</b>
+      </div>
+      <div class="chartwrap">
+        <div class="gchart">
+          <div class="gcol"><i style="height:52%;background:var(--primary)"></i><i style="height:40%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:61%;background:var(--primary)"></i><i style="height:8%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:44%;background:var(--primary)"></i><i style="height:70%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:73%;background:var(--primary)"></i><i style="height:10%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:58%;background:var(--primary)"></i><i style="height:54%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:80%;background:var(--primary)"></i><i style="height:88%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:66%;background:var(--primary)"></i><i style="height:12%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:90%;background:var(--primary)"></i><i style="height:62%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:71%;background:var(--primary)"></i><i style="height:10%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:84%;background:var(--primary)"></i><i style="height:92%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:62%;background:var(--primary)"></i><i style="height:46%;background:var(--info)"></i></div>
+          <div class="gcol"><i style="height:95%;background:var(--primary)"></i><i style="height:74%;background:var(--info)"></i></div>
+        </div>
+        <svg class="pline" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline points="4,70 12,63 20,72 29,55 37,60 45,45 53,52 62,34 70,46 78,38 86,55 95,30"
+            fill="none" stroke="var(--amber)" stroke-width="1.4" vector-effect="non-scaling-stroke"
+            stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="axis"><span>1 มิ.ย.</span><span>8</span><span>15</span><span>22</span><span>29 มิ.ย.</span></div>
+    </div>
+
+    <!-- right column: 2 combined cards (สถานะ + เฉลี่ย) -->
+    <div class="grid" style="gap:12px">
+      <div class="card">
+        <div class="card-h"><span class="ic tp"><svg class="icn sm"><use href="#i-cart"/></svg></span><div><h3>การขาย</h3><div class="sub">1,284 บิล</div></div></div>
+        <div class="segbar">
+          <i style="width:62%;background:var(--primary)"></i><i style="width:24%;background:var(--amber)"></i>
+          <i style="width:9%;background:var(--violet)"></i><i style="width:5%;background:var(--destructive)"></i>
+        </div>
+        <div class="legend">
+          <b><s style="background:var(--primary)"></s>ปลีก</b><b><s style="background:var(--amber)"></s>ส่ง</b>
+          <b><s style="background:var(--violet)"></s>คืน</b><b><s style="background:var(--destructive)"></s>ยกเลิก</b>
+        </div>
+        <div class="hr"></div>
+        <div class="kv">
+          <span class="k">ต้นทุนรวม</span><span class="v">฿241,300</span>
+          <span class="k">ส่วนลดรวม</span><span class="v">฿4,210</span>
+          <span class="k">วันที่ขาย</span><span class="v">29 วัน</span>
+          <span class="k">เฉลี่ย/บิล</span><span class="v">฿267<small>กำไร ฿79</small></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="ic ti"><svg class="icn sm"><use href="#i-truck"/></svg></span><div><h3>การซื้อ</h3><div class="sub">214 บิล</div></div></div>
+        <div class="segbar">
+          <i style="width:42%;background:var(--info)"></i><i style="width:31%;background:var(--success)"></i>
+          <i style="width:14%;background:var(--amber)"></i><i style="width:8%;background:var(--violet)"></i><i style="width:5%;background:var(--destructive)"></i>
+        </div>
+        <div class="legend">
+          <b><s style="background:var(--info)"></s>เงินสด</b><b><s style="background:var(--success)"></s>ชำระแล้ว</b>
+          <b><s style="background:var(--amber)"></s>ค้างชำระ</b><b><s style="background:var(--violet)"></s>เกินกำหนด</b><b><s style="background:var(--destructive)"></s>ยกเลิก</b>
+        </div>
+        <div class="hr"></div>
+        <div class="kv">
+          <span class="k">เงินสด</span><span class="v">฿112,900</span>
+          <span class="k">เครดิต</span><span class="v">฿155,500</span>
+          <span class="k">เฉลี่ย/บิล</span><span class="v">฿1,254</span>
+          <span class="k">ค้างชำระ (รวมทุกช่วง)</span><span class="v">฿62,300</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BAND 3 — อันดับ ===== -->
+  <div class="band">อันดับ <span class="rule"></span></div>
+  <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="card">
+      <div class="card-h"><span class="ic tp"><svg class="icn sm"><use href="#i-trophy"/></svg></span><h3>สินค้าขายดี</h3><div class="right"><span class="sq"><svg class="icn sm"><use href="#i-swap"/></svg></span></div></div>
+      <div class="list">
+        <div class="li"><span class="rk">1</span><div class="nm">พาราเซตามอล 500mg<small>2,140 เม็ด</small></div><span class="vv">฿12,840</span></div>
+        <div class="li"><span class="rk">2</span><div class="nm">อะม็อกซีซิลลิน 500mg<small>880 แคปซูล</small></div><span class="vv">฿9,680</span></div>
+        <div class="li"><span class="rk">3</span><div class="nm">วิตามินซี 1000mg<small>1,210 เม็ด</small></div><span class="vv">฿8,470</span></div>
+        <div class="li"><span class="rk">4</span><div class="nm">ยาแก้ไอ น้ำดำ<small>430 ขวด</small></div><span class="vv">฿6,450</span></div>
+        <div class="li"><span class="rk">5</span><div class="nm">ผ้าก๊อซพันแผล<small>620 ม้วน</small></div><span class="vv">฿4,960</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><span class="ic ts"><svg class="icn sm"><use href="#i-trend"/></svg></span><h3>กำไรสูงสุด</h3><div class="right"><span class="sq"><svg class="icn sm"><use href="#i-swap"/></svg></span></div></div>
+      <div class="list">
+        <div class="li"><span class="rk">1</span><div class="nm">อะม็อกซีซิลลิน 500mg<small>ยอดขาย ฿9,680</small></div><span class="vv pos">฿4,120</span></div>
+        <div class="li"><span class="rk">2</span><div class="nm">พาราเซตามอล 500mg<small>ยอดขาย ฿12,840</small></div><span class="vv pos">฿3,560</span></div>
+        <div class="li"><span class="rk">3</span><div class="nm">วิตามินซี 1000mg<small>ยอดขาย ฿8,470</small></div><span class="vv pos">฿2,940</span></div>
+        <div class="li"><span class="rk">4</span><div class="nm">ครีมแก้ปวดเมื่อย<small>ยอดขาย ฿5,200</small></div><span class="vv pos">฿2,210</span></div>
+        <div class="li"><span class="rk">5</span><div class="nm">ยาแก้ไอ น้ำดำ<small>ยอดขาย ฿6,450</small></div><span class="vv pos">฿1,870</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><span class="ic ti"><svg class="icn sm"><use href="#i-truck"/></svg></span><h3>ผู้จัดจำหน่าย</h3></div>
+      <div class="list">
+        <div class="li"><span class="rk">1</span><div class="nm">ซิลลิค ฟาร์มา<small>18 ใบ</small></div><span class="vv">฿74,200</span></div>
+        <div class="li"><span class="rk">2</span><div class="nm">ดีเคเอสเอช<small>14 ใบ</small></div><span class="vv">฿58,900</span></div>
+        <div class="li"><span class="rk">3</span><div class="nm">องค์การเภสัชกรรม<small>11 ใบ</small></div><span class="vv">฿41,300</span></div>
+        <div class="li"><span class="rk">4</span><div class="nm">เบอร์ลินฟาร์มา<small>9 ใบ</small></div><span class="vv">฿33,800</span></div>
+        <div class="li"><span class="rk">5</span><div class="nm">ไทยนครพัฒนา<small>7 ใบ</small></div><span class="vv">฿26,100</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><span class="ic tv"><svg class="icn sm"><use href="#i-users"/></svg></span><h3>พนักงานขาย</h3></div>
+      <div class="list">
+        <div class="li"><span class="rk">1</span><div class="nm">สมหญิง ใจดี<small>512 บิล · กำไร ฿41,200</small></div><span class="vv">฿138,400</span></div>
+        <div class="li"><span class="rk">2</span><div class="nm">วิภา สุขสันต์<small>438 บิล · กำไร ฿33,900</small></div><span class="vv">฿119,700</span></div>
+        <div class="li"><span class="rk">3</span><div class="nm">อนุชา พรหมมา<small>334 บิล · กำไร ฿26,490</small></div><span class="vv">฿84,790</span></div>
+        <div class="li"><span class="rk">4</span><div class="nm">กานดา ทองมี<small>198 บิล · กำไร ฿15,100</small></div><span class="vv">฿52,600</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BAND 4 — สุขภาพร้าน + ลูกค้า ===== -->
+  <div class="band">สุขภาพร้าน &amp; ลูกค้า <span class="rule"></span><span class="hint">แจ้งเตือน &amp; ค่าใช้จ่าย ไม่ผูกช่วงเวลาหลัก</span></div>
+  <div class="grid" style="grid-template-columns:1.25fr 1fr 1fr">
+    <!-- alerts -->
+    <div class="card">
+      <div class="card-h"><span class="ic td"><svg class="icn sm"><use href="#i-bell"/></svg></span><h3>แจ้งเตือน</h3><div class="right"><span class="sq">38 รายการ</span></div></div>
+      <div class="alerts">
+        <div class="alert td"><span class="ic"><svg class="icn"><use href="#i-pminus"/></svg></span><div><div class="t">สต็อกติดลบ</div><div class="n">3 รายการ</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
+        <div class="alert tw"><span class="ic"><svg class="icn"><use href="#i-pkgx"/></svg></span><div><div class="t">ต่ำกว่าจุดสั่งซื้อ</div><div class="n">12 รายการ</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
+        <div class="alert ta"><span class="ic"><svg class="icn"><use href="#i-clock"/></svg></span><div><div class="t">ใกล้หมดอายุ 30 วัน</div><div class="n">9 ล็อต</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
+        <div class="alert ti"><span class="ic"><svg class="icn"><use href="#i-hour"/></svg></span><div><div class="t">ค้างเกิน 6 เดือน</div><div class="n">14 รายการ</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
+      </div>
+    </div>
+    <!-- expenses -->
+    <div class="card">
+      <div class="card-h"><span class="ic ta"><svg class="icn sm"><use href="#i-wallet"/></svg></span><h3>ค่าใช้จ่ายแยกหมวด</h3><div class="right"><span class="sq"><svg class="icn sm" style="margin-right:5px"><use href="#i-cal"/></svg>เดือนนี้ ▾</span></div></div>
+      <div style="font-size:12px;color:var(--muted)">รวมค่าใช้จ่าย</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:1px"><span class="big">฿18,450</span><span style="color:var(--success);font-weight:700;font-size:12.5px">▼ 6.2%</span></div>
+      <div class="exrow">
+        <div><div class="l"><span>ค่าเช่า</span><b>฿9,000 <small style="color:var(--muted);font-weight:600">48.8%</small></b></div><div class="bar"><i style="width:48.8%"></i></div></div>
+        <div><div class="l"><span>เงินเดือน</span><b>฿6,200 <small style="color:var(--muted);font-weight:600">33.6%</small></b></div><div class="bar"><i style="width:33.6%"></i></div></div>
+        <div><div class="l"><span>ค่าน้ำ-ไฟ</span><b>฿2,150 <small style="color:var(--muted);font-weight:600">11.7%</small></b></div><div class="bar"><i style="width:11.7%"></i></div></div>
+        <div><div class="l"><span>อื่น ๆ</span><b>฿1,100 <small style="color:var(--muted);font-weight:600">5.9%</small></b></div><div class="bar"><i style="width:5.9%"></i></div></div>
+      </div>
+    </div>
+    <!-- customers -->
+    <div class="card">
+      <div class="card-h"><span class="ic tp"><svg class="icn sm"><use href="#i-users"/></svg></span><h3>สรุปลูกค้า</h3></div>
+      <div class="kv">
+        <span class="k">ลูกค้าทั้งหมด</span><span class="v">412 ราย</span>
+        <span class="k">ลูกค้าใหม่</span><span class="v">38 ราย</span>
+        <span class="k">ลูกค้าเก่า</span><span class="v">374 ราย</span>
+      </div>
+      <div class="hr"></div>
+      <div class="kv">
+        <span class="k">ยอดเฉลี่ย/บิล</span><span class="v">฿267</span>
+        <span class="k">ชนิดสินค้า/บิล</span><span class="v">3.2 รายการ</span>
+        <span class="k">จำนวน/บิล</span><span class="v">5.1 ชิ้น</span>
+        <span class="k">อัตราคืน · ยกเลิก</span><span class="v">1.4% · 0.8%</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

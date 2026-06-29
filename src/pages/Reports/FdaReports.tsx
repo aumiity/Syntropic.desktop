@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { ReportsOutletContext } from './index'
@@ -9,7 +9,8 @@ import { FileText, FileClock, FileBarChart, Thermometer } from 'lucide-react'
 // register), ขย.11 (dangerous-drug sale register); each report renders into the
 // nested <Outlet/>. Outlet context (setSummary/setToolbar) is forwarded down from
 // ReportsLayout so the report pages keep working unchanged, EXTENDED with
-// setActions so each report can mount its print buttons on this sub-tab line.
+// setActions — a thin alias to the parent's setToolbar — so each report's print
+// buttons mount on the Reports MAIN tab strip, not this sub-tab row.
 const FORMS = [
   { value: 'khor-yor-9',  to: '/reports/fda/khor-yor-9',  label: 'ข.ย.9',  icon: FileText },
   { value: 'khor-yor-10', to: '/reports/fda/khor-yor-10', label: 'ข.ย.10', icon: FileClock },
@@ -17,8 +18,9 @@ const FORMS = [
   { value: 'environment', to: '/reports/fda/environment', label: 'อุณหภูมิ–ความชื้น', icon: Thermometer },
 ] as const
 
-// Report pages register their toolbar (ฟอร์มเปล่า / พิมพ์) here; it renders on the
-// right of the sub-tab line so the table card below stays action-free.
+// Report pages register their toolbar (ฟอร์มเปล่า / พิมพ์) here; it is forwarded to
+// the parent's setToolbar so it renders on the Reports MAIN tab strip, keeping
+// both the sub-tab row and the table card below action-free.
 export interface FdaOutletContext extends ReportsOutletContext {
   setActions: (node: ReactNode | null) => void
 }
@@ -35,30 +37,33 @@ export default function ReportsFdaLayout() {
   const location = useLocation()
   const ctx = useOutletContext<ReportsOutletContext>()
   const current = resolveForm(location.pathname)
-  const [actions, setActions] = useState<ReactNode>(null)
-  const fdaCtx = useMemo<FdaOutletContext>(() => ({ ...ctx, setActions }), [ctx, setActions])
+  // Lift the active report's print buttons up to the Reports MAIN tab strip (via
+  // the parent's setToolbar) instead of rendering them on this sub-tab row —
+  // same placement pattern as Manage's stock export button.
+  const fdaCtx = useMemo<FdaOutletContext>(() => ({ ...ctx, setActions: ctx.setToolbar }), [ctx])
 
   return (
     <div className="flex flex-1 flex-col min-h-0 gap-3">
-      {/* Sub-tab line (h-12 bar): forms on the left, the active report's print
-          actions on the right. */}
+      {/* Sub-tab line (h-12 bar): the four register forms, stretched full-width.
+          The active report's print actions are lifted to the Reports main tab
+          strip (see fdaCtx above), so this row holds the tabs only. */}
       <div className="no-print flex items-center gap-3 h-12 shrink-0">
         <Tabs
           value={current}
+          className="flex-1"
           onValueChange={(v) => {
             const form = FORMS.find(f => f.value === v)
             if (form) navigate(form.to)
           }}
         >
-          <TabsList variant="line">
+          <TabsList variant="line" className="w-full">
             {FORMS.map(({ value, label, icon: Icon }) => (
-              <TabsTrigger key={value} value={value} className="flex-none px-4 py-2">
+              <TabsTrigger key={value} value={value} className="flex-1 px-4 py-2">
                 <Icon /> {label}
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
-        {actions && <div className="ml-auto flex items-center gap-2 shrink-0">{actions}</div>}
       </div>
       <Outlet context={fdaCtx} />
     </div>
