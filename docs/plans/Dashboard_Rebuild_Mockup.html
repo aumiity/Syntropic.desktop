@@ -68,10 +68,8 @@
   .legend b s{width:10px;height:10px;border-radius:3px;text-decoration:none}
   .legend b s.ln{width:14px;height:3px;border-radius:2px}
   /* status + averages card */
-  .segbar{display:flex;height:11px;gap:3px;margin:10px 0 9px}
-  .segbar i{height:100%;border-radius:3px}
-  .segbar i:first-child{border-radius:99px 3px 3px 99px}
-  .segbar i:last-child{border-radius:3px 99px 99px 3px}
+  .segbar{display:flex;height:11px;gap:0;margin:10px 0 9px;border-radius:99px;overflow:hidden}
+  .segbar i{height:100%}
   .hr{height:1px;background:var(--border);margin:12px 0}
   .kv{display:grid;grid-template-columns:1fr auto;gap:7px 14px;font-size:12.5px}
   .kv .k{color:var(--muted)} .kv .v{text-align:right;font-weight:700}
@@ -104,7 +102,62 @@
   .tw{background:var(--warning-soft);color:var(--warning)} .tn{background:var(--muted-bg);color:var(--muted)}
   .icn{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
   .icn.sm{width:14px;height:14px}
-  @media(max-width:1040px){.kpis{grid-template-columns:repeat(3,1fr)}}
+  /* MetricStrip — KPI cells joined in one container (no per-card borders) */
+  .mstrip{display:flex;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden}
+  .mcell{position:relative;flex:1;padding:11px 14px;border-left:1px solid var(--border);min-width:0}
+  .mcell:first-child{border-left:none}
+  .mcell .ic{position:absolute;top:11px;right:13px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center}
+  .mcell .lbl{font-size:12px;color:var(--muted);font-weight:600;line-height:1.2;margin-bottom:6px;padding-right:32px}
+  .mcell .val{font-size:20px;font-weight:800;letter-spacing:-.4px;line-height:1.1}
+  .mcell .foot{display:flex;align-items:center;gap:5px;margin-top:5px;font-size:11px;flex-wrap:wrap}
+  .mcell .d{font-weight:700} .mcell .d.up{color:var(--success)} .mcell .d.down{color:var(--destructive)}
+  .mcell .cmp{color:var(--fg-sub)}
+  /* diverging trend — sales (cost+profit stacked) up, purchases down (negative) */
+  .dchart{position:relative;flex:1;min-height:190px;margin-top:8px;padding-left:42px}
+  .yax{position:absolute;left:0;top:0;bottom:0;width:40px;z-index:3}
+  .yax span{position:absolute;right:6px;transform:translateY(-50%);font-size:9.5px;color:var(--fg-sub);white-space:nowrap}
+  .ytick{position:absolute;left:42px;right:0;height:1px;background:var(--border);opacity:.55;z-index:1}
+  .dcols{display:flex;gap:5px;height:100%;align-items:stretch;position:relative;z-index:2}
+  .dcol{flex:1;display:flex;flex-direction:column;height:100%}
+  .dup{height:62%;display:flex;align-items:flex-end;justify-content:center}
+  .ddown{height:38%;display:flex;align-items:flex-start;justify-content:center}
+  .ubar{position:relative;width:17px;display:flex;flex-direction:column;justify-content:flex-end;
+    background:var(--primary);border-radius:4px 4px 0 0;overflow:hidden}
+  .ubar .prof{display:block;width:100%;background:var(--success)}
+  .dbar{width:17px;background:var(--info);border-radius:0 0 4px 4px}
+  .zero{position:absolute;left:42px;right:0;top:62%;height:1.5px;background:var(--fg-sub);opacity:.6;z-index:2}
+  /* alerts vertical column + clickable filter + mini table */
+  .alerts-v{display:flex;flex-direction:column;gap:7px}
+  .alert.sel{box-shadow:inset 0 0 0 2px currentColor}
+  /* standard table-card (alert detail — content swaps by filter) */
+  .tcard-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden;display:flex;flex-direction:column}
+  .tcard-body{flex:1;min-height:0;overflow:auto}
+  .tcard-h{display:flex;align-items:center;gap:10px;padding:11px 14px}
+  .tcard-h .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:none}
+  .tcard-h h3{font-size:14.5px;margin:0;font-weight:700}
+  .tcard-h .cnt{font-size:11.5px;font-weight:700;color:var(--muted);background:var(--muted-bg);border-radius:99px;padding:2px 9px}
+  .tcard-h .hint{margin-left:auto;font-size:11.5px;color:var(--fg-sub)}
+  table.tcard{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.tcard thead th{background:var(--muted-bg);text-align:left;font-size:11px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.3px;padding:8px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  table.tcard thead th.r{text-align:right}
+  table.tcard td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--fg)}
+  table.tcard tbody tr:last-child td{border-bottom:none}
+  table.tcard td.r{text-align:right;font-weight:700;white-space:nowrap}
+  table.tcard td.neg{color:var(--destructive)}
+  table.tcard td.warn{color:var(--warning);font-weight:700}
+  table.tcard td.code{font-size:11px;color:var(--fg-sub);white-space:nowrap}
+  .tcard-h .right{margin-left:auto;display:flex;align-items:center;gap:7px}
+  .tcard-h .ic.elev{background:var(--card);border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.06);color:var(--muted)}
+  /* elevated controls — table standard: white bg + border + shadow */
+  .ebtn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--border);border-radius:8px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:12px;font-weight:600;color:var(--fg);cursor:pointer}
+  .ebtn:hover{background:var(--muted-bg)}
+  .eicon{display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--border);border-radius:8px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06);color:var(--muted);cursor:pointer}
+  .eicon:hover{background:var(--muted-bg);color:var(--fg)}
+  .tcard-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 14px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+  .tcard-foot .pg{display:flex;align-items:center;gap:6px}
+  .stack{display:grid;gap:12px;align-content:start}
+  @media(max-width:1040px){.kpis{grid-template-columns:repeat(3,1fr)}.mstrip{flex-wrap:wrap}.mcell{flex:1 0 33%}}
 </style>
 </head>
 <body>
@@ -128,6 +181,8 @@
     <g id="i-hour"><path d="M5 22h14M5 2h14M7 22v-4.2a2 2 0 0 1 .6-1.4L12 12M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12M7 2v4.2a2 2 0 0 0 .6 1.4L12 12M17 2v4.2a2 2 0 0 1-.6 1.4L12 12"/></g>
     <g id="i-pminus"><path d="M16 16h6M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></g>
     <g id="i-chev"><path d="m9 18 6-6-6-6"/></g>
+    <g id="i-chevl"><path d="m15 18-6-6 6-6"/></g>
+    <g id="i-expand"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></g>
     <g id="i-cal"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g>
     <g id="i-refresh"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></g>
     <g id="i-swap"><path d="M16 3l4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></g>
@@ -150,99 +205,68 @@
   </div>
 
   <!-- ===== BAND 1 — KPI รวม ===== -->
-  <div class="band">ภาพรวมผลประกอบการ <span class="rule"></span></div>
-  <div class="kpis">
-    <div class="kpi"><div class="top"><span class="ic tp"><svg class="icn sm"><use href="#i-coins"/></svg></span><span class="lbl">ยอดขาย</span></div><div class="val">฿342,890</div><div class="foot"><span class="d up">▲ 12.4%</span><span class="cmp">vs เดือนก่อน</span></div></div>
-    <div class="kpi"><div class="top"><span class="ic ts"><svg class="icn sm"><use href="#i-trend"/></svg></span><span class="lbl">กำไร</span></div><div class="val">฿101,590</div><div class="foot"><span class="d up">▲ 21.0%</span><span class="cmp">vs เดือนก่อน</span></div></div>
-    <div class="kpi"><div class="top"><span class="ic tv"><svg class="icn sm"><use href="#i-pct"/></svg></span><span class="lbl">กำไร %</span></div><div class="val">29.6%</div><div class="foot"><span class="d up">▲ 2.1%</span><span class="cmp">vs เดือนก่อน</span></div></div>
-    <div class="kpi"><div class="top"><span class="ic ti"><svg class="icn sm"><use href="#i-truck"/></svg></span><span class="lbl">ยอดซื้อ</span></div><div class="val">฿268,400</div><div class="foot"><span class="d down">▲ 7.8%</span><span class="cmp">vs เดือนก่อน</span></div></div>
-    <div class="kpi"><div class="top"><span class="ic ta"><svg class="icn sm"><use href="#i-bell"/></svg></span><span class="lbl">ค้างชำระ</span></div><div class="val">฿62,300</div><div class="foot"><span class="cmp">17 บิล · รวมทุกช่วง</span></div></div>
-    <div class="kpi"><div class="top"><span class="ic tw"><svg class="icn sm"><use href="#i-wallet"/></svg></span><span class="lbl">ค่าใช้จ่าย</span></div><div class="val">฿18,450</div><div class="foot"><span class="d up">▼ 6.2%</span><span class="cmp">vs เดือนก่อน</span></div></div>
+  <div class="mstrip">
+    <div class="mcell"><span class="ic tp"><svg class="icn sm"><use href="#i-coins"/></svg></span><div class="lbl">ยอดขาย</div><div class="val">฿342,890</div><div class="foot"><span class="d up">▲ 12.4%</span><span class="cmp">vs เดือนก่อน</span></div></div>
+    <div class="mcell"><span class="ic ta"><svg class="icn sm"><use href="#i-coins"/></svg></span><div class="lbl">ต้นทุน</div><div class="val">฿241,300</div><div class="foot"><span class="d down">▲ 9.1%</span><span class="cmp">vs เดือนก่อน</span></div></div>
+    <div class="mcell"><span class="ic ts"><svg class="icn sm"><use href="#i-trend"/></svg></span><div class="lbl">กำไร</div><div class="val">฿101,590</div><div class="foot"><span class="d up">▲ 21.0%</span><span class="cmp">· กำไร 29.6%</span></div></div>
+    <div class="mcell"><span class="ic ti"><svg class="icn sm"><use href="#i-truck"/></svg></span><div class="lbl">ยอดซื้อ</div><div class="val">฿268,400</div><div class="foot"><span class="d down">▲ 7.8%</span><span class="cmp">vs เดือนก่อน</span></div></div>
+    <div class="mcell"><span class="ic tv"><svg class="icn sm"><use href="#i-bell"/></svg></span><div class="lbl">ค้างชำระ</div><div class="val">฿62,300</div><div class="foot"><span class="cmp">17 บิล · รวมทุกช่วง</span></div></div>
+    <div class="mcell"><span class="ic tw"><svg class="icn sm"><use href="#i-wallet"/></svg></span><div class="lbl">ค่าใช้จ่ายอื่นๆ</div><div class="val">฿18,450</div><div class="foot"><span class="d up">▼ 6.2%</span><span class="cmp">vs เดือนก่อน</span></div></div>
   </div>
 
   <!-- ===== BAND 2 — แนวโน้มรวม + สถานะ/เฉลี่ย ===== -->
-  <div class="band">แนวโน้ม &amp; องค์ประกอบ <span class="rule"></span></div>
-  <div class="grid" style="grid-template-columns:1.9fr 1fr;align-items:start">
+  <div class="grid" style="margin-top:20px;grid-template-columns:1.9fr 1fr;align-items:stretch">
     <!-- combined trend -->
-    <div class="card">
+    <div class="card" style="display:flex;flex-direction:column">
       <div class="card-h">
         <span class="ic tn"><svg class="icn sm"><use href="#i-line"/></svg></span>
         <div><h3>แนวโน้มรวม — ขาย · ซื้อ · กำไร</h3><div class="sub">แกนเวลาเดียวกัน · รายวัน</div></div>
         <div class="right"><span class="seg"><b class="on">รวม</b><b>ขาย</b><b>ซื้อ</b><b>กำไร</b></span></div>
       </div>
-      <div class="legend" style="margin-bottom:4px">
+      <div class="legend" style="margin-bottom:2px">
         <b><s style="background:var(--primary)"></s>ยอดขาย</b>
-        <b><s style="background:var(--info)"></s>ยอดซื้อ</b>
-        <b><s class="ln" style="background:var(--amber)"></s>กำไร</b>
+        <b><s style="background:var(--success)"></s>กำไร (ในแท่ง)</b>
+        <b><s style="background:var(--info)"></s>ยอดซื้อ (พุ่งลง)</b>
       </div>
-      <div class="chartwrap">
-        <div class="gchart">
-          <div class="gcol"><i style="height:52%;background:var(--primary)"></i><i style="height:40%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:61%;background:var(--primary)"></i><i style="height:8%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:44%;background:var(--primary)"></i><i style="height:70%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:73%;background:var(--primary)"></i><i style="height:10%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:58%;background:var(--primary)"></i><i style="height:54%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:80%;background:var(--primary)"></i><i style="height:88%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:66%;background:var(--primary)"></i><i style="height:12%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:90%;background:var(--primary)"></i><i style="height:62%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:71%;background:var(--primary)"></i><i style="height:10%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:84%;background:var(--primary)"></i><i style="height:92%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:62%;background:var(--primary)"></i><i style="height:46%;background:var(--info)"></i></div>
-          <div class="gcol"><i style="height:95%;background:var(--primary)"></i><i style="height:74%;background:var(--info)"></i></div>
+      <div class="dchart">
+        <div class="yax">
+          <span style="top:2%">฿400k</span>
+          <span style="top:32%">฿200k</span>
+          <span style="top:62%">฿0</span>
+          <span style="top:82%">-฿150k</span>
         </div>
-        <svg class="pline" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <polyline points="4,70 12,63 20,72 29,55 37,60 45,45 53,52 62,34 70,46 78,38 86,55 95,30"
-            fill="none" stroke="var(--amber)" stroke-width="1.4" vector-effect="non-scaling-stroke"
-            stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <div class="ytick" style="top:2%"></div>
+        <div class="ytick" style="top:32%"></div>
+        <div class="ytick" style="top:82%"></div>
+        <div class="zero"></div>
+        <div class="dcols" id="divChart"></div>
       </div>
-      <div class="axis"><span>1 มิ.ย.</span><span>8</span><span>15</span><span>22</span><span>29 มิ.ย.</span></div>
+      <div class="axis" style="padding-left:42px"><span>1 มิ.ย.</span><span>8</span><span>15</span><span>22</span><span>29 มิ.ย.</span></div>
     </div>
 
-    <!-- right column: 2 combined cards (สถานะ + เฉลี่ย) -->
-    <div class="grid" style="gap:12px">
-      <div class="card">
-        <div class="card-h"><span class="ic tp"><svg class="icn sm"><use href="#i-cart"/></svg></span><div><h3>การขาย</h3><div class="sub">1,284 บิล</div></div></div>
-        <div class="segbar">
-          <i style="width:62%;background:var(--primary)"></i><i style="width:24%;background:var(--amber)"></i>
-          <i style="width:9%;background:var(--violet)"></i><i style="width:5%;background:var(--destructive)"></i>
-        </div>
-        <div class="legend">
-          <b><s style="background:var(--primary)"></s>ปลีก</b><b><s style="background:var(--amber)"></s>ส่ง</b>
-          <b><s style="background:var(--violet)"></s>คืน</b><b><s style="background:var(--destructive)"></s>ยกเลิก</b>
-        </div>
-        <div class="hr"></div>
-        <div class="kv">
-          <span class="k">ต้นทุนรวม</span><span class="v">฿241,300</span>
-          <span class="k">ส่วนลดรวม</span><span class="v">฿4,210</span>
-          <span class="k">วันที่ขาย</span><span class="v">29 วัน</span>
-          <span class="k">เฉลี่ย/บิล</span><span class="v">฿267<small>กำไร ฿79</small></span>
-        </div>
+    <!-- right column: การขาย (การซื้อ ย้ายไปแถบ "อันดับ") -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h"><span class="ic tp"><svg class="icn sm"><use href="#i-cart"/></svg></span><div><h3>การขาย</h3><div class="sub">1,284 บิล</div></div></div>
+      <div class="segbar">
+        <i style="width:62%;background:var(--primary)"></i><i style="width:24%;background:var(--amber)"></i>
+        <i style="width:9%;background:var(--violet)"></i><i style="width:5%;background:var(--destructive)"></i>
       </div>
-      <div class="card">
-        <div class="card-h"><span class="ic ti"><svg class="icn sm"><use href="#i-truck"/></svg></span><div><h3>การซื้อ</h3><div class="sub">214 บิล</div></div></div>
-        <div class="segbar">
-          <i style="width:42%;background:var(--info)"></i><i style="width:31%;background:var(--success)"></i>
-          <i style="width:14%;background:var(--amber)"></i><i style="width:8%;background:var(--violet)"></i><i style="width:5%;background:var(--destructive)"></i>
-        </div>
-        <div class="legend">
-          <b><s style="background:var(--info)"></s>เงินสด</b><b><s style="background:var(--success)"></s>ชำระแล้ว</b>
-          <b><s style="background:var(--amber)"></s>ค้างชำระ</b><b><s style="background:var(--violet)"></s>เกินกำหนด</b><b><s style="background:var(--destructive)"></s>ยกเลิก</b>
-        </div>
-        <div class="hr"></div>
-        <div class="kv">
-          <span class="k">เงินสด</span><span class="v">฿112,900</span>
-          <span class="k">เครดิต</span><span class="v">฿155,500</span>
-          <span class="k">เฉลี่ย/บิล</span><span class="v">฿1,254</span>
-          <span class="k">ค้างชำระ (รวมทุกช่วง)</span><span class="v">฿62,300</span>
-        </div>
+      <div class="legend">
+        <b><s style="background:var(--primary)"></s>ปลีก</b><b><s style="background:var(--amber)"></s>ส่ง</b>
+        <b><s style="background:var(--violet)"></s>คืน</b><b><s style="background:var(--destructive)"></s>ยกเลิก</b>
+      </div>
+      <div class="hr"></div>
+      <div class="kv">
+        <span class="k">จำนวนวันที่ขาย</span><span class="v">29 วัน</span>
+        <span class="k">ยอดขายเฉลี่ย</span><span class="v">฿267<small>/บิล</small><br>฿11,824<small>/วัน</small></span>
+        <span class="k">กำไรเฉลี่ย</span><span class="v">฿79<small>/บิล</small><br>฿3,503<small>/วัน</small></span>
+        <span class="k">ส่วนลดรวม</span><span class="v">฿4,210</span>
       </div>
     </div>
   </div>
 
   <!-- ===== BAND 3 — อันดับ ===== -->
-  <div class="band">อันดับ <span class="rule"></span></div>
-  <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+  <div class="grid" style="margin-top:20px;grid-template-columns:repeat(3,1fr)">
     <div class="card">
       <div class="card-h"><span class="ic tp"><svg class="icn sm"><use href="#i-trophy"/></svg></span><h3>สินค้าขายดี</h3><div class="right"><span class="sq"><svg class="icn sm"><use href="#i-swap"/></svg></span></div></div>
       <div class="list">
@@ -264,6 +288,29 @@
       </div>
     </div>
     <div class="card">
+      <div class="card-h"><span class="ic ti"><svg class="icn sm"><use href="#i-truck"/></svg></span><div><h3>การซื้อ</h3><div class="sub">214 บิล</div></div></div>
+      <div class="segbar">
+        <i style="width:42%;background:var(--info)"></i><i style="width:31%;background:var(--success)"></i>
+        <i style="width:14%;background:var(--amber)"></i><i style="width:8%;background:var(--violet)"></i><i style="width:5%;background:var(--destructive)"></i>
+      </div>
+      <div class="legend">
+        <b><s style="background:var(--info)"></s>เงินสด</b><b><s style="background:var(--success)"></s>ชำระแล้ว</b>
+        <b><s style="background:var(--amber)"></s>ค้างชำระ</b><b><s style="background:var(--violet)"></s>เกินกำหนด</b><b><s style="background:var(--destructive)"></s>ยกเลิก</b>
+      </div>
+      <div class="hr"></div>
+      <div class="kv">
+        <span class="k">เงินสด</span><span class="v">฿112,900</span>
+        <span class="k">เครดิต</span><span class="v">฿155,500</span>
+        <span class="k">เฉลี่ย/บิล</span><span class="v">฿1,254</span>
+        <span class="k">ค้างชำระ (รวมทุกช่วง)</span><span class="v">฿62,300</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BAND 4 — สุขภาพร้าน + ลูกค้า ===== -->
+  <div class="grid" style="margin-top:20px;grid-template-columns:1fr 1fr 1fr;align-items:stretch">
+    <!-- suppliers (moved down here, far left) -->
+    <div class="card">
       <div class="card-h"><span class="ic ti"><svg class="icn sm"><use href="#i-truck"/></svg></span><h3>ผู้จัดจำหน่าย</h3></div>
       <div class="list">
         <div class="li"><span class="rk">1</span><div class="nm">ซิลลิค ฟาร์มา<small>18 ใบ</small></div><span class="vv">฿74,200</span></div>
@@ -273,6 +320,7 @@
         <div class="li"><span class="rk">5</span><div class="nm">ไทยนครพัฒนา<small>7 ใบ</small></div><span class="vv">฿26,100</span></div>
       </div>
     </div>
+    <!-- staff (middle) -->
     <div class="card">
       <div class="card-h"><span class="ic tv"><svg class="icn sm"><use href="#i-users"/></svg></span><h3>พนักงานขาย</h3></div>
       <div class="list">
@@ -280,26 +328,12 @@
         <div class="li"><span class="rk">2</span><div class="nm">วิภา สุขสันต์<small>438 บิล · กำไร ฿33,900</small></div><span class="vv">฿119,700</span></div>
         <div class="li"><span class="rk">3</span><div class="nm">อนุชา พรหมมา<small>334 บิล · กำไร ฿26,490</small></div><span class="vv">฿84,790</span></div>
         <div class="li"><span class="rk">4</span><div class="nm">กานดา ทองมี<small>198 บิล · กำไร ฿15,100</small></div><span class="vv">฿52,600</span></div>
+        <div class="li"><span class="rk">5</span><div class="nm">ธนพล แก้วมณี<small>156 บิล · กำไร ฿11,800</small></div><span class="vv">฿39,200</span></div>
       </div>
     </div>
-  </div>
-
-  <!-- ===== BAND 4 — สุขภาพร้าน + ลูกค้า ===== -->
-  <div class="band">สุขภาพร้าน &amp; ลูกค้า <span class="rule"></span><span class="hint">แจ้งเตือน &amp; ค่าใช้จ่าย ไม่ผูกช่วงเวลาหลัก</span></div>
-  <div class="grid" style="grid-template-columns:1.25fr 1fr 1fr">
-    <!-- alerts -->
+    <!-- expenses (right) -->
     <div class="card">
-      <div class="card-h"><span class="ic td"><svg class="icn sm"><use href="#i-bell"/></svg></span><h3>แจ้งเตือน</h3><div class="right"><span class="sq">38 รายการ</span></div></div>
-      <div class="alerts">
-        <div class="alert td"><span class="ic"><svg class="icn"><use href="#i-pminus"/></svg></span><div><div class="t">สต็อกติดลบ</div><div class="n">3 รายการ</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
-        <div class="alert tw"><span class="ic"><svg class="icn"><use href="#i-pkgx"/></svg></span><div><div class="t">ต่ำกว่าจุดสั่งซื้อ</div><div class="n">12 รายการ</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
-        <div class="alert ta"><span class="ic"><svg class="icn"><use href="#i-clock"/></svg></span><div><div class="t">ใกล้หมดอายุ 30 วัน</div><div class="n">9 ล็อต</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
-        <div class="alert ti"><span class="ic"><svg class="icn"><use href="#i-hour"/></svg></span><div><div class="t">ค้างเกิน 6 เดือน</div><div class="n">14 รายการ</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
-      </div>
-    </div>
-    <!-- expenses -->
-    <div class="card">
-      <div class="card-h"><span class="ic ta"><svg class="icn sm"><use href="#i-wallet"/></svg></span><h3>ค่าใช้จ่ายแยกหมวด</h3><div class="right"><span class="sq"><svg class="icn sm" style="margin-right:5px"><use href="#i-cal"/></svg>เดือนนี้ ▾</span></div></div>
+      <div class="card-h"><span class="ic ta"><svg class="icn sm"><use href="#i-wallet"/></svg></span><h3>ค่าใช้จ่ายอื่นๆ</h3><div class="right"><span class="sq"><svg class="icn sm" style="margin-right:5px"><use href="#i-cal"/></svg>เดือนนี้ ▾</span></div></div>
       <div style="font-size:12px;color:var(--muted)">รวมค่าใช้จ่าย</div>
       <div style="display:flex;align-items:baseline;gap:8px;margin-top:1px"><span class="big">฿18,450</span><span style="color:var(--success);font-weight:700;font-size:12.5px">▼ 6.2%</span></div>
       <div class="exrow">
@@ -309,24 +343,367 @@
         <div><div class="l"><span>อื่น ๆ</span><b>฿1,100 <small style="color:var(--muted);font-weight:600">5.9%</small></b></div><div class="bar"><i style="width:5.9%"></i></div></div>
       </div>
     </div>
-    <!-- customers -->
+  </div>
+
+  <!-- alert tiles (left) + standard table-card (right) — same row; tiles filter the table -->
+  <div class="grid" style="grid-template-columns:1fr 2.4fr;align-items:stretch;margin-top:12px">
     <div class="card">
-      <div class="card-h"><span class="ic tp"><svg class="icn sm"><use href="#i-users"/></svg></span><h3>สรุปลูกค้า</h3></div>
-      <div class="kv">
-        <span class="k">ลูกค้าทั้งหมด</span><span class="v">412 ราย</span>
-        <span class="k">ลูกค้าใหม่</span><span class="v">38 ราย</span>
-        <span class="k">ลูกค้าเก่า</span><span class="v">374 ราย</span>
+      <div class="card-h"><span class="ic td"><svg class="icn sm"><use href="#i-bell"/></svg></span><h3>แจ้งเตือน</h3><div class="right"><span class="sq">38 รายการ</span></div></div>
+      <div class="alerts-v">
+        <div class="alert td sel" data-alert="neg"><span class="ic"><svg class="icn"><use href="#i-pminus"/></svg></span><div><div class="t">สต็อกติดลบ</div><div class="n">3 รายการ</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
+        <div class="alert tw" data-alert="low"><span class="ic"><svg class="icn"><use href="#i-pkgx"/></svg></span><div><div class="t">ต่ำกว่าจุดสั่งซื้อ</div><div class="n">12 รายการ</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
+        <div class="alert ta" data-alert="exp"><span class="ic"><svg class="icn"><use href="#i-clock"/></svg></span><div><div class="t">ใกล้หมดอายุ 30 วัน</div><div class="n">9 ล็อต</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
+        <div class="alert ti" data-alert="dead"><span class="ic"><svg class="icn"><use href="#i-hour"/></svg></span><div><div class="t">ค้างเกิน 6 เดือน</div><div class="n">14 รายการ</div></div><span class="chev"><svg class="icn sm"><use href="#i-chev"/></svg></span></div>
       </div>
-      <div class="hr"></div>
-      <div class="kv">
-        <span class="k">ยอดเฉลี่ย/บิล</span><span class="v">฿267</span>
-        <span class="k">ชนิดสินค้า/บิล</span><span class="v">3.2 รายการ</span>
-        <span class="k">จำนวน/บิล</span><span class="v">5.1 ชิ้น</span>
-        <span class="k">อัตราคืน · ยกเลิก</span><span class="v">1.4% · 0.8%</span>
+    </div>
+    <div class="tcard-wrap">
+      <div class="tcard-h"><span class="ic elev" id="alertIc"><svg class="icn sm"><use href="#i-pminus"/></svg></span><h3 id="alertTitle">สต็อกติดลบ</h3><span class="cnt" id="alertCnt"></span>
+        <div class="right"><span class="ebtn" title="เปิดหน้าตารางแบบเต็ม"><svg class="icn sm"><use href="#i-expand"/></svg> เปิดตารางเต็ม</span></div>
+      </div>
+      <div class="tcard-body"><table class="tcard"><thead id="alertThead"></thead><tbody id="alertBody"></tbody></table></div>
+      <div class="tcard-foot">
+        <span id="alertRange">แสดง 1-3 จาก 3 รายการ</span>
+        <div class="pg">
+          <span class="eicon"><svg class="icn sm"><use href="#i-chevl"/></svg></span>
+          <span class="eicon"><svg class="icn sm"><use href="#i-chev"/></svg></span>
+        </div>
       </div>
     </div>
   </div>
 
 </div>
+
+<!-- ============ ตัวอย่างข้อมูล: กราฟ diverging + ตัวกรองแจ้งเตือน ============ -->
+<script>
+(function(){
+  // ── กราฟแนวโน้ม diverging: แท่ง = ยอดขาย (สีหลัก) มีกำไร (เขียว) ซ้อนอยู่ข้างใน
+  //    พุ่งขึ้นเหนือเส้นศูนย์ / ยอดซื้อ (ฟ้า) พุ่งลงใต้เส้นศูนย์ (ค่าติดลบ)
+  var bars = [
+    {up:62,prof:28,dn:50}, {up:70,prof:30,dn:14}, {up:52,prof:24,dn:78}, {up:80,prof:34,dn:18},
+    {up:64,prof:30,dn:62}, {up:88,prof:38,dn:90}, {up:72,prof:31,dn:20}, {up:95,prof:42,dn:70},
+    {up:78,prof:33,dn:16}, {up:90,prof:40,dn:96}, {up:68,prof:30,dn:52}, {up:99,prof:44,dn:80},
+  ];
+  var chart = document.getElementById('divChart');
+  if (chart) bars.forEach(function(b){
+    var c = document.createElement('div'); c.className = 'dcol';
+    c.innerHTML = '<div class="dup"><div class="ubar" style="height:' + b.up + '%">'
+      + '<i class="prof" style="height:' + b.prof + '%"></i></div></div>'
+      + '<div class="ddown"><div class="dbar" style="height:' + b.dn + '%"></div></div>';
+    chart.appendChild(c);
+  });
+
+  // ── ตัวกรองแจ้งเตือน: คลิก tile แล้วตารางมาตรฐานด้านล่างสลับข้อมูล (หัวคอลัมน์ + แถว) ตามหมวด
+  var alertData = {
+    neg:  { title:'สต็อกติดลบ', icon:'#i-pminus', cls:'td', tone:'neg',
+      head:['รหัส','สินค้า','หน่วย','คงเหลือ'],
+      rows:[['P-00123','พาราเซตามอล 500mg','เม็ด','-12'],
+            ['P-00451','ผ้าก๊อซพันแผล','ม้วน','-5'],
+            ['P-00788','แอลกอฮอล์ 70% 450ml','ขวด','-3']] },
+    low:  { title:'ต่ำกว่าจุดสั่งซื้อ', icon:'#i-pkgx', cls:'tw', tone:'warn',
+      head:['รหัส','สินค้า','คงเหลือ','จุดสั่งซื้อ'],
+      rows:[['P-00211','วิตามินซี 1000mg','8','30'],
+            ['P-00322','ยาแก้ไอ น้ำดำ','5','20'],
+            ['P-00536','ไอบูโพรเฟน 400mg','11','40'],
+            ['P-00644','ครีมแก้ปวดเมื่อย','6','25']] },
+    exp:  { title:'ใกล้หมดอายุ 30 วัน', icon:'#i-clock', cls:'ta', tone:'warn',
+      head:['ล็อต','สินค้า','จำนวน','วันหมดอายุ'],
+      rows:[['L2231','อะม็อกซีซิลลิน 500mg','120 แคปซูล','12/07/2026'],
+            ['L0918','ยาธาตุน้ำขาว','64 ขวด','19/07/2026'],
+            ['L1140','ฟ้าทะลายโจร','210 แคปซูล','25/07/2026']] },
+    dead: { title:'ค้างเกิน 6 เดือน', icon:'#i-hour', cls:'ti', tone:'',
+      head:['รหัส','สินค้า','มูลค่าคงค้าง','เคลื่อนไหวล่าสุด'],
+      rows:[['P-09001','เครื่องวัดความดันดิจิทัล','฿4,200','08/11/2025'],
+            ['P-09114','ที่วัดอุณหภูมิอินฟราเรด','฿1,800','22/10/2025'],
+            ['P-09230','ถุงน้ำร้อนยาง','฿960','15/09/2025']] },
+  };
+  var ic = document.getElementById('alertIc'), title = document.getElementById('alertTitle'),
+      cnt = document.getElementById('alertCnt'), thead = document.getElementById('alertThead'),
+      body = document.getElementById('alertBody'), range = document.getElementById('alertRange');
+  function renderAlert(key){
+    var d = alertData[key]; if (!d) return;
+    // icon = elevated (table standard) — swap only the glyph, keep the neutral box
+    if (ic) ic.innerHTML = '<svg class="icn sm"><use href="' + d.icon + '"/></svg>';
+    if (title) title.textContent = d.title;
+    if (cnt) cnt.textContent = d.rows.length + ' รายการ';
+    if (range) range.textContent = 'แสดง 1-' + d.rows.length + ' จาก ' + d.rows.length + ' รายการ';
+    var last = d.head.length - 1;
+    if (thead) thead.innerHTML = '<tr>' + d.head.map(function(h,i){
+      return '<th' + (i === last ? ' class="r"' : '') + '>' + h + '</th>';
+    }).join('') + '</tr>';
+    if (body) body.innerHTML = d.rows.map(function(r){
+      return '<tr>' + r.map(function(cell,i){
+        if (i === 0) return '<td class="code">' + cell + '</td>';
+        if (i === last) return '<td class="r ' + d.tone + '">' + cell + '</td>';
+        return '<td>' + cell + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+  }
+  [].slice.call(document.querySelectorAll('.alert[data-alert]')).forEach(function(t){
+    t.addEventListener('click', function(){
+      [].slice.call(document.querySelectorAll('.alert[data-alert]')).forEach(function(x){ x.classList.remove('sel'); });
+      t.classList.add('sel');
+      renderAlert(t.getAttribute('data-alert'));
+    });
+  });
+  renderAlert('neg');
+})();
+</script>
+
+<!-- ============ ระบบปักโน้ต (annotation layer) ============ -->
+<style>
+.anno-toolbar{position:fixed;bottom:16px;right:16px;z-index:9999;display:flex;align-items:center;gap:7px;
+  background:#0f172a;color:#e2e8f0;border-radius:12px;padding:7px 9px;box-shadow:0 8px 28px rgba(0,0,0,.28);
+  font-family:"Inter","IBM Plex Sans Thai",sans-serif;font-size:13px}
+.anno-toolbar button{font-family:inherit;font-size:12.5px;font-weight:600;border:none;border-radius:8px;
+  padding:7px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.anno-btn-toggle{background:#334155;color:#e2e8f0}
+.anno-on .anno-btn-toggle{background:#0d9488;color:#fff}
+.anno-btn-ghost{background:transparent;color:#94a3b8}
+.anno-btn-ghost:hover{color:#e2e8f0}
+.anno-count{font-size:11.5px;color:#94a3b8;padding:0 4px;border-left:1px solid #334155;margin-left:1px}
+.anno-on .frame{cursor:crosshair}
+.anno-hint{position:fixed;bottom:64px;right:16px;z-index:9998;background:#0d9488;color:#fff;font-size:12px;
+  font-family:inherit;padding:6px 11px;border-radius:9px;box-shadow:0 4px 14px rgba(15,23,42,.22);display:none}
+.anno-on .anno-hint{display:block}
+.anno-pin{position:absolute;z-index:50;width:24px;height:24px;border-radius:50% 50% 50% 3px;
+  background:#f59e0b;color:#1e293b;border:2px solid #fff;box-shadow:0 2px 9px rgba(0,0,0,.32);
+  font-size:12px;font-weight:800;display:grid;place-items:center;cursor:pointer;
+  transform:translate(-50%,-100%);font-family:inherit;line-height:1}
+.anno-pin:hover{background:#d97706;color:#fff;z-index:60;transform:translate(-50%,-100%) scale(1.12)}
+.anno-pin.empty{background:#cbd5e1;color:#475569}
+.anno-editor{position:fixed;z-index:10000;width:300px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;
+  box-shadow:0 14px 36px rgba(0,0,0,.24);padding:12px;display:none;font-family:"Inter","IBM Plex Sans Thai",sans-serif}
+.anno-editor .ctx{font-size:11px;color:#64748b;margin-bottom:8px;line-height:1.4;background:#f1f5f9;border-radius:7px;padding:6px 8px}
+.anno-editor .ctx b{color:#0f172a}
+.anno-editor textarea{width:100%;min-height:84px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;
+  font-family:inherit;font-size:13px;resize:vertical;color:#0f172a;box-sizing:border-box}
+.anno-editor textarea:focus{outline:none;border-color:#0d9488;box-shadow:0 0 0 2px #ccfbf1}
+.anno-editor .row{display:flex;gap:7px;margin-top:9px}
+.anno-editor button{font-family:inherit;font-size:12.5px;font-weight:600;border:none;border-radius:8px;padding:7px 12px;cursor:pointer}
+.anno-save{background:#0d9488;color:#fff;flex:1}
+.anno-del{background:#fee2e2;color:#dc2626}
+.anno-cancel{background:#f1f5f9;color:#475569}
+.anno-modal{position:fixed;inset:0;z-index:10001;background:rgba(15,23,42,.5);display:none;
+  align-items:center;justify-content:center;padding:20px}
+.anno-modal.open{display:flex}
+.anno-modal .box{background:#fff;border-radius:14px;width:min(660px,100%);max-height:82vh;display:flex;
+  flex-direction:column;padding:16px;font-family:"Inter","IBM Plex Sans Thai",sans-serif}
+.anno-modal h4{margin:0 0 4px;font-size:15px}
+.anno-modal p{margin:0 0 10px;font-size:12px;color:#64748b}
+.anno-modal textarea{flex:1;min-height:320px;border:1px solid #cbd5e1;border-radius:8px;padding:10px;
+  font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12px;resize:none;color:#0f172a;box-sizing:border-box}
+.anno-modal .row{display:flex;gap:8px;margin-top:11px;justify-content:flex-end}
+.anno-modal button{font-family:inherit;font-size:13px;font-weight:600;border:none;border-radius:8px;padding:8px 15px;cursor:pointer}
+.anno-copy{background:#0d9488;color:#fff}
+.anno-close{background:#f1f5f9;color:#475569}
+</style>
+
+<div class="anno-toolbar anno-ui">
+  <button class="anno-btn-toggle" id="annoToggle" type="button">โหมดโน้ต: ปิด</button>
+  <span class="anno-count" id="annoCount">0 โน้ต</span>
+  <button class="anno-btn-ghost" id="annoExport" type="button">ส่งออกโน้ต</button>
+  <button class="anno-btn-ghost" id="annoClear" type="button">ล้าง</button>
+</div>
+<div class="anno-hint anno-ui">เปิดโหมดโน้ตแล้ว — คลิกที่จุดไหนก็ได้บนหน้าเพื่อปักโน้ต</div>
+
+<div class="anno-editor anno-ui" id="annoEditor">
+  <div class="ctx" id="annoCtx"></div>
+  <textarea id="annoText" placeholder="พิมพ์โน้ตของพี่ที่นี่..."></textarea>
+  <div class="row">
+    <button class="anno-save" id="annoSave" type="button">บันทึก</button>
+    <button class="anno-del" id="annoDel" type="button">ลบ</button>
+    <button class="anno-cancel" id="annoCancel" type="button">ยกเลิก</button>
+  </div>
+</div>
+
+<div class="anno-modal anno-ui" id="annoModal">
+  <div class="box">
+    <h4>ส่งออกโน้ตทั้งหมด</h4>
+    <p>คัดลอกข้อความด้านล่างแล้วส่งกลับมาให้หนูได้เลยค่ะ หนูจะรู้ว่าแต่ละโน้ตอยู่จุดไหน</p>
+    <textarea id="annoExportText" readonly></textarea>
+    <div class="row">
+      <button class="anno-copy" id="annoCopy" type="button">คัดลอก</button>
+      <button class="anno-close" id="annoCloseModal" type="button">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY = 'dashboardMockupNotes_v1';
+  var frame = document.querySelector('.frame');
+  var editor = document.getElementById('annoEditor');
+  var ctxEl = document.getElementById('annoCtx');
+  var textEl = document.getElementById('annoText');
+  var countEl = document.getElementById('annoCount');
+  var toggleBtn = document.getElementById('annoToggle');
+  var modal = document.getElementById('annoModal');
+  var annoOn = false;
+  var editingId = null;
+
+  // ── anchor ids: pins are pinned RELATIVE to the nearest card/kpi so they
+  //    survive layout reflow (the % offset stays attached to that box).
+  frame.dataset.annoId = 'frame';
+  if (getComputedStyle(frame).position === 'static') frame.style.position = 'relative';
+  [].slice.call(document.querySelectorAll('.card, .kpi')).forEach(function(c, i){
+    c.dataset.annoId = 'box-' + i;
+    if (getComputedStyle(c).position === 'static') c.style.position = 'relative';
+  });
+
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e){ return []; } }
+  function save(a){ localStorage.setItem(KEY, JSON.stringify(a)); }
+  function uid(){ return 'n' + Date.now() + Math.floor(Math.random()*1000); }
+  function anchorEl(id){ return id === 'frame' ? frame : document.querySelector('[data-anno-id="'+id+'"]'); }
+  function esc(s){ return (s||'').replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+  // นับย้อนหา .band ที่อยู่ก่อนหน้า element (= ชื่อส่วนที่ element สังกัด)
+  function bandFor(el){
+    var res = null;
+    [].slice.call(document.querySelectorAll('.band')).forEach(function(b){
+      if (b.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) res = b;
+    });
+    if (!res) return '(ส่วนหัว)';
+    var c = res.cloneNode(true);
+    [].slice.call(c.querySelectorAll('.rule, .hint')).forEach(function(n){ n.remove(); });
+    return (c.textContent || '').trim() || '(ส่วน)';
+  }
+  function titleFor(host){
+    if (host === frame) return '(นอกการ์ด)';
+    var h = host.querySelector('.card-h h3'); if (h) return h.textContent.trim();
+    var l = host.querySelector('.lbl'); if (l) return 'KPI: ' + l.textContent.trim();
+    return '(การ์ด)';
+  }
+
+  function renderPins(){
+    [].slice.call(document.querySelectorAll('.anno-pin')).forEach(function(p){ p.remove(); });
+    var notes = load();
+    notes.forEach(function(n, idx){
+      var host = anchorEl(n.anchorId) || frame;
+      var pin = document.createElement('button');
+      pin.type = 'button';
+      pin.className = 'anno-pin anno-ui' + ((n.note||'').trim() ? '' : ' empty');
+      pin.textContent = (idx + 1);
+      pin.style.left = n.xPct + '%';
+      pin.style.top = n.yPct + '%';
+      pin.title = (n.note || '(ยังไม่ได้พิมพ์)');
+      pin.addEventListener('click', function(ev){ ev.stopPropagation(); openEditor(n.id, ev.clientX, ev.clientY); });
+      host.appendChild(pin);
+    });
+    countEl.textContent = notes.length + ' โน้ต';
+  }
+
+  function placeEditor(cx, cy){
+    editor.style.display = 'block';
+    var ew = 300, eh = editor.offsetHeight || 230;
+    var left = cx + 12, top = cy + 12;
+    if (left + ew > window.innerWidth - 10) left = cx - ew - 12;
+    if (top + eh > window.innerHeight - 10) top = Math.max(10, cy - eh - 12);
+    editor.style.left = Math.max(10, left) + 'px';
+    editor.style.top = Math.max(10, top) + 'px';
+    setTimeout(function(){ textEl.focus(); }, 10);
+  }
+
+  function openEditor(id, cx, cy){
+    var n = load().find(function(x){ return x.id === id; });
+    if (!n) return;
+    editingId = id;
+    ctxEl.innerHTML = '<b>หมวด:</b> ' + esc(n.band) + ' &nbsp;·&nbsp; <b>การ์ด:</b> ' + esc(n.title)
+      + (n.near ? (' &nbsp;·&nbsp; <b>ใกล้:</b> "' + esc(n.near) + '"') : '');
+    textEl.value = n.note || '';
+    placeEditor(cx, cy);
+  }
+  function closeEditor(){ editor.style.display = 'none'; editingId = null; }
+
+  // คลิกบนหน้า (โหมดโน้ตเปิด) = ปักหมุดใหม่ตรงจุดนั้น
+  frame.addEventListener('click', function(e){
+    if (!annoOn) return;
+    if (e.target.closest('.anno-ui')) return;     // คลิกหมุด/UI ไม่นับเป็นหมุดใหม่
+    var host = e.target.closest('.card, .kpi') || frame;
+    var r = host.getBoundingClientRect();
+    var t = e.target;
+    var near = (t !== host && t !== frame)
+      ? (t.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 48) : '';
+    var n = {
+      id: uid(),
+      anchorId: host.dataset.annoId,
+      xPct: +(((e.clientX - r.left) / r.width) * 100).toFixed(2),
+      yPct: +(((e.clientY - r.top) / r.height) * 100).toFixed(2),
+      band: bandFor(host),
+      title: titleFor(host),
+      near: near,
+      note: '',
+      ts: Date.now()
+    };
+    var notes = load(); notes.push(n); save(notes); renderPins();
+    openEditor(n.id, e.clientX, e.clientY);
+  });
+
+  document.getElementById('annoSave').addEventListener('click', function(){
+    if (!editingId) return;
+    var notes = load(), n = notes.find(function(x){ return x.id === editingId; });
+    if (n){
+      n.note = textEl.value.trim();
+      if (!n.note) notes = notes.filter(function(x){ return x.id !== editingId; });
+      save(notes);
+    }
+    closeEditor(); renderPins();
+  });
+  document.getElementById('annoDel').addEventListener('click', function(){
+    if (!editingId) return;
+    save(load().filter(function(x){ return x.id !== editingId; }));
+    closeEditor(); renderPins();
+  });
+  document.getElementById('annoCancel').addEventListener('click', function(){
+    // ยกเลิกหมุดที่เพิ่งสร้างแต่ยังว่าง = ลบทิ้ง (กันหมุดเปล่าค้าง)
+    if (editingId){
+      var notes = load(), n = notes.find(function(x){ return x.id === editingId; });
+      if (n && !(n.note || '').trim()){ save(notes.filter(function(x){ return x.id !== editingId; })); renderPins(); }
+    }
+    closeEditor();
+  });
+
+  toggleBtn.addEventListener('click', function(){
+    annoOn = !annoOn;
+    document.body.classList.toggle('anno-on', annoOn);
+    toggleBtn.textContent = 'โหมดโน้ต: ' + (annoOn ? 'เปิด' : 'ปิด');
+  });
+  document.getElementById('annoClear').addEventListener('click', function(){
+    if (load().length && confirm('ลบโน้ตทั้งหมด?')){ save([]); renderPins(); closeEditor(); }
+  });
+
+  document.getElementById('annoExport').addEventListener('click', function(){
+    var notes = load();
+    var lines = ['== โน้ตจาก Mockup Dashboard (' + notes.length + ' รายการ) =='];
+    notes.forEach(function(n, i){
+      lines.push('');
+      lines.push('[' + (i+1) + '] หมวด: ' + n.band + ' | การ์ด: ' + n.title
+        + (n.near ? (' | ใกล้: "' + n.near + '"') : '')
+        + ' (ตำแหน่ง ~' + Math.round(n.xPct) + '%, ' + Math.round(n.yPct) + '%)');
+      lines.push('    -> ' + (n.note || '(ว่าง)'));
+    });
+    if (!notes.length) lines.push('', '(ยังไม่มีโน้ต)');
+    document.getElementById('annoExportText').value = lines.join('\n');
+    modal.classList.add('open');
+  });
+  document.getElementById('annoCloseModal').addEventListener('click', function(){ modal.classList.remove('open'); });
+  modal.addEventListener('click', function(e){ if (e.target === modal) modal.classList.remove('open'); });
+  document.getElementById('annoCopy').addEventListener('click', function(){
+    var ta = document.getElementById('annoExportText');
+    ta.select();
+    try { document.execCommand('copy'); } catch(e){}
+    if (navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(function(){});
+    var self = this; self.textContent = 'คัดลอกแล้ว';
+    setTimeout(function(){ self.textContent = 'คัดลอก'; }, 1500);
+  });
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){ closeEditor(); modal.classList.remove('open'); }
+  });
+  window.addEventListener('resize', function(){ renderPins(); });
+
+  renderPins();
+})();
+</script>
+
 </body>
 </html>

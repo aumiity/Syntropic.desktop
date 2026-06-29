@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>รื้อ Dashboard — แผนงาน</title>
+<title>รื้อ Dashboard v2 — ศูนย์บัญชาการ (อิง mockup)</title>
 <style>
   :root{
     --teal:#0d9488; --teal-soft:#ccfbf1; --teal-d:#0f766e;
@@ -70,17 +70,6 @@
   .flow .node.warn{border-color:var(--amber);color:#b45309}
   .flow .node.data{border-style:dashed;border-color:var(--slate);color:var(--slate)}
   .flow .ar{color:var(--amber);font-weight:800;font-size:16px;flex:none;text-align:center}
-  .flow .ar small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
-  svg.sd{display:block;max-width:100%;height:auto;font-family:inherit}
-  svg.sd .box{fill:#fff;stroke:var(--teal);stroke-width:1.5}
-  svg.sd .box.warn{stroke:var(--amber)}
-  svg.sd .box.data{stroke:var(--slate);stroke-dasharray:5 4}
-  svg.sd text{fill:var(--ink);font-size:13px;font-weight:600}
-  svg.sd text.sub{fill:var(--muted);font-size:11px;font-weight:400;
-    font-family:"SF Mono",Menlo,Consolas,monospace}
-  svg.sd .edge{stroke:var(--slate);stroke-width:1.5;fill:none;marker-end:url(#sd-arr)}
-  svg.sd .edge.hot{stroke:var(--amber);stroke-width:2}
-  svg.sd text.elabel{fill:var(--slate);font-size:11px;font-weight:600}
   .machine{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:22px 24px;margin:14px 0;
     font-size:13.5px;line-height:1.6}
   .machine h3{color:#5eead4;margin-top:18px}
@@ -97,12 +86,13 @@
 <div class="wrap">
 
   <header class="hero">
-    <h1>รื้อ Dashboard — รวมสรุปขาย/ซื้อไว้ที่เดียว</h1>
-    <p>ย้ายแผงภาพรวมการเงินออกจาก Manage › ขาย/ซื้อ ไปยุบรวมที่หน้า Dashboard (/reports) เป็น 3 ส่วน แล้วคืนหน้า Manage ให้ admin เห็นเท่ากับ staff เป๊ะ</p>
+    <h1>รื้อ Dashboard v2 — "ศูนย์บัญชาการ"</h1>
+    <p>เขียนใหม่จาก mockup ที่เคาะแล้ว (<code>Dashboard_Rebuild_Mockup.html</code>) + ผลสำรวจ backend จริง 3 สาย — แทบไม่แตะ backend, ของใหม่จริงมีแค่ 2 ชิ้น (กราฟ diverging + การ wire ตารางแจ้งเตือน)</p>
     <div class="pillrow">
-      <span class="pill">ผ่าน audit 2 รอบ · ไม่มี blocker</span>
-      <span class="pill">renderer-only · ไม่แตะ IPC/schema</span>
-      <span class="pill">2026-06-29</span>
+      <span class="pill">SSOT = mockup ที่เคาะแล้ว</span>
+      <span class="pill">สำรวจ backend แล้ว: ตัวเลขครบ 100%</span>
+      <span class="pill">renderer-only ยกเว้น 1 component ใหม่</span>
+      <span class="pill">2026-06-29 (v2)</span>
     </div>
   </header>
 
@@ -110,167 +100,76 @@
 
   <h2><span class="n">1</span> ภาพรวม — ทำอะไร ทำไม</h2>
   <div class="card">
-    <p><strong>ปัญหา:</strong> ตอนนี้แผงสรุปการเงิน (การ์ดยอด + กราฟ trend + การ์ดสถานะ) ฝังอยู่ในหน้า <code>Manage › ขายสินค้า</code> และ <code>Manage › การซื้อ</code> เฉพาะตอนเป็น admin — ทำให้หน้าประวัติสองหน้านี้หน้าตาต่างกันระหว่าง admin กับ staff และตัวเลขสรุปกระจัดกระจาย ไม่ได้อยู่รวมกับ Dashboard ที่ก็มีตัวเลขคล้าย ๆ กันอยู่แล้ว (ทับซ้อน)</p>
-    <p><strong>แผนนี้:</strong> รื้อหน้า Dashboard (<code>/reports</code> แท็บ "แดชบอร์ด") ใหม่ทั้งหมด ยุบรวมของเดิม + แผงจาก Manage เป็น <strong>3 ส่วนเรียงบนลงล่าง</strong> — (1) ภาพรวมร้าน/สต็อก, (2) สรุปการขาย, (3) สรุปการซื้อ — คุมด้วยตัวเลือกช่วงเวลา<strong>ตัวเดียว</strong>ทั้งหน้า แล้ว<strong>ถอดแผงการเงินออกจาก Manage</strong> ทั้งสองหน้า ให้ทุก role เห็นแค่การ์ดนับจำนวน + ตารางประวัติ (admin = staff เป๊ะ)</p>
-    <p><strong>เสร็จแล้วได้:</strong> Dashboard เดียวที่เล่าเรื่อง ขาย/ซื้อ/สุขภาพร้าน ครบในที่เดียว · หน้า Manage กลับมาเบา เป็นตารางล้วน ๆ เท่ากันทุก role · ไม่แตะ backend เลย (ใช้ IPC เดิมทั้งหมด ความเสี่ยงต่ำ)</p>
+    <p><strong>ที่มา:</strong> แผนเดิม (v1) วางไว้เป็น "3 ส่วนเรียงบนลงล่าง (สต็อก→ขาย→ซื้อ)" แต่หลังทำ mockup กับเจ้าของหลายรอบ หน้าตากลายเป็น <strong>"ศูนย์บัญชาการ" จัดตามหัวข้อ</strong> ไม่แบ่งบล็อกขาย/ซื้อแล้ว — แผนนี้ (v2) จึงเขียนใหม่ทั้งฉบับให้ตรง mockup สุดท้าย</p>
+    <p><strong>แผนนี้:</strong> รื้อ <code>src/pages/Reports/Dashboard.tsx</code> ใหม่ทั้งหมดเป็น <strong>5 บล็อกเรียงบนลงล่าง (ไม่มีหัวข้อ band คั่น)</strong> คุมด้วย <code>MultiDatePicker</code> ตัวเดียวทั้งหน้า แล้ว <strong>ถอดแผงการเงินออกจาก Manage ขาย/ซื้อ</strong> (Phase B) ให้ตัวเลขการเงินอยู่ที่ Dashboard ที่เดียว และ Manage กลับเป็นตารางล้วน admin=staff</p>
+    <p><strong>สำรวจ backend แล้ว (3 สาย):</strong> ตัวเลขทุกจุดมีฟิลด์รองรับครบ (<code>financeSummary</code> มี <code>expense_total</code>/<code>selling_days</code>/previous ครบ) · ตารางแจ้งเตือน 4 หมวดมี IPC คืน rows + route หน้าเต็มครบ · กราฟ diverging ต้อง <strong>สร้าง component ใหม่</strong> (recharts เดิมทำ stack/เส้นศูนย์ไม่ได้ แต่ recharts รองรับในตัว สร้างไม่ยาก)</p>
   </div>
 
-  <h2><span class="n">2</span> โครงสร้าง / แผนผัง</h2>
+  <h2><span class="n">2</span> โครงหน้า — 5 บล็อก, picker เดียวคุมทั้งหน้า</h2>
   <div class="card">
-    <h3>ก. ทิศทางการย้าย (ของเดิม → ปลายทาง)</h3>
-    <div class="diagram"><div class="flow">
-      <div class="node warn">แผง finance · ขาย<small>Manage/Sales.tsx</small></div>
-      <div class="ar">▶</div>
-      <div class="node">ส่วน "สรุปการขาย"<small>Reports/Dashboard.tsx</small></div>
-    </div></div>
-    <div class="diagram"><div class="flow">
-      <div class="node warn">แผง finance · ซื้อ<small>Manage/Purchases.tsx</small></div>
-      <div class="ar">▶</div>
-      <div class="node">ส่วน "สรุปการซื้อ"<small>Reports/Dashboard.tsx</small></div>
-    </div></div>
-    <div class="diagram"><div class="flow">
-      <div class="node data">Manage ขาย/ซื้อ<small>หลังถอดแผง</small></div>
-      <div class="ar">▶<small>admin = staff</small></div>
-      <div class="node">การ์ดนับ + ตาราง<small>โหมดเดียวทุก role</small></div>
-    </div></div>
-
-    <h3>ข. หน้า Dashboard ใหม่ — 1 picker คุม 3 ส่วน</h3>
-    <div class="diagram">
-    <svg class="sd" viewBox="0 0 660 470" role="img" aria-label="ผังหน้า Dashboard ใหม่: ตัวเลือกเวลาเดียวคุมสามส่วน">
-      <defs><marker id="sd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--slate)"/></marker></defs>
-
-      <rect class="box warn" x="230" y="14" width="200" height="48" rx="10"/>
-      <text x="330" y="36" text-anchor="middle">MultiDatePicker (toolbar)</text>
-      <text class="sub" x="330" y="53" text-anchor="middle">ตัวเดียว คุมทั้งหน้า</text>
-
-      <rect class="box data" x="40" y="110" width="160" height="76" rx="10"/>
-      <text x="120" y="140" text-anchor="middle">ภาพรวมร้าน/สต็อก</text>
-      <text class="sub" x="120" y="160" text-anchor="middle">แจ้งเตือน 4 + ค่าใช้จ่าย</text>
-      <text class="sub" x="120" y="176" text-anchor="middle">ไม่ผูก picker</text>
-
-      <rect class="box" x="250" y="110" width="160" height="76" rx="10"/>
-      <text x="330" y="140" text-anchor="middle">สรุปการขาย</text>
-      <text class="sub" x="330" y="160" text-anchor="middle">strip+trend+สถานะ</text>
-      <text class="sub" x="330" y="176" text-anchor="middle">+ขายดี/กำไร/พนง./ลูกค้า</text>
-
-      <rect class="box" x="460" y="110" width="160" height="76" rx="10"/>
-      <text x="540" y="140" text-anchor="middle">สรุปการซื้อ</text>
-      <text class="sub" x="540" y="160" text-anchor="middle">strip+trend+สถานะ</text>
-      <text class="sub" x="540" y="176" text-anchor="middle">+ผู้จัดจำหน่าย</text>
-
-      <path class="edge" d="M300,62 C240,84 160,90 120,108"/>
-      <path class="edge hot" d="M330,62 V108"/>
-      <path class="edge hot" d="M360,62 C420,84 500,90 540,108"/>
-      <text class="elabel" x="150" y="98" text-anchor="middle">(เฉพาะค่าใช้จ่ายมี dropdown เอง)</text>
-
-      <rect class="box data" x="120" y="250" width="200" height="58" rx="10"/>
-      <text x="220" y="276" text-anchor="middle">financeSummary</text>
-      <text class="sub" x="220" y="294" text-anchor="middle">ขาย+ซื้อ+previous ก้อนเดียว</text>
-      <rect class="box data" x="120" y="330" width="200" height="58" rx="10"/>
-      <text x="220" y="356" text-anchor="middle">salesPurchaseTrend</text>
-      <text class="sub" x="220" y="374" text-anchor="middle">trend เดียว ป้อน 2 กราฟ</text>
-      <rect class="box data" x="120" y="410" width="200" height="46" rx="10"/>
-      <text x="220" y="437" text-anchor="middle">salesStats</text>
-
-      <rect class="box data" x="360" y="250" width="200" height="58" rx="10"/>
-      <text x="460" y="276" text-anchor="middle">purchase.history (limit:1)</text>
-      <text class="sub" x="460" y="294" text-anchor="middle">res.summary นับสถานะซื้อ</text>
-      <rect class="box data" x="360" y="330" width="200" height="58" rx="10"/>
-      <text x="460" y="356" text-anchor="middle">topProducts ×2 / topSuppliers</text>
-      <text class="sub" x="460" y="374" text-anchor="middle">cashierLeaderboard</text>
-      <rect class="box data" x="360" y="410" width="200" height="46" rx="10"/>
-      <text x="460" y="437" text-anchor="middle">lowStock / expiringLots / inactive</text>
-
-      <text class="elabel" x="330" y="230" text-anchor="middle">IPC เดิมทั้งหมด — ไม่แก้ backend</text>
-    </svg>
-    </div>
-
-    <h3>ค. ของเดิม → ไปอยู่ส่วนไหน</h3>
     <table>
-      <thead><tr><th>ของเดิม</th><th>เคยอยู่</th><th>ปลายทางใน Dashboard</th></tr></thead>
+      <thead><tr><th>บล็อก</th><th>เนื้อหา</th><th>แหล่งข้อมูล</th></tr></thead>
       <tbody>
-        <tr><td>แจ้งเตือนสต็อก 4 อัน (ติดลบ/ต่ำกว่าจุดสั่ง/ใกล้หมดอายุ/ค้าง 6 เดือน)</td><td>Dashboard เดิม</td><td><span class="tag t-gen">ส่วน 1</span> ภาพรวมร้าน/สต็อก</td></tr>
-        <tr><td>การ์ดค่าใช้จ่าย (+ dropdown ช่วงเวลาเอง)</td><td>Dashboard เดิม</td><td><span class="tag t-gen">ส่วน 1</span> คง dropdown อิสระ</td></tr>
-        <tr><td>MetricStrip 4 (ยอดขาย/ต้นทุน/กำไร/กำไร%)</td><td>Manage ขาย</td><td><span class="tag t-gen">ส่วน 2</span> สรุปการขาย</td></tr>
-        <tr><td>กราฟ trend ขาย (สลับ ยอดขาย/กำไร/บิล) + การ์ดสถานะ (ปลีก/ส่ง/คืน/ยกเลิก) + การ์ดเฉลี่ย</td><td>Manage ขาย</td><td><span class="tag t-gen">ส่วน 2</span></td></tr>
-        <tr><td>สินค้าขายดี / กำไรสูงสุด / พนักงานขาย / สรุปลูกค้า</td><td>Dashboard เดิม</td><td><span class="tag t-gen">ส่วน 2</span></td></tr>
-        <tr><td>MetricStrip 4 (ยอดซื้อ/เงินสด/เครดิต/ค้างชำระ) + กราฟ trend ซื้อ + การ์ดสถานะ 5 + การ์ดเฉลี่ย</td><td>Manage ซื้อ</td><td><span class="tag t-gen">ส่วน 3</span> สรุปการซื้อ</td></tr>
-        <tr><td>ผู้จัดจำหน่ายยอดซื้อสูงสุด</td><td>Dashboard เดิม</td><td><span class="tag t-gen">ส่วน 3</span></td></tr>
-        <tr><td>แถว KPI 5 การ์ด (ปนขาย+ซื้อ)</td><td>Dashboard เดิม</td><td><span class="tag t-skip">ลบ</span> ถูกแทนด้วย MetricStrip ของแต่ละส่วน</td></tr>
-        <tr><td>โดนัท "สัดส่วนการขาย" (ปลีก/ส่ง/ใบสั่งยา)</td><td>Dashboard เดิม</td><td><span class="tag t-skip">ลบ</span> รวมเหลือแถบสถานะแบบ Manage</td></tr>
-        <tr><td>กราฟ trend แบบเลื่อน 7/30/90 วัน</td><td>Dashboard เดิม</td><td><span class="tag t-skip">ลบ</span> เปลี่ยนเป็นอิง picker + auto granularity</td></tr>
+        <tr><td><strong>1. MetricStrip</strong> (6 ช่อง)</td><td>ยอดขาย · ต้นทุน · กำไร(+%กำไร) · ยอดซื้อ · ค้างชำระ · ค่าใช้จ่ายอื่นๆ — tint icon ชิดขวาบนทุกช่อง, delta vs ช่วงก่อน</td><td><code>financeSummary</code> (ตาม picker หลัก ทุกช่องรวมค่าใช้จ่าย)</td></tr>
+        <tr><td><strong>2.</strong> กราฟ + การขาย</td><td>ซ้าย = <span class="tag t-skip">ใหม่</span> <code>DivergingTrendChart</code> (ยอดขายพุ่งขึ้น+กำไรซ้อนใน / ยอดซื้อพุ่งลงติดลบ / เส้นศูนย์ / แกน Y) · ขวา = การ์ด "การขาย" (แถบสถานะ ปลีก/ส่ง/คืน/ยกเลิก + เฉลี่ย/บิล·/วัน)</td><td><code>salesPurchaseTrend</code> · <code>salesStats</code> · <code>financeSummary</code></td></tr>
+        <tr><td><strong>3.</strong> อันดับ + สรุปซื้อ</td><td>สินค้าขายดี · กำไรสูงสุด · การ์ด "การซื้อ" (แถบสถานะ เงินสด/ชำระแล้ว/ค้างชำระ/เกินกำหนด/ยกเลิก)</td><td><code>topProducts</code> ×2 · <code>purchase.history</code> summary</td></tr>
+        <tr><td><strong>4.</strong> ทีม + ค่าใช้จ่าย</td><td>ผู้จัดจำหน่าย · พนักงานขาย · ค่าใช้จ่ายอื่นๆ (การ์ดแยกหมวด มี dropdown ช่วงเวลาของตัวเอง)</td><td><code>topSuppliers</code> · <code>cashierLeaderboard</code> · <code>expenses.list</code></td></tr>
+        <tr><td><strong>5.</strong> แจ้งเตือน + ตาราง</td><td>ซ้าย = 4 tiles (กดเป็นตัวกรอง) · ขวา = ตารางมาตรฐาน (rows ของหมวดที่เลือก, elevated icon, footer pagination ‹›, ปุ่ม "เปิดตารางเต็ม"→หน้า Manage)</td><td>tiles: counts · ตาราง: IPC ต่อหมวด</td></tr>
+      </tbody>
+    </table>
+    <p style="margin:8px 0 0;color:var(--muted);font-size:13px"><strong>ไม่มีหัวข้อ band คั่นระหว่างบล็อก</strong> (เจ้าของเลือกตัดออก) — เว้นช่องว่างแทน · ทุกบล็อกมี <strong>loading state</strong></p>
+  </div>
+
+  <h2><span class="n">3</span> ผลสำรวจ backend (3 สาย)</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>เรื่อง</th><th>สถานะ</th><th>รายละเอียด</th></tr></thead>
+      <tbody>
+        <tr><td><code>financeSummary</code> / <code>salesStats</code> / <code>purchase.history</code></td><td><span class="tag t-keep">พร้อม 100%</span></td><td>ทุกตัวเลขใน KPI + การ์ดขาย/ซื้อ มีฟิลด์ครบ — รวม <code>expense_total</code>, <code>selling_days</code>, <code>sales_discount</code>, <code>previous</code>{}. ค่าเฉลี่ย/% คำนวณฝั่ง renderer ได้หมด</td></tr>
+        <tr><td>ตารางแจ้งเตือน 4 หมวด</td><td><span class="tag t-keep">พร้อม (ต่อ wiring)</span></td><td>ติดลบ=<code>negativeStock:list</code> · ต่ำกว่าจุดสั่ง=<code>products:lowStock</code> · ใกล้หมดอายุ=<code>reports:expiringLots</code> (paginate เองได้) · ค้าง 6 ด.=<code>reports:inactiveProducts</code>. Route <code>/manage/{negative-stock,low-stock,expiry,dead-stock}</code> ครบ</td></tr>
+        <tr><td>กราฟ diverging</td><td><span class="tag t-skip">สร้างใหม่</span></td><td><code>TrendChart</code> เดิม: ไม่มี <code>stackId</code> (stack ไม่ได้), ไม่มี <code>ReferenceLine y=0</code>. แต่เป็น recharts อยู่แล้ว ซึ่งรองรับ stack + เส้นศูนย์ + ค่าติดลบ → สร้าง <code>DivergingTrendChart</code> ใหม่</td></tr>
       </tbody>
     </table>
   </div>
 
-  <h2><span class="n">3</span> ก่อน ↔ หลัง</h2>
+  <h2><span class="n">4</span> ก่อน ↔ หลัง</h2>
   <div class="ba-grid">
-    <div class="col"><div class="before"><h4>ก่อน</h4>
+    <div class="col"><div class="before"><h4>ก่อน (ปัจจุบัน)</h4>
       <ul class="clean">
-        <li><strong>Dashboard:</strong> KPI 5 การ์ด → กราฟ+โดนัท+แจ้งเตือน → ขายดี/กำไร/ค่าใช้จ่าย → พนง./ผู้จัดจำหน่าย/ลูกค้า (เนื้อหาทับซ้อนกับ Manage)</li>
-        <li><strong>Manage ขาย/ซื้อ (admin):</strong> แผงการเงินเต็ม + ทั้งหน้าเลื่อนรวมกัน (scrollPage + forward-wheel)</li>
-        <li><strong>Manage ขาย/ซื้อ (staff):</strong> การ์ดนับ + ตารางเต็มจอ</li>
-        <li>admin กับ staff เห็น Manage <strong>ต่างกัน</strong></li>
-        <li>2 หน้ายิง <code>financeSummary</code>/<code>salesPurchaseTrend</code> แยกกันเอง</li>
+        <li><strong>Dashboard:</strong> KPI 5 การ์ด → กราฟเส้น+โดนัท+แจ้งเตือน(count) → ขายดี/กำไร/ค่าใช้จ่าย → พนง./ผู้จัดจำหน่าย/ลูกค้า</li>
+        <li><strong>Manage ขาย/ซื้อ (admin):</strong> แผงการเงินเต็ม + ทั้งหน้าเลื่อนรวม</li>
+        <li>admin กับ staff เห็น Manage ต่างกัน</li>
+        <li>แจ้งเตือนเป็นแค่ตัวเลข count กดดูรายการไม่ได้</li>
       </ul>
     </div></div>
-    <div class="col"><div class="after"><h4>หลัง</h4>
+    <div class="col"><div class="after"><h4>หลัง (v2)</h4>
       <ul class="clean">
-        <li><strong>Dashboard:</strong> 3 ส่วนชัดเจน (ภาพรวมร้าน/สต็อก → ขาย → ซื้อ) picker ตัวเดียวคุมทั้งหน้า</li>
-        <li><strong>Manage ขาย/ซื้อ:</strong> การ์ดนับ + ตาราง — <strong>เหมือนกันทุก role</strong> (admin = staff)</li>
-        <li>ไม่มี scrollPage/forward-wheel ใน Manage แล้ว — กลับเป็นการ์ดสูงคงที่</li>
+        <li><strong>Dashboard:</strong> 5 บล็อกตามหัวข้อ, picker เดียว, MetricStrip, กราฟ diverging รวม, แจ้งเตือนกดกรอง→ตารางจริง</li>
+        <li><strong>Manage ขาย/ซื้อ:</strong> การ์ดนับ + ตาราง เท่ากันทุก role</li>
         <li>โดนัท + กราฟเลื่อน 7/30/90 หาย → แถบสถานะ + กราฟอิง picker</li>
         <li>ตัวเลขการเงินทั้งหมดอยู่ที่ Dashboard ที่เดียว</li>
       </ul>
     </div></div>
   </div>
 
-  <h2><span class="n">4</span> ส่งผลอย่างไร</h2>
-  <div class="callout green"><h4>ข้อดี</h4><ul class="clean">
-    <li>ตัวเลขสรุปอยู่รวมกันที่เดียว เล่าเรื่องครบ ขาย/ซื้อ/สุขภาพร้าน</li>
-    <li>หน้า Manage เบาลง สม่ำเสมอทุก role — ลดความซับซ้อน (ตัด scrollPage/forward-wheel/animation-สำหรับ-scroll)</li>
-    <li>ไม่แตะ IPC/schema เลย — เป็นการ "ย้ายโค้ดที่ผ่าน e2e แล้ว" + strip ความเสี่ยงต่ำ</li>
-    <li>กราฟทั้งสองส่วนอิง picker เดียว granularity อัตโนมัติ สอดคล้องกันทั้งหน้า</li>
-  </ul></div>
-  <div class="callout"><h4>ข้อเสีย / ต้นทุน</h4><ul class="clean">
-    <li>หน้า Dashboard ยาวขึ้น (3 ส่วน) ต้องเลื่อนมากกว่าเดิม — ใช้ scroll ของ ReportsLayout เดิม ไม่ต้องทำกลไกใหม่</li>
-    <li>ยิง IPC พร้อมกัน ~11–12 ตัวต่อการโหลด (เพิ่ม <code>purchase.history</code> 1 ตัวจากของเดิม) — รับได้</li>
-    <li>โดนัทสัดส่วนการขายหายไป (เจ้าของเลือกรวมเป็นแถบสถานะอันเดียว)</li>
-  </ul></div>
-  <div class="callout red"><h4>ข้อควรระวัง</h4><ul class="clean">
-    <li><span class="inv">recharts <code>Tooltip</code> ชนชื่อกับ UI <code>Tooltip</code></span> — ลบ import recharts ทั้งบรรทัด (โดนัทหายแล้ว) ก่อนเพิ่ม UI tooltip ไม่งั้น tsc พัง</li>
-    <li><span class="inv">อย่าลบ <code>motion</code> ใน Purchases.tsx</span> — ยังใช้ใน edit-dialog pill (บรรทัด ~1086-1136) ไม่ใช่แผง finance</li>
-    <li><span class="inv">เก็บ <code>Percent</code></span> ทั้งสองหน้า — เป็นปุ่มกรอง VAT คนละที่กับแผง</li>
-    <li>ห้าม emoji ในโค้ด/UI · ใช้ semantic token เท่านั้น (ห้าม <code>bg-blue-500</code>) · scrollbar thin 7px · bar=h-12/control=h-9 · วันที่ผ่าน <code>formatDate()</code> ค.ศ. DD/MM/YYYY (ลบ <code>rangeLabel</code> แบบ พ.ศ. ทิ้ง)</li>
-    <li>render helper ตัวเล็ก (lowercase) ใน Dashboard.tsx โอเค (เหมือน <code>payRow</code>/<code>divider</code> เดิม) — ห้ามทำเป็น component ตัวใหญ่ในไฟล์ page</li>
+  <h2><span class="n">5</span> สิ่งที่เคาะแล้ว (ห้ามเปลี่ยน)</h2>
+  <div class="callout teal"><ul class="clean">
+    <li><strong>ค่าใช้จ่ายอื่นๆ ใน MetricStrip</strong> → ดึง <code>financeSummary.expense_total</code> <strong>ตาม picker หลัก</strong> (ส่วนการ์ดแยกหมวดในบล็อก 4 ยังมี dropdown ช่วงเวลาของตัวเองแยกต่างหาก)</li>
+    <li><strong>ปุ่ม "เปิดตารางเต็ม"</strong> → <code>navigate()</code> ไปหน้า Manage เดิมของแต่ละหมวด (ไม่สร้างหน้าใหม่)</li>
+    <li><strong>ไม่มีหัวข้อ band</strong> ทุกบล็อก — เว้นช่องว่างแทน</li>
+    <li><strong>มี loading state</strong> ทุกบล็อก (skeleton/ข้อความ "กำลังโหลด...")</li>
+    <li>กราฟ: ยอดขายพุ่งขึ้น (กำไรเขียวซ้อนในแท่ง) · ยอดซื้อพุ่งลงเป็นค่าลบ · เส้นศูนย์กลาง · แกน Y</li>
+    <li>แถบสถานะ (segbar) ชิดติดกันไม่มีช่องว่าง · ตาราง bottombar ยึดล่างสุด · tint icon ตาราง = elevated</li>
   </ul></div>
 
-  <h2><span class="n">5</span> UX / UI</h2>
-  <div class="card">
-    <p><strong>หน้า Dashboard:</strong> 3 ส่วนเรียงบนลงล่าง คั่นด้วยหัวข้อส่วน (render helper <code>sectionHeading</code> — ไอคอน lucide + ข้อความ <code>text-base font-semibold</code> + เส้นคั่นบาง) ทุกส่วนใช้ <code>SectionCard</code>/<code>MetricStrip</code>/<code>TrendChart</code>/<code>TopListCard</code> ตาม <code>/theme</code> เดิม สี tint ตาม role: ขาย=primary/success, ซื้อ=primary/amber/violet, แจ้งเตือน=destructive/warning/amber/info-soft. ปุ่มสลับในการ์ด (ขายดี/กำไร) ใช้ <code>variant="elevated"</code> ตามเดิม. การ์ดสถานะ = แถบสัดส่วน + legend + hover เชื่อมแถบ↔legend (ยกมาจาก Manage). ภาษาไทยทั้งหมด.</p>
-    <p><strong>Toolbar:</strong> <code>MultiDatePicker</code> + ปุ่มรีเฟรช อยู่ใน toolbar ของ ReportsLayout (เดิม) คุมทุกส่วนยกเว้นแจ้งเตือน (ไม่ผูกเวลา) และการ์ดค่าใช้จ่าย (dropdown เดือนนี้/เดือนที่แล้ว/ปีนี้ ของตัวเอง).</p>
-    <p><strong>หน้า Manage ขาย/ซื้อ:</strong> ทุก role เห็นเหมือนกัน — การ์ดนับจำนวน (5 ของขาย, 6 ของซื้อ) ในสล็อต summary + ตารางประวัติเต็มจอ + ตัวกรอง/ค้นหา/picker เดิมครบ ไม่มีแผงการเงิน. <strong>staff ไม่เห็นเมนูรายงาน/Dashboard อยู่แล้ว</strong> (gate ด้วย <code>report.finance</code>) — ไม่ต้องทำ path staff เพิ่ม.</p>
-  </div>
-
-  <h2><span class="n">6</span> บันทึกการ audit (2 รอบ)</h2>
-  <div class="card">
-    <table>
-      <thead><tr><th>รอบ</th><th>พบ</th><th>severity</th><th>แก้อย่างไร</th></tr></thead>
-      <tbody>
-        <tr><td>1</td><td>IPC ทั้ง 11 ตัว / return shape / shared helper / การลบ import ทั้งหมด — ตรงกับโค้ดจริง</td><td><span class="tag t-keep">PASS</span></td><td>ไม่ต้องแก้</td></tr>
-        <tr><td>1</td><td><code>motion</code> ใน Purchases ยังใช้ใน edit-dialog pill</td><td><span class="tag t-opt">minor</span></td><td>ระบุชัดในแผนว่า "เก็บ <code>motion</code> ไม่ลบ"</td></tr>
-        <tr><td>1</td><td>คอมเมนต์หัวไฟล์ Dashboard.tsx (บรรทัด 31-36) ล้าสมัย</td><td><span class="tag t-opt">minor</span></td><td>เพิ่มสเต็ปเขียนคอมเมนต์ใหม่เป็นโครง 3 ส่วน</td></tr>
-        <tr><td>1</td><td><code>rangeLabel</code> เป็น พ.ศ. <code>D MMM BB</code></td><td><span class="tag t-opt">minor</span></td><td>ลบทิ้ง (โดนัทที่ใช้มันก็หายไปด้วย)</td></tr>
-        <tr><td>2</td><td>TrendChart/MetricStrip API + financeSummary/purchase.history/salesStats shape — ยืนยันถูกต้อง</td><td><span class="tag t-keep">PASS</span></td><td>ไม่ต้องแก้</td></tr>
-        <tr><td>2</td><td>ความขัดแย้งในแผนเรื่อง <code>rangeLabel</code> (ฝั่งหนึ่งบอกเก็บ ฝั่งหนึ่งบอกแก้)</td><td><span class="tag t-opt">minor</span></td><td>ตัดสินใจ "ลบทิ้ง" ตัดคอมเมนต์ carve-out ที่ขัดกัน</td></tr>
-        <tr><td>2</td><td>recharts <code>Tooltip</code> ชนชื่อ UI <code>Tooltip</code> (tsc error จริง)</td><td><span class="tag t-opt">minor</span></td><td>เพิ่ม "rebuild trap": ลบ import recharts ทั้งบรรทัด + <code>PieChartIcon</code></td></tr>
-        <tr><td>2</td><td>interface <code>FinanceSummary</code>/<code>FinanceWindow</code> ของ Dashboard ต้องเพิ่ม field</td><td><span class="tag t-opt">minor</span></td><td>ระบุสเต็ปขยาย interface (cost/discount/selling_days/cash/credit/payable + บน previous)</td></tr>
-        <tr><td>2</td><td>ลืมใส่ <code>useCan</code>/<code>React</code> ในลิสต์ลบ import ของ Purchases</td><td><span class="tag t-opt">minor</span></td><td>เพิ่มเข้าลิสต์ทั้งสองหน้าให้ครบ (non-blocking)</td></tr>
-        <tr><td>2</td><td>โครงสร้าง strip Manage + ลบ scrollPage ใน index.tsx — compile/render ได้</td><td><span class="tag t-keep">PASS</span></td><td>ไม่ต้องแก้</td></tr>
-      </tbody>
-    </table>
-    <p style="margin:10px 0 0;color:var(--muted);font-size:13px">สรุป: ทั้งสองรอบไม่มี blocker/major — เป็นการย้ายโค้ดที่ผ่าน e2e แล้ว + strip ทุก minor พับเข้าแผนเรียบร้อย</p>
-  </div>
+  <h2><span class="n">6</span> ข้อควรระวัง</h2>
+  <div class="callout red"><ul class="clean">
+    <li><span class="machine inv" style="color:#b91c1c">recharts <code>Tooltip</code> ชนชื่อ UI <code>Tooltip</code></span> — ใน Dashboard.tsx ปัจจุบัน import recharts ทั้งบรรทัด ต้องลบให้หมดก่อนเพิ่ม UI Tooltip (กราฟ recharts ย้ายไปอยู่ใน <code>DivergingTrendChart</code> แล้ว)</li>
+    <li>ห้าม emoji ในโค้ด/UI · semantic token เท่านั้น (ห้าม <code>bg-blue-500</code>) · scrollbar thin 7px · bar=h-12/control=h-9 · วันที่ผ่าน <code>formatDate()</code> ค.ศ. DD/MM/YYYY</li>
+    <li>ปุ่ม/ไอคอนในตารางแจ้งเตือน = <code>variant="elevated"</code> ตามมาตรฐาน table-card · row action / pagination = elevated</li>
+    <li>render helper ตัวเล็ก (lowercase) ใน Dashboard.tsx โอเค (เหมือน <code>payRow</code> เดิม) — ห้ามทำ component ตัวใหญ่ในไฟล์ page; ของใช้ซ้ำ (DivergingTrendChart, ตารางแจ้งเตือน) แยกไป <code>src/components/ui/</code></li>
+    <li>recharts focus outline เหลือง: root <code>&lt;svg&gt;</code> มี <code>tabIndex</code> — มี global CSS ปิดไว้แล้วใน <code>index.css</code> (ไม่ต้องแก้)</li>
+  </ul></div>
 
   <div class="divider"></div>
 
@@ -280,113 +179,94 @@
   <div class="machine">
     <h3>Definition of done</h3>
     <ul>
-      <li><code>/reports</code> แดชบอร์ด = 3 ส่วนเรียงบนลงล่าง: <strong>ภาพรวมร้าน/สต็อก</strong> (4 alert tiles + ค่าใช้จ่าย own-period) → <strong>สรุปการขาย</strong> (MetricStrip4 + trend-bar metric-switch + status bar ปลีก/ส่ง/คืน/ยกเลิก + averages + ขายดี + กำไรสูงสุด + พนักงานขาย + สรุปลูกค้า) → <strong>สรุปการซื้อ</strong> (MetricStrip4 + trend-bar + status bar เงินสด/ชำระแล้ว/ค้างชำระ/เกินกำหนด/ยกเลิก + averages + ผู้จัดจำหน่าย).</li>
-      <li><code>MultiDatePicker</code> ตัวเดียว (toolbar) คุมทุก metric ยกเว้น alert tiles (ไม่ผูกเวลา) + ค่าใช้จ่าย (dropdown เอง).</li>
-      <li>กราฟ trend ทั้งสองอิง picker range + <code>granularityForMode(mode)</code>; ตัด tab เลื่อน 7/30/90.</li>
-      <li>โดนัท "สัดส่วนการขาย" ถูกลบ — แทนด้วย sales status bar.</li>
-      <li>Manage ขาย/ซื้อ: ไม่มีแผง finance, ไม่มี <code>isAdmin</code> branch — ทุก role เห็นการ์ดนับ + ตาราง (admin = staff).</li>
-      <li><code>Manage/index.tsx</code>: ลบ <code>scrollPage</code>/forward-wheel/admin-scroll layout — ทุกแท็บใช้การ์ดสูงคงที่ (staff path).</li>
-      <li><code>npm run build</code> (tsc) exit 0; click-test admin/staff Manage เหมือนกัน; Dashboard ครบ 3 ส่วนและตอบสนอง picker.</li>
+      <li><code>/reports</code> แดชบอร์ด = 5 บล็อกตาม mockup (<code>Dashboard_Rebuild_Mockup.html</code>) ไม่มีหัวข้อ band, <code>MultiDatePicker</code> ตัวเดียวคุมทุก metric (ยกเว้นการ์ดค่าใช้จ่ายแยกหมวด = dropdown เอง).</li>
+      <li>กราฟ = <code>DivergingTrendChart</code> ใหม่ (ขายขึ้น+กำไรซ้อน / ซื้อลงติดลบ / เส้นศูนย์ / แกน Y) อิง picker + <code>granularityForMode(mode)</code>.</li>
+      <li>บล็อกแจ้งเตือน: 4 tiles กดเป็นตัวกรอง → ตารางมาตรฐานข้างขวาสลับ rows ของหมวดนั้น (slice แบ่งหน้า client, ปุ่ม ‹›), ปุ่ม "เปิดตารางเต็ม" navigate ไปหน้า Manage.</li>
+      <li>โดนัท + กราฟเลื่อน 7/30/90 + KPI 5 การ์ดเดิม ถูกลบ.</li>
+      <li>ทุกบล็อกมี loading + empty state.</li>
+      <li><strong>Phase B:</strong> Manage ขาย/ซื้อ ไม่มีแผง finance, ไม่มี <code>isAdmin</code> branch — admin=staff; <code>Manage/index.tsx</code> ลบ <code>scrollPage</code>/forward-wheel.</li>
+      <li><code>npm run build</code> (tsc) exit 0; click-test admin/staff.</li>
     </ul>
 
     <h3>ไฟล์ที่เกี่ยวข้อง</h3>
     <ul>
+      <li><code>src/components/ui/charts/diverging-trend-chart.tsx</code> — <span class="inv">สร้างใหม่</span> (recharts BarChart + ComposedChart)</li>
+      <li><code>src/components/ui/alert-detail-table.tsx</code> — <span class="inv">สร้างใหม่</span> (ตารางมาตรฐาน + footer pagination + ปุ่มเปิดเต็ม) — หรือทำเป็น render helper ใน Dashboard ถ้าไม่ซับซ้อน ให้ priest ตัดสิน</li>
       <li><code>src/pages/Reports/Dashboard.tsx</code> — REBUILD (งานหลัก)</li>
-      <li><code>src/pages/Manage/Sales.tsx</code> — strip แผง finance; admin = staff</li>
-      <li><code>src/pages/Manage/Purchases.tsx</code> — strip แผง finance; admin = staff</li>
-      <li><code>src/pages/Manage/index.tsx</code> — ลบกลไก scrollPage</li>
-      <li><code>src/lib/finance-panel.ts</code> — <span class="inv">ไม่แก้</span> (Dashboard import <code>trendOf/compareLabelForMode/prevWindowForMode/granularityForMode</code> จากที่นี่)</li>
-      <li><code>electron/ipc/reports.ts</code>, <code>electron/ipc/purchase.ts</code> — <span class="inv">ไม่แก้</span> (ใช้ IPC เดิม)</li>
-      <li><code>src/pages/Reports/index.tsx</code> — ไม่แก้ (optional: ลบคอมเมนต์ <code>8:</code> ใน COLS_BY_COUNT ที่ค้าง; Dashboard วาด KPI เอง ไม่เรียก setSummary)</li>
+      <li><code>src/pages/Manage/Sales.tsx</code> / <code>Purchases.tsx</code> — Phase B: strip แผง finance</li>
+      <li><code>src/pages/Manage/index.tsx</code> — Phase B: ลบ scrollPage</li>
+      <li><code>src/lib/finance-panel.ts</code> — <span class="inv">ไม่แก้</span> (Dashboard import <code>trendOf/compareLabelForMode/prevWindowForMode/granularityForMode</code>)</li>
+      <li><code>electron/ipc/*.ts</code> — <span class="inv">ไม่แก้เลย</span> (ใช้ IPC เดิมทั้งหมด)</li>
     </ul>
 
-    <h3>ขั้นตอน</h3>
-    <ol>
-      <div class="step"><strong>1. Rebuild <code>Reports/Dashboard.tsx</code></strong> (additive — ไม่มีอะไรพึ่งแผง Manage)
-        <ul>
-          <li><strong>Imports:</strong> <span class="inv">ลบ import recharts ทั้งบรรทัด</span> (<code>ResponsiveContainer, PieChart, Pie, Cell, Tooltip</code>) + <code>PieChart as PieChartIcon</code> เพราะโดนัทหาย และกัน <code>Tooltip</code> ชนชื่อ UI; เพิ่ม <code>Tooltip/TooltipProvider/TooltipTrigger/TooltipContent</code> จาก <code>@/components/ui/tooltip</code>, <code>MetricStrip</code> จาก card, <code>trendOf/compareLabelForMode/prevWindowForMode/granularityForMode</code> จาก <code>@/lib/finance-panel</code>; เพิ่ม lucide ที่ต้องใช้ (Coins, DollarSign, Percent, ListChecks, Store/Boxes สำหรับหัวข้อส่วน ฯลฯ).</li>
-          <li><strong>Interfaces:</strong> ขยาย <code>FinanceWindow</code>/<code>FinanceSummary</code> (บรรทัด 39-48) เพิ่ม <code>sales_cost, sales_discount, selling_days, purchase_cash, purchase_credit, payable_total, payable_count</code> บน window และบน <code>previous</code>.</li>
-          <li><strong>State:</strong> ลบ <code>trendDays/trendWin/trendGranularity()</code>; เก็บ <code>mode/dateFrom/dateTo</code>, <code>topSortBy/profitMode</code>, <code>expenseMode</code> + effect ค่าใช้จ่ายแยก (verbatim); เพิ่ม <code>hoveredStatusSale/hoveredStatusPur</code> สำหรับ hover ของ status bar; เพิ่ม state purchase status summary.</li>
-          <li><strong>load():</strong> Promise.all ตาม "Data fetching" ด้านล่าง — เพิ่ม <code>purchase.history({date_from,date_to,limit:1})</code> อ่าน <code>res.summary</code>; <code>salesPurchaseTrend</code> ใช้ <code>granularityForMode(mode)</code>; <code>financeSummary</code> ใส่ <code>with_compare</code> + <code>...prevWindowForMode(mode,dateFrom,dateTo)</code>.</li>
-          <li><strong>Render:</strong> <code>sectionHeading()</code> 3 หัว → ส่วน1 (alert SectionCard เดิม + expenses card เดิม) → ส่วน2 (MetricStrip ขาย + trend bar metric-switch + statusBreakdownCard ขาย + keyValueCard เฉลี่ย + ขายดี/กำไร/พนง./ลูกค้า) → ส่วน3 (MetricStrip ซื้อ + trend bar + statusBreakdownCard ซื้อ + keyValueCard + ผู้จัดจำหน่าย).</li>
-          <li><strong>Helpers (lowercase):</strong> เพิ่ม <code>statusBreakdownCard(opts)</code> (แถบสัดส่วน+legend+hover, ยกจาก Manage statusCard ทำให้ generic ด้วย tiles/colors/title), <code>keyValueCard(opts)</code> (averages), <code>sectionHeading(icon,title)</code>. คง <code>payRow/divider</code>. <span class="inv">ลบ <code>rangeLabel</code></span>; ถ้าต้อง caption ช่วง ใช้ <code>formatDate(dateFrom)</code>–<code>formatDate(dateTo)</code>.</li>
-          <li><strong>คอมเมนต์หัวไฟล์</strong> (31-36): เขียนใหม่อธิบายโครง 3 ส่วน.</li>
-          <li><span class="inv">tokens เท่านั้น · ห้าม emoji · ห้าม palette literal · scrollbar-thin · text ≥ text-xs</span></li>
-        </ul>
-      </div>
-      <div class="step"><strong>2. Strip <code>Manage/Sales.tsx</code></strong>
-        <ul>
-          <li>ลบ <code>isAdmin</code> + import <code>useCan</code> (ใช้แค่ที่นี่); <code>React</code> default จะไม่ถูกใช้หลังลบ <code>summaryCard</code> → ลบเพื่อสะอาด (non-blocking).</li>
-          <li>ลบ state/effect: <code>gran, chartMetric, hoveredStatus, finance, trend, finLoading</code> + effect fetch <code>financeSummary/salesPurchaseTrend</code>.</li>
-          <li>Slot effect: ตัด guard <code>if(isAdmin){setSlotSummary(null);return}</code> → set การ์ดนับ 5 ใบเสมอ; dep <code>[summary,setSlotSummary]</code>.</li>
-          <li>Render: ลบ wrapper branch <code>isAdmin ? …</code> (ใช้ staff <code>flex flex-1 flex-col min-h-0</code>), ลบบล็อก <code>{isAdmin && (…panel…)}</code> ทั้งก้อน, ยุบ table-wrapper สอง branch เป็น staff.</li>
-          <li>ลบ helpers/const: <code>statusCard, summaryCard, STATUS_COLOR, StatusTile, statusTiles, CHART_METRICS, ChartMetric, FinanceSummary</code>.</li>
-          <li>ลบ import ที่ไม่ใช้แล้ว: <code>MetricStrip, SectionCard, TrendChart/TrendDatum, Tabs*, delta, @/lib/finance-panel, Tooltip*, DollarSign, Coins, TrendingUp, LineChart, ListChecks</code>. <span class="inv">เก็บ <code>Percent</code>(VAT), <code>ReceiptText</code>, <code>cn</code>, <code>TintIcon</code></span>. grep แต่ละสัญลักษณ์ในไฟล์ก่อนลบ.</li>
-        </ul>
-      </div>
-      <div class="step"><strong>3. Strip <code>Manage/Purchases.tsx</code></strong> (มิเรอร์ข้อ 2)
-        <ul>
-          <li>ลบ <code>isAdmin</code> + import <code>useCan</code> (ใช้แค่ที่บรรทัด 147); <code>React</code> default ไม่ถูกใช้หลังลบ <code>purchaseSummaryCard</code> → ลบเพื่อสะอาด.</li>
-          <li>ลบ state/effect finance (<code>gran, chartMetric, hoveredStatus, finance, trend, finLoading</code> + effect fetch).</li>
-          <li>Slot effect: ตัด guard <code>if(isAdmin)</code> → set การ์ดนับ 6 ใบเสมอ.</li>
-          <li>Render: ลบ wrapper <code>isAdmin</code> branch, บล็อกแผง, ยุบ table-wrapper branch → staff.</li>
-          <li>ลบ helpers/const: <code>purchaseStatusCard, purchaseSummaryCard, PURCHASE_STATUS_COLOR, PURCHASE_CHART_METRICS, PurchaseChartMetric, PurchaseFinanceSummary</code>.</li>
-          <li>ลบ import: <code>MetricStrip, SectionCard, TrendChart/TrendDatum, Tabs*, Tooltip*, delta, @/lib/finance-panel, Coins, LineChart, ListChecks</code>. <span class="inv">เก็บ <code>motion</code> (framer-motion) — ใช้ใน edit-dialog pill toggle บรรทัด ~1086-1136 ไม่ใช่แผง</span>; <code>AnimatePresence</code> ถ้าไม่ถูกใช้แล้วลบได้. เก็บ <code>Banknote, CreditCard, AlertTriangle, BadgeCheck, FileText, Percent, Ban, Check</code>.</li>
-        </ul>
-      </div>
-      <div class="step"><strong>4. Simplify <code>Manage/index.tsx</code></strong> (หลัง 2+3 ไม่พึ่ง scrollPage แล้ว)
-        <ul>
-          <li>ลบ <code>canFinancePanel</code>(91), <code>scrollPage</code>(138), <code>scrollRef</code>(145), <code>forwardWheel</code>(146), <code>onWheel={scrollPage?…}</code>(153) + import <code>useRef</code> ถ้าไม่ใช้แล้ว.</li>
-          <li>scroller wrapper(233-235) → static <code>'flex-1 min-h-0 flex flex-col'</code>.</li>
-          <li>inner CAP(236) → <code>`${CAP} flex flex-col gap-2 flex-1 min-h-0`</code>.</li>
-          <li>pt-3 wrapper รอบ <code>&lt;Outlet&gt;</code>(272-274) → static <code>`flex flex-1 min-h-0 flex-col ${summary?.length ? '' : 'pt-3'}`</code>.</li>
-          <li><span class="inv">เก็บ summary AnimatePresence (237-267)</span> (staff card swap ยังใช้) · <code>useCan</code> ยังใช้ (<code>canExpense</code>).</li>
-        </ul>
-      </div>
-      <div class="step"><strong>5. Verify</strong> — tsc + click-test (ดูหัวข้อถัดไป)</div>
-    </ol>
+    <h3>1. สร้าง DivergingTrendChart (recharts)</h3>
+    <ul>
+      <li>props: <code>data: TrendDatum[]</code>, <code>granularity</code>, <code>height</code>, <code>mode: 'all'|'sales'|'purchase'|'profit'</code> (ปุ่ม toggle รวม/ขาย/ซื้อ/กำไร).</li>
+      <li>ใช้ recharts <code>ComposedChart</code> หรือ <code>BarChart</code>: <code>&lt;Bar dataKey="sales_profit" stackId="up" fill=success/&gt;</code> + <code>&lt;Bar dataKey="sales_cost_only" stackId="up" fill=primary/&gt;</code> (ยอดขาย=cost+profit ซ้อน, profit อยู่ฐานตาม mockup) ; แท่งซื้อ negate: เตรียม field <code>purchase_neg = -purchase_total</code> ใน data map แล้ว <code>&lt;Bar dataKey="purchase_neg" stackId="down" fill=info/&gt;</code>.</li>
+      <li><code>&lt;ReferenceLine y={0} stroke=... strokeWidth={1.5}/&gt;</code> เส้นศูนย์.</li>
+      <li><code>&lt;YAxis tickFormatter&gt;</code> แสดง abs ค่า (กราฟล่าง=ค่าลบแต่ป้าย Y โชว์เป็นบวกได้ตาม mockup, หรือโชว์ลบจริง — ให้ priest เคาะ; mockup โชว์ -฿150k ฝั่งล่าง).</li>
+      <li>toggle mode: <code>sales</code>→ซ่อนแท่งซื้อ, <code>purchase</code>→ซ่อนแท่งขาย, <code>profit</code>→โชว์เฉพาะ sales_profit, <code>all</code>→ครบ.</li>
+      <li>สี = semantic token ผ่าน <code>hsl(var(--primary))</code> ฯลฯ (เหมือน TrendChart เดิม). ปิด focus outline ของ svg ได้จาก global css เดิม.</li>
+    </ul>
+
+    <h3>2. Rebuild Reports/Dashboard.tsx</h3>
+    <ul>
+      <li><strong>Imports:</strong> <span class="inv">ลบ import recharts ทั้งบรรทัด</span> + <code>PieChart as PieChartIcon</code>; เพิ่ม <code>DivergingTrendChart</code>, <code>MetricStrip</code> จาก card, <code>Tooltip*</code> จาก ui/tooltip (ถ้าใช้), <code>trendOf/compareLabelForMode/prevWindowForMode/granularityForMode</code> จาก finance-panel; lucide ที่ใช้ (Coins, DollarSign, Percent, TrendingUp, Truck, Banknote, CreditCard, AlertTriangle, ShoppingCart, FileText, Wallet, Trophy, Users, UserCircle, BellRing, PackageMinus, PackageX, Clock, Hourglass, ChevronLeft, ChevronRight, ArrowLeftRight, Maximize2/ExternalLink, RefreshCw, LineChart).</li>
+      <li><strong>Interfaces:</strong> <code>FinanceSummary</code> ครบฟิลด์ (sales_net/cost/profit/discount, sale_count, selling_days, purchase_total/cash/credit/count, payable_total/count, expense_total) + <code>previous</code>. <code>PurchaseHistSummary</code> (count/cash_count/paid_count/unpaid_count/overdue_count/cancelled_count). <code>SalesStats.counts</code>.</li>
+      <li><strong>State:</strong> mode/dateFrom/dateTo (picker), topSortBy/profitMode, chartMode ('all'), expenseMode (การ์ดแยกหมวด own period), selectedAlert ('neg'|'low'|'exp'|'dead') + alertPage, fin/stats/trend/purHistSummary/topRev/topPro/suppliers/cashiers/expenses + alert counts + alert rows + loading flags.</li>
+      <li><strong>load():</strong> Promise.all ตาม "Data fetching" ด้านล่าง.</li>
+      <li><strong>Render:</strong> 5 บล็อกตาม mockup เป๊ะ (ดู <code>Dashboard_Rebuild_Mockup.html</code> เป็นภาพอ้างอิง 1:1). ไม่มี band. ทุกบล็อกเช็ค loading → skeleton/ข้อความ.</li>
+      <li><strong>Helpers (lowercase):</strong> <code>statusBreakdownCard(opts)</code> (segbar ชิดติดกัน + legend + hover, generic ใช้ทั้งขาย/ซื้อ), <code>keyValueCard(opts)</code> (averages, รองรับค่าหลายบรรทัด/บิล·/วัน), <code>metricCell(...)</code> ถ้าต้องการ. คง <code>payRow</code>.</li>
+    </ul>
+
+    <h3>3. บล็อกแจ้งเตือน + ตารางมาตรฐาน</h3>
+    <ul>
+      <li>tiles (4) counts: ติดลบ=<code>negativeStock:count</code> · ต่ำกว่าจุดสั่ง=<code>products.lowStock({}).count</code> (หรือ out_count) · ใกล้หมดอายุ=<code>expiringLots({count_only:true}).counts.d30</code> · ค้าง 6 ด.=<code>inactiveCounts().m6</code>. tiles ไม่ผูก picker หลัก.</li>
+      <li>กด tile → set <code>selectedAlert</code> + reset <code>alertPage=1</code> → fetch rows ของหมวดนั้น (ดูตารางด้านล่าง).</li>
+      <li>ตารางมาตรฐาน: หัว icon = elevated (neutral), title + count, ปุ่ม "เปิดตารางเต็ม" (elevated + icon) <code>onClick navigate(routeOf[selectedAlert])</code>; thead/tbody สลับตามหมวด; footer ยึดล่างสุด = "แสดง a-b จาก N" + ปุ่ม ‹ › elevated (slice client-side, <code>pageSize≈8</code>).</li>
+      <li>route map: neg→<code>/manage/negative-stock</code>, low→<code>/manage/low-stock</code>, exp→<code>/manage/expiry</code>, dead→<code>/manage/dead-stock</code>.</li>
+    </ul>
 
     <h3>Data fetching (Dashboard ใหม่)</h3>
     <ul>
-      <li><code>financeSummary({ ...args, with_compare:true, ...prevWindowForMode(mode,dateFrom,dateTo) })</code> → ขาย+ซื้อ+previous</li>
-      <li><code>salesStats(args)</code> → counts (retail/wholesale/return/voided/all) + customer</li>
-      <li><code>salesPurchaseTrend({ ...args, granularity: granularityForMode(mode) })</code> → trend เดียว ป้อน 2 กราฟ</li>
-      <li><code>topProducts({...args,by:topSortBy,limit:10})</code>, <code>topProducts({...args,by: profitMode==='pct'?'margin':'profit',limit:10})</code>, <code>topSuppliers({...args,limit:8})</code>, <code>cashierLeaderboard({...args,limit:6})</code></li>
-      <li><code>purchase.history({date_from,date_to,limit:1})</code> → <code>res.summary</code> (cash/paid/unpaid/overdue/cancelled นับ DISTINCT ทั้งช่วง) · <code>duenow=max(0,unpaid_count−overdue_count)</code></li>
-      <li>alerts (ไม่ผูกเวลา): <code>products.lowStock({})</code>, <code>expiringLots({count_only:true})</code>, <code>inactiveCounts()</code></li>
-      <li>expenses: effect แยก period เอง (verbatim) — guard div-by-zero ใน perBill/perDay เหมือนต้นฉบับ</li>
+      <li><code>financeSummary({ date_from, date_to, with_compare:true, ...prevWindowForMode(mode,from,to) })</code> → KPI 6 ช่อง + การขาย(selling_days/discount) + การซื้อ(payable)</li>
+      <li><code>salesStats({date_from,date_to})</code> → counts ปลีก/ส่ง/คืน/ยกเลิก/all (การ์ดการขาย)</li>
+      <li><code>salesPurchaseTrend({ date_from, date_to, granularity: granularityForMode(mode) })</code> → DivergingTrendChart (ป้อน sales_net/sales_cost/sales_profit/purchase_total)</li>
+      <li><code>purchase.history({ date_from, date_to, limit:1 })</code> → <code>res.summary</code> (การ์ดการซื้อ; <code>duenow=max(0,unpaid_count-overdue_count)</code>)</li>
+      <li><code>topProducts({by:topSortBy,limit:5})</code> + <code>topProducts({by: profitMode==='pct'?'margin':'profit',limit:5})</code> · <code>topSuppliers({limit:5})</code> · <code>cashierLeaderboard({limit:5})</code></li>
+      <li>alert counts (ไม่ผูกเวลา): <code>negativeStock:count</code>, <code>products.lowStock({})</code>, <code>expiringLots({count_only:true})</code>, <code>inactiveCounts()</code></li>
+      <li>alert rows (ตาม selectedAlert): <code>negativeStock:list</code> / <code>products.lowStock({})</code> / <code>expiringLots({filter:30,limit:8,page})</code> / <code>inactiveProducts({limit:50})</code> — neg/low/dead คืน list เต็ม → slice client; exp paginate server ได้แต่ slice client ก็พอ</li>
+      <li>expenses (การ์ดแยกหมวด own period): <code>expenses.list({date_from,date_to,pageSize:0})</code> ×2 (cur+prev) — verbatim จาก Dashboard เดิม</li>
+    </ul>
+
+    <h3>4. Phase B — Strip Manage (เหมือนแผน v1)</h3>
+    <ul>
+      <li><code>Manage/Sales.tsx</code>: ลบ <code>isAdmin</code>+<code>useCan</code>, ลบ state/effect finance (gran/chartMetric/hoveredStatus/finance/trend/finLoading), slot effect set การ์ดนับ 5 ใบเสมอ, ลบ wrapper <code>isAdmin?</code> + บล็อกแผง + helpers (statusCard/summaryCard/STATUS_COLOR/CHART_METRICS/FinanceSummary), ลบ import ที่ไม่ใช้ (<span class="inv">เก็บ Percent(VAT)/ReceiptText/cn/TintIcon</span>).</li>
+      <li><code>Manage/Purchases.tsx</code>: มิเรอร์ — <span class="inv">เก็บ motion</span> (edit-dialog pill ~1086-1136), เก็บ Banknote/CreditCard/AlertTriangle/BadgeCheck/FileText/Percent/Ban/Check.</li>
+      <li><code>Manage/index.tsx</code>: ลบ canFinancePanel/scrollPage/scrollRef/forwardWheel/onWheel; scroller→static; <span class="inv">เก็บ summary AnimatePresence + useCan(canExpense)</span>.</li>
     </ul>
 
     <h3>การ verify</h3>
     <ul>
       <li><code>npm run build</code> (tsc) exit 0</li>
-      <li>admin <code>/reports</code>: เห็น 3 ส่วน; เปลี่ยน picker (day/month/year/custom) → MetricStrip ทั้งคู่, กราฟทั้งคู่ (granularity เปลี่ยน), status bar ทั้งคู่, list อัปเดต; alert + ค่าใช้จ่าย ไม่ขยับตาม picker; dropdown ค่าใช้จ่ายยังอิสระ</li>
-      <li>admin Manage › ขายสินค้า + การซื้อ: ไม่มีแผง finance, มีแค่การ์ดนับ + ตาราง — เหมือน staff</li>
-      <li>ถ้ามี staff login: ยืนยัน Manage admin vs staff เหมือนกันเป๊ะ</li>
-      <li>empty/loading state ของแต่ละการ์ดยังทำงาน (ไม่มีบิล/ไม่มีล็อต)</li>
-    </ul>
-
-    <h3>จุดเสี่ยง + วิธีกัน</h3>
-    <ul>
-      <li><span class="inv">recharts <code>Tooltip</code> ชน UI <code>Tooltip</code></span> → ลบ import recharts ทั้งบรรทัดก่อนเพิ่ม UI tooltip (tsc error จริง ไม่ใช่แค่ unused)</li>
-      <li><span class="inv">ลบ <code>motion</code> ผิดใน Purchases</span> → เก็บไว้ (edit-dialog pill); grep <code>motion</code> ก่อนแตะ import</li>
-      <li>ลบ import ที่ยังใช้ที่อื่น (<code>Percent</code>=VAT) → grep ทุกสัญลักษณ์ในไฟล์ก่อนลบ (<code>noUnusedLocals=false</code> → leftover ไม่ทำ tsc พัง แต่ลบผิดพัง)</li>
-      <li>previous shape: <code>{...computeFinanceWindow(prev),date_from,date_to}</code> มี sale_count/selling_days/purchase_* ครบ — type เฉพาะที่อ่าน</li>
-      <li>purchase.history summary = window-wide (DISTINCT invoice_no, ไม่ผูก status chip/pagination) → limit:1 ปลอดภัย</li>
-      <li>staff ไม่เห็น Dashboard อยู่แล้ว (gate <code>report.finance</code> ใน Sidebar + <code>requirePermission</code>) → ไม่ต้องทำ path staff</li>
+      <li>admin <code>/reports</code>: 5 บล็อกครบ; เปลี่ยน picker → MetricStrip/กราฟ(granularity เปลี่ยน)/การ์ดสถานะ/list อัปเดต; การ์ดค่าใช้จ่ายแยกหมวด dropdown อิสระ</li>
+      <li>กราฟ: ขายขึ้น+กำไรซ้อน, ซื้อลงติดลบ, เส้นศูนย์, แกน Y, toggle รวม/ขาย/ซื้อ/กำไร ทำงาน</li>
+      <li>แจ้งเตือน: กดแต่ละ tile → ตารางสลับ (หัวคอลัมน์+rows), ปุ่ม ‹› แบ่งหน้า, "เปิดตารางเต็ม" → ไปหน้า Manage ถูกหมวด</li>
+      <li>Phase B: admin Manage ขาย/ซื้อ = staff (การ์ดนับ+ตาราง ไม่มีแผง)</li>
+      <li>empty/loading ของแต่ละบล็อกทำงาน</li>
     </ul>
 
     <h3>ลำดับ dependency</h3>
     <ol>
-      <li>Rebuild Dashboard.tsx</li>
-      <li>Strip Sales.tsx</li>
-      <li>Strip Purchases.tsx</li>
-      <li>Simplify Manage/index.tsx</li>
+      <li>สร้าง <code>DivergingTrendChart</code></li>
+      <li>(option) สร้าง <code>AlertDetailTable</code> หรือทำเป็น helper</li>
+      <li>Rebuild <code>Dashboard.tsx</code> (บล็อก 1→5)</li>
+      <li>Phase B: strip Sales.tsx / Purchases.tsx / index.tsx</li>
       <li>tsc + click-test</li>
     </ol>
   </div>
 
-  <footer>สร้างโดย /write-plan · 2026-06-29</footer>
+  <footer>เขียนใหม่จาก mockup ที่เคาะแล้ว + สำรวจ backend จริง · 2026-06-29 (v2)</footer>
 
 </div>
 </body>

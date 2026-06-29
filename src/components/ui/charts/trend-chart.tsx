@@ -33,7 +33,7 @@ function formatAxisTick(v: number, vf: ValueFormat): string {
   return v.toLocaleString()
 }
 
-function formatBucket(key: string, granularity: Granularity): string {
+export function formatBucket(key: string, granularity: Granularity): string {
   if (granularity === 'year') return dayjs(`${key}-01-01`).format('BBBB')
   if (granularity === 'month') return dayjs(`${key}-01`).format('MMM BB')
   if (granularity === 'week') {
