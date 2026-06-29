@@ -1,13 +1,15 @@
 ---
 name: project-finance-manage-panel
-description: Finance overview ใน Manage › Sales+Purchases — admin แสดงตลอด (rework 2026-06-25); Phase 2 Purchases + status taxonomy 5 bucket (2026-06-28), staff เต็มจอเดิม
+description: Finance overview ใน Manage › Sales+Purchases — REMOVED จาก Manage 2026-06-29; ตัวเลข finance ย้ายไปอยู่ที่ Dashboard แล้ว (Phase B [[project_dashboard_rebuild]])
 metadata:
   type: project
 ---
 
-## Finance overview panel — Manage › Sales
+> **[REMOVED 2026-06-29]** Finance overview panel (MetricStrip + trend chart + status/averages cards) ที่เคยอยู่ใน Manage › Sales และ Manage › Purchases ถูกลบออกใน Dashboard Phase B แล้ว — admin เห็นหน้า Manage เหมือน staff (count MetricCards + history table เท่านั้น) ตัวเลข finance ย้ายไปอยู่ที่ **Dashboard** (`src/pages/Dashboard/index.tsx`) ถาวร อย่ามองหาใน Manage อีก ดู [[project_dashboard_rebuild]] สำหรับสถานะปัจจุบัน
 
-**สถานะ:** DONE 2026-06-24; **REWORK layout 2026-06-25 (tsc PASS; in-app verify pending)** — เลิก toggle/animated band, เปลี่ยนเป็นการ์ดแยกแสดงตลอด + เลื่อนทั้งหน้า (ดู §Layout rework ล่าง)
+## Finance overview panel — Manage › Sales (historical)
+
+**สถานะเดิม:** DONE 2026-06-24; **REWORK layout 2026-06-25 (tsc PASS; in-app verify pending)** — เลิก toggle/animated band, เปลี่ยนเป็นการ์ดแยกแสดงตลอด + เลื่อนทั้งหน้า (ดู §Layout rework ล่าง)
 **SSOT:** `docs/plans/Finance_Manage_Panel.html`
 **ไฟล์เดียว:** `src/pages/Manage/Sales.tsx` (renderer-only, ไม่แตะ backend)
 
