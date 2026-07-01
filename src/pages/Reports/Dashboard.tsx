@@ -92,8 +92,11 @@ const EMPTY_FIN: FinanceSummary = {
 const EMPTY_STATS: SalesStats = { counts: { all: 0, retail: 0, wholesale: 0, rx: 0, return: 0, voided: 0 } }
 const EMPTY_PUR: PurchaseHistSummary = { count: 0, cash_count: 0, credit_count: 0, paid_count: 0, unpaid_count: 0, overdue_count: 0, cancelled_count: 0 }
 
-// Dashboard prefixes ฿ on money — this page only; shared formatCurrency stays bare.
-const baht = (v: number) => `฿${formatCurrency(v)}`
+// Dashboard shows money as a BARE number (no ฿ symbol — operator's choice).
+// `baht()` = headline figures (KPI strip, top-lists, totals). `money()` appends
+// the "บาท" unit for the detail key-value rows inside the sales/purchase cards.
+const baht = (v: number) => formatCurrency(v)
+const money = (v: number) => `${formatCurrency(v)} บาท`
 
 // Alert tone — soft fill + matching foreground (icon/title/count/chevron inherit
 // via currentColor). Tokens only.
@@ -299,10 +302,8 @@ export default function DashboardPage() {
     return [
       { label: 'ยอดขาย', value: baht(fin.sales_net), icon: Coins, tint: 'primary', ...tSales, compare: tSales.delta ? compareLabel : undefined },
       { label: 'ต้นทุน', value: baht(fin.sales_cost), icon: Coins, tint: 'amber', ...tCost, compare: tCost.delta ? compareLabel : undefined },
-      { label: 'กำไร', value: baht(fin.sales_profit), icon: TrendingUp, tint: 'success', valueClassName: fin.sales_profit >= 0 ? undefined : 'text-destructive', ...tProfit, compare: tProfit.delta ? compareLabel : undefined, note: `กำไร ${margin.toFixed(1)}%` },
+      { label: 'กำไร', value: baht(fin.sales_profit), icon: TrendingUp, tint: 'success', valueClassName: fin.sales_profit >= 0 ? undefined : 'text-destructive', valueSuffix: fin.sales_net > 0 ? `${margin.toFixed(1)}%` : undefined, valueSuffixClassName: fin.sales_profit >= 0 ? 'text-success' : 'text-destructive', ...tProfit, compare: tProfit.delta ? compareLabel : undefined },
       { label: 'ยอดซื้อ', value: baht(fin.purchase_total), icon: Truck, tint: 'info-soft', ...tPur, compare: tPur.delta ? compareLabel : undefined },
-      { label: 'ค้างชำระ', value: baht(fin.payable_total), icon: BellRing, tint: 'violet', note: `${fin.payable_count.toLocaleString()} บิล · รวมทุกช่วง` },
-      { label: 'ค่าใช้จ่ายอื่นๆ', value: baht(fin.expense_total), icon: Wallet, tint: 'warning', ...tExp, compare: tExp.delta ? compareLabel : undefined },
     ]
   }, [fin, margin, compareLabel])
 
@@ -369,15 +370,17 @@ export default function DashboardPage() {
   const sd = fin.selling_days || 0
   const salesRows = [
     { label: 'จำนวนวันที่ขาย', value: `${sd.toLocaleString()} วัน` },
-    { label: 'ยอดขายเฉลี่ย', cells: [`${baht(fin.sale_count ? fin.sales_net / fin.sale_count : 0)}/บิล`, `${baht(sd ? fin.sales_net / sd : 0)}/วัน`] as [string, string] },
-    { label: 'กำไรเฉลี่ย', cells: [`${baht(fin.sale_count ? fin.sales_profit / fin.sale_count : 0)}/บิล`, `${baht(sd ? fin.sales_profit / sd : 0)}/วัน`] as [string, string] },
-    { label: 'ส่วนลดรวม', value: baht(fin.sales_discount) },
+    { label: 'ยอดขายเฉลี่ย', value: money(fin.sale_count ? fin.sales_net / fin.sale_count : 0), unit: 'ต่อบิล' },
+    { label: '', value: money(sd ? fin.sales_net / sd : 0), unit: 'ต่อวัน' },
+    { label: 'กำไรเฉลี่ย', value: money(fin.sale_count ? fin.sales_profit / fin.sale_count : 0), unit: 'ต่อบิล' },
+    { label: '', value: money(sd ? fin.sales_profit / sd : 0), unit: 'ต่อวัน' },
+    { label: 'ส่วนลดรวม', value: money(fin.sales_discount) },
   ]
   const purchaseRows = [
-    { label: 'เงินสด', value: baht(fin.purchase_cash) },
-    { label: 'เครดิต', value: baht(fin.purchase_credit) },
-    { label: 'เฉลี่ย/บิล', value: baht(fin.purchase_count ? fin.purchase_total / fin.purchase_count : 0) },
-    { label: 'ค้างชำระ (รวมทุกช่วง)', value: baht(fin.payable_total) },
+    { label: 'เงินสด', value: money(fin.purchase_cash) },
+    { label: 'เครดิต', value: money(fin.purchase_credit) },
+    { label: 'เฉลี่ยต่อบิล', value: money(fin.purchase_count ? fin.purchase_total / fin.purchase_count : 0) },
+    { label: 'ค้างชำระ (รวมทุกช่วง)', value: money(fin.payable_total) },
   ]
 
   const alertTiles = useMemo(() => ([
@@ -401,10 +404,10 @@ export default function DashboardPage() {
       {loading ? stripSkeleton() : <MetricStrip items={kpiItems} />}
 
       {/* 2 — Diverging trend + sales status */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.9fr_1fr] gap-4 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 items-stretch">
         <SectionCard
           icon={LineChartIcon}
-          title="แนวโน้มรวม — ขาย · ซื้อ · กำไร"
+          title="แนวโน้ม"
           tint="neutral"
           className="flex flex-col"
           right={
@@ -451,7 +454,7 @@ export default function DashboardPage() {
         >
           {loading
             ? <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
-            : <TopListCard items={topItems} height={300} emptyText="ยังไม่มีการขายในช่วงนี้" />}
+            : <TopListCard items={topItems} maxHeight={0} emptyText="ยังไม่มีการขายในช่วงนี้" />}
         </SectionCard>
 
         <SectionCard
@@ -464,7 +467,7 @@ export default function DashboardPage() {
         >
           {loading
             ? <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
-            : <TopListCard items={profitItems} height={300} emptyText="ยังไม่มีรายการขายในช่วงนี้" />}
+            : <TopListCard items={profitItems} maxHeight={0} emptyText="ยังไม่มีรายการขายในช่วงนี้" />}
         </SectionCard>
 
         {loading
@@ -480,13 +483,13 @@ export default function DashboardPage() {
         <SectionCard icon={Truck} title="ผู้จัดจำหน่าย" tint="info-soft">
           {loading
             ? <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
-            : <TopListCard items={supplierItems} height={300} emptyText="ยังไม่มีการรับสินค้าในช่วงนี้" />}
+            : <TopListCard items={supplierItems} maxHeight={0} emptyText="ยังไม่มีการรับสินค้าในช่วงนี้" />}
         </SectionCard>
 
         <SectionCard icon={UserCircle} title="พนักงานขาย" tint="violet">
           {loading
             ? <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
-            : <TopListCard items={staffItems} height={300} emptyText="ยังไม่มีบิลในช่วงนี้" />}
+            : <TopListCard items={staffItems} maxHeight={0} emptyText="ยังไม่มีบิลในช่วงนี้" />}
         </SectionCard>
 
         <SectionCard
@@ -623,7 +626,7 @@ export default function DashboardPage() {
 function stripSkeleton() {
   return (
     <div className="flex divide-x divide-border rounded-card border border-border bg-card shadow-card overflow-hidden h-[9.2rem]">
-      {Array.from({ length: 6 }).map((_, i) => (
+      {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="flex-1 px-5 py-4 flex flex-col justify-between gap-3">
           <div className="h-4 w-16 rounded bg-muted animate-pulse" />
           <div className="h-7 w-24 rounded bg-muted animate-pulse" />
@@ -638,8 +641,8 @@ function stripSkeleton() {
 function chartLegend(mode: DivergingMode) {
   const items: { label: string; color: string }[] = []
   if (mode === 'all' || mode === 'sales') items.push({ label: 'ยอดขาย', color: 'hsl(var(--primary))' })
-  if (mode === 'all' || mode === 'sales' || mode === 'profit') items.push({ label: 'กำไร (ในแท่ง)', color: 'hsl(var(--success))' })
-  if (mode === 'all' || mode === 'purchase') items.push({ label: 'ยอดซื้อ (พุ่งลง)', color: 'hsl(var(--info))' })
+  if (mode === 'all' || mode === 'profit') items.push({ label: 'กำไร', color: 'hsl(var(--success))' })
+  if (mode === 'all' || mode === 'purchase') items.push({ label: 'ยอดซื้อ', color: 'hsl(var(--info))' })
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1.5">
       {items.map(it => (
@@ -655,7 +658,9 @@ function chartLegend(mode: DivergingMode) {
 // Key-value grid — averages / supplementary figures, one per row (label left,
 // figure right). A row is a single value (spans both right columns) or a pair
 // of cells (per-bill / per-day) aligned vertically.
-type KVRow = { label: string; value?: string; cells?: [string, string] }
+// A row is: a single value (spans both right columns), a pair of cells, or a
+// value + a right-most `unit` word (e.g. figure … "ต่อบิล" pinned far right).
+type KVRow = { label: string; value?: string; cells?: [string, string]; unit?: string }
 function keyValueCard(rows: KVRow[]) {
   return (
     <div className="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-4 gap-y-2 text-sm">
@@ -666,6 +671,11 @@ function keyValueCard(rows: KVRow[]) {
             <>
               <span className="text-right font-semibold text-foreground">{r.cells[0]}</span>
               <span className="text-right font-semibold text-foreground">{r.cells[1]}</span>
+            </>
+          ) : r.unit ? (
+            <>
+              <span className="text-right font-semibold text-foreground">{r.value}</span>
+              <span className="text-right text-muted-foreground whitespace-nowrap">{r.unit}</span>
             </>
           ) : (
             <span className="col-span-2 text-right font-semibold text-foreground">{r.value}</span>
@@ -716,7 +726,7 @@ function statusBreakdownCard(opts: {
       </div>
 
       <TooltipProvider>
-        <div className="flex h-3 gap-1">
+        <div className="flex h-3">
           {segs.map((t, i) => {
             const ends = i === 0 && i === segs.length - 1 ? 'rounded-full'
               : i === 0 ? 'rounded-l-full'
@@ -805,7 +815,7 @@ function alertTable(key: AlertKey, rows: any[], loading: boolean) {
       render: (r: DeadRow) => [
         r.trade_name,
         r.unit_name,
-        <span className="font-semibold">{r.cost_value != null ? `฿${formatCurrency(r.cost_value)}` : '—'}</span>,
+        <span className="font-semibold">{r.cost_value != null ? formatCurrency(r.cost_value) : '—'}</span>,
         <span className="font-semibold whitespace-nowrap">{r.last_sold_at ? formatDate(r.last_sold_at) : 'ไม่เคยขาย'}</span>,
       ],
     },

@@ -1477,9 +1477,9 @@ export default function Theme() {
                   <MetricStrip
                     className="w-full h-[11rem]"
                     items={[
-                      { label: 'รายได้เดือนนี้', value: '189,540.75', icon: Wallet,        tint: 'primary',     delta: '+27.9%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '8.68/บิล · 6,318/วัน' },
+                      { label: 'รายได้เดือนนี้', value: '฿12,345,678.90', icon: Wallet,    tint: 'primary',     delta: '+27.9%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '8.68/บิล · 6,318/วัน' },
                       { label: 'จำนวนบิล',       value: '21,847',     icon: ClipboardList, tint: 'info-soft',   delta: '+18.4%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '728/วัน' },
-                      { label: 'ลูกค้าใหม่',      value: '4,975',      icon: Users,         tint: 'violet',      delta: '+20.8%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '166/วัน' },
+                      { label: 'ลูกค้าใหม่',      value: '4,975',      icon: Users,         tint: 'violet',      valueSuffix: '39.7%', valueSuffixClassName: 'text-success', delta: '+20.8%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '166/วัน' },
                       { label: 'ยอดคืนเงิน',      value: '8,473.00',   icon: CreditCard,    tint: 'destructive', delta: '-13.7%', deltaClassName: 'text-destructive', deltaIcon: TrendingDown, compare: 'vs เดือนก่อน', note: '12 รายการ' },
                     ]}
                   />

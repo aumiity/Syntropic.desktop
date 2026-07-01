@@ -153,6 +153,7 @@ function MetricCard({
   sparkline,
   sparklineColor,
   onClick,
+  isActive,
   className,
   labelClassName,
   valueClassName,
@@ -176,6 +177,9 @@ function MetricCard({
   /** CSS color value for the sparkline; defaults to the card's accent color. */
   sparklineColor?: string
   onClick?: () => void
+  /** When clickable, renders a tinted ring to mark this card as the active
+      selection (e.g. a status-filter shortcut). Ignored without `onClick`. */
+  isActive?: boolean
   className?: string
   labelClassName?: string
   valueClassName?: string
@@ -196,6 +200,19 @@ function MetricCard({
     : tint === "info"        ? "text-info-soft-foreground"
     : tint === "violet"      ? "text-violet-strong"
     : "text-primary"
+  // Active-selection ring — only meaningful on the clickable (button) variant.
+  // Ring color tracks the card tint so the highlight matches its accent.
+  const activeRing =
+    !isActive ? ""
+    : tint === "success"     ? "ring-2 ring-success"
+    : tint === "warning"     ? "ring-2 ring-warning"
+    : tint === "destructive" ? "ring-2 ring-destructive"
+    : tint === "secondary"   ? "ring-2 ring-border-strong"
+    : tint === "amber"       ? "ring-2 ring-amber-strong"
+    : tint === "violet"      ? "ring-2 ring-violet-strong"
+    : tint === "info-soft"   ? "ring-2 ring-info-soft-foreground"
+    : tint === "info"        ? "ring-2 ring-info-soft-foreground"
+    : "ring-2 ring-primary"
 
   // sm = compact variant: icon on the right, 3 stacked lines on the left —
   // label / value+unit / sub. Sizes tuned so the 3-line card matches the old
@@ -233,7 +250,7 @@ function MetricCard({
           type="button"
           onClick={onClick}
           data-slot="metric-card"
-          className={cn(baseSm, "cursor-pointer hover:shadow-md transition-all text-left w-full", className)}
+          className={cn(baseSm, "cursor-pointer hover:shadow-md transition-all text-left w-full", activeRing, className)}
         >
           {innerSm}
         </button>
@@ -306,6 +323,7 @@ function MetricCard({
         className={cn(
           "bg-card rounded-card p-4 pt-3 shadow-card border border-border h-32 overflow-hidden relative text-left",
           "cursor-pointer hover:shadow-md transition-all",
+          activeRing,
           className
         )}
       >
@@ -396,6 +414,11 @@ interface MetricStripItem {
   /** Color token class for the VALUE, e.g. "text-success" / "text-destructive"
       — use for sign-meaningful figures (profit/margin). Defaults to foreground. */
   valueClassName?: string
+  /** Small inline element after the value on the same baseline (e.g. a margin
+      "39.7%"). Defaults to muted; colorize via `valueSuffixClassName`. */
+  valueSuffix?: React.ReactNode
+  /** Color token class for `valueSuffix`, e.g. "text-success". Defaults to muted. */
+  valueSuffixClassName?: string
   /** Muted supplementary sub line. ReactNode so callers can bold parts (e.g.
       the numbers) while keeping units in the muted weight. */
   note?: React.ReactNode
@@ -427,6 +450,10 @@ function MetricStrip({
       {items.map((it, i) => {
         const Icon = it.icon
         const DeltaIcon = it.deltaIcon
+        // Long values (e.g. ฿12,345,678.90) step the font DOWN instead of being
+        // truncated — a KPI figure must always stay fully readable.
+        const vlen = String(it.value).length
+        const valueSize = vlen >= 14 ? 'text-xl' : vlen >= 11 ? 'text-2xl' : 'text-3xl'
         return (
           <div key={i} className="flex-1 min-w-0 px-5 py-4 flex items-start gap-3">
             {/* Text column: label pinned top, value+delta grouped at the bottom —
@@ -436,7 +463,12 @@ function MetricStrip({
               {/* overflow-x-clip (not truncate) so Thai upper tone marks aren't cut */}
               <span className="text-base font-bold text-foreground overflow-x-clip overflow-y-visible whitespace-nowrap text-ellipsis" title={it.label}>{it.label}</span>
               <div className="flex flex-col gap-1 min-w-0">
-              <div className={cn("text-3xl font-bold text-foreground leading-none truncate", it.valueClassName)} title={it.value}>{it.value}</div>
+              <div className="flex items-baseline gap-1.5 min-w-0">
+                <div className={cn(valueSize, "font-bold text-foreground leading-none whitespace-nowrap overflow-x-clip", it.valueClassName)} title={it.value}>{it.value}</div>
+                {it.valueSuffix != null && (
+                  <span className={cn("text-sm font-semibold shrink-0 whitespace-nowrap", it.valueSuffixClassName ?? "text-muted-foreground")}>{it.valueSuffix}</span>
+                )}
+              </div>
               {/* Sub line 1 — trend: the whole line takes the delta color, with a
                   trailing up/down icon. */}
               {it.delta && (
