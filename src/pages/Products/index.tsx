@@ -6,20 +6,19 @@ import { TabStrip } from '@/components/layout/TabStrip'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { Package, Boxes, Plus, Ban, Check, Tags } from 'lucide-react'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Package, Boxes, Plus, Ban, Tags, LayoutGrid, ChevronDown } from 'lucide-react'
 
-// Products page is a Tabs shell — products vs bundles, each owns its own list
-// component (ProductsList / BundlesList) with its own filters and IPC calls.
-// Stat cards live up here in the shell; children push their stat set via
-// outlet context (same pattern as Manage).
+// Products page is a Tabs shell. Products AND bundles now share ONE unified list
+// (ProductsList) — bundles are just products with is_bundle=1, so they live in
+// the same table, split by a ประเภท filter. The summary cards up here double as
+// that type filter (+ a disabled shortcut); ProductsList reads them via context.
 const TABS = [
   { value: 'products', label: 'สินค้า',     icon: Package, path: '/products' },
-  { value: 'bundles',  label: 'ชุดสินค้า',  icon: Boxes,   path: '/products/bundles' },
   { value: 'print',    label: 'พิมพ์บาร์โค้ด/ป้ายราคา', icon: Tags, path: '/products/print' },
 ]
 
 function resolveTab(pathname: string): string {
-  if (pathname.startsWith('/products/bundles')) return 'bundles'
   if (pathname.startsWith('/products/print')) return 'print'
   return 'products'
 }
@@ -31,16 +30,19 @@ const COLS_BY_COUNT: Record<number, string> = {
 }
 
 type UsageFilter = 'all' | 'enabled' | 'disabled'
+type TypeFilter = 'all' | 'product' | 'bundle'
 
 export interface ProductsOutletContext {
   // Children call this after a mutation (toggle disabled, adjust stock, etc.)
   // to ask the shell to re-fetch the shared summary stats.
   refreshSummary: () => void
-  // Usage-status filter is lifted to the shell so the shared summary cards can
-  // drive it (click a card = filter, active = ring) and stay in sync with each
-  // list's StatusFilterButton. Shared across the Products + Bundles tabs.
+  // Usage-status + product-type filters are lifted to the shell so the summary
+  // cards can drive them (click a card = filter, active = ring) and stay in sync
+  // with the list's StatusFilterButton. ProductsList reads both.
   statusFilter: UsageFilter
   setStatusFilter: React.Dispatch<React.SetStateAction<UsageFilter>>
+  typeFilter: TypeFilter
+  setTypeFilter: React.Dispatch<React.SetStateAction<TypeFilter>>
 }
 
 interface GlobalStats {
@@ -57,45 +59,54 @@ export default function ProductsLayout() {
   // Flip overflow back to visible once the enter animation settles.
   const [animatingSummary, setAnimatingSummary] = useState(true)
 
-  // Shared global summary — same 4-card snapshot for both Products and
-  // Bundles tabs (matches the original intent: one dashboard, two lists).
-  // Lives here in the shell so the cards don't flicker on tab switch and
-  // both children read the same source of truth.
-  const [allStats, setAllStats] = useState<GlobalStats>({ total_all: 0, disabled: 0 })
-  const [bundleCount, setBundleCount] = useState(0)
-  // Shared usage-status filter (see ProductsOutletContext). Not persisted —
-  // resets per session, same as when it lived in the child lists.
+  // Per-type snapshots (products vs bundles) — the merged list needs both counts
+  // to build the ทั้งหมด/สินค้า/ชุด cards. stockStats pins is_stock_item=1 when
+  // is_bundle is unset (excluding bundles), so we ask for each type explicitly.
+  const [prodStats, setProdStats] = useState<GlobalStats>({ total_all: 0, disabled: 0 })
+  const [bundleStats, setBundleStats] = useState<GlobalStats>({ total_all: 0, disabled: 0 })
+  // Shared filters (see ProductsOutletContext). Not persisted — reset per session.
   const [statusFilter, setStatusFilter] = useState<UsageFilter>('all')
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
 
   const refreshSummary = useCallback(() => {
-    window.api.products.stockStats({ include_disabled: true })
-      .then((s: any) => setAllStats(s ?? { total_all: 0, disabled: 0 }))
+    window.api.products.stockStats({ include_disabled: true, is_bundle: 0 })
+      .then((s: any) => setProdStats(s ?? { total_all: 0, disabled: 0 }))
     window.api.products.stockStats({ include_disabled: true, is_bundle: 1 })
-      .then((s: any) => setBundleCount(s?.total_all ?? 0))
+      .then((s: any) => setBundleStats(s ?? { total_all: 0, disabled: 0 }))
   }, [])
 
   useEffect(() => { refreshSummary() }, [refreshSummary])
 
-  // Clicking a status card applies its filter; clicking the active one (except
-  // ทั้งหมด) toggles back to 'all'. The ชุดสินค้า card is a shortcut to the
-  // Bundles tab (active while that tab is showing), not a status filter.
+  // Cards double as filters: ทั้งหมด/สินค้า/ชุด drive the type filter, ปิดการใช้งาน
+  // drives the status filter. Clicking the active card (except ทั้งหมด) toggles
+  // back to 'all'. Both facets can be active at once (e.g. ชุด + ปิดการใช้งาน).
+  const pickType = (v: TypeFilter) => () =>
+    setTypeFilter(cur => (cur === v && v !== 'all' ? 'all' : v))
   const pickStatus = (v: UsageFilter) => () =>
     setStatusFilter(cur => (cur === v && v !== 'all' ? 'all' : v))
-  const summary = useMemo(() => [
-    { label: 'ทั้งหมด',     value: allStats.total_all.toLocaleString(),                       icon: Package, tint: 'primary'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickStatus('all'),      isActive: statusFilter === 'all' },
-    { label: 'เปิดใช้งาน',   value: (allStats.total_all - allStats.disabled).toLocaleString(), icon: Check,   tint: 'success'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickStatus('enabled'),  isActive: statusFilter === 'enabled' },
-    { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(),                        icon: Ban,     tint: 'destructive' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickStatus('disabled'), isActive: statusFilter === 'disabled' },
-    { label: 'ชุดสินค้า',    value: bundleCount.toLocaleString(),                              icon: Boxes,   tint: 'info-soft' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => navigate('/products/bundles'), isActive: tab === 'bundles' },
-  ], [allStats, bundleCount, statusFilter, tab, navigate])
+  const summary = useMemo(() => {
+    const totalAll = prodStats.total_all + bundleStats.total_all
+    const disabledAll = prodStats.disabled + bundleStats.disabled
+    return [
+      { label: 'ทั้งหมด',     value: totalAll.toLocaleString(),                   icon: LayoutGrid, tint: 'primary'     as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('all'),        isActive: typeFilter === 'all' },
+      { label: 'สินค้า',      value: prodStats.total_all.toLocaleString(),        icon: Package,    tint: 'info-soft'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('product'),    isActive: typeFilter === 'product' },
+      { label: 'ชุดสินค้า',    value: bundleStats.total_all.toLocaleString(),      icon: Boxes,      tint: 'amber'       as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('bundle'),     isActive: typeFilter === 'bundle' },
+      { label: 'ปิดการใช้งาน', value: disabledAll.toLocaleString(),                icon: Ban,        tint: 'destructive' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickStatus('disabled'), isActive: statusFilter === 'disabled' },
+    ]
+  }, [prodStats, bundleStats, typeFilter, statusFilter])
 
-  const ctx = useMemo<ProductsOutletContext>(() => ({ refreshSummary, statusFilter, setStatusFilter }), [refreshSummary, statusFilter])
+  const ctx = useMemo<ProductsOutletContext>(
+    () => ({ refreshSummary, statusFilter, setStatusFilter, typeFilter, setTypeFilter }),
+    [refreshSummary, statusFilter, typeFilter],
+  )
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
       <PageHeader title="สินค้า" />
 
-      {/* Top row: segmented tabs (left) + add button (right). Add button label
-          and target route depend on the active tab. */}
+      {/* Top row: segmented tabs (left) + add menu (right). The list now holds
+          both types, so "เพิ่ม" is a split menu: สินค้า → EditProduct, ชุดสินค้า
+          → EditBundle. */}
       <TabStrip className="-mb-2">
         <Tabs
           value={tab}
@@ -113,12 +124,23 @@ export default function ProductsLayout() {
           </TabsList>
         </Tabs>
         {tab !== 'print' && (
-          <Button
-            onClick={() => navigate(tab === 'bundles' ? '/products/bundles/new' : '/products/new')}
-            className="ml-auto h-10 px-3"
-          >
-            <Plus className="size-4" /> {tab === 'bundles' ? 'เพิ่มชุดสินค้า' : 'เพิ่มสินค้า'}
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button className="ml-auto h-10 px-3">
+                <Plus className="size-4" /> เพิ่ม <ChevronDown className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-48 p-1 gap-0">
+              <button type="button" onClick={() => navigate('/products/new')}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                <Package className="size-4" /> เพิ่มสินค้า
+              </button>
+              <button type="button" onClick={() => navigate('/products/bundles/new')}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-foreground hover:bg-muted transition-colors">
+                <Boxes className="size-4" /> เพิ่มชุดสินค้า
+              </button>
+            </PopoverContent>
+          </Popover>
         )}
       </TabStrip>
 

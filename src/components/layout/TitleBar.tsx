@@ -10,7 +10,6 @@ import { useUserStore } from '@/stores/userStore'
 const ROUTE_FILE_MAP: { pattern: string; file: string }[] = [
   { pattern: '/products/bundles/new',      file: 'src/pages/Products/EditBundle/index.tsx' },
   { pattern: '/products/bundles/:id/edit', file: 'src/pages/Products/EditBundle/index.tsx' },
-  { pattern: '/products/bundles',          file: 'src/pages/Products/BundlesList.tsx' },
   { pattern: '/products/print',            file: 'src/pages/Products/PrintTab/index.tsx' },
   { pattern: '/products/new',              file: 'src/pages/Products/EditProduct/index.tsx' },
   { pattern: '/products/:id/edit',         file: 'src/pages/Products/EditProduct/index.tsx' },

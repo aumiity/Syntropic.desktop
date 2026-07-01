@@ -55,7 +55,7 @@ export default function EditBundlePage() {
   const { toast } = useToast()
   // location.key === 'default' = direct URL / refresh, no history to pop.
   const backToOrigin = () => {
-    if (location.key === 'default') navigate('/products/bundles')
+    if (location.key === 'default') navigate('/products')
     else navigate(-1)
   }
   // "new" mode = creating from scratch — no DB row exists yet. Atomic commit
@@ -130,7 +130,7 @@ export default function EditBundlePage() {
         window.api.settings.listLabelTimes(),
         window.api.settings.listLabelAdvices(),
       ])
-      if (!p) { navigate('/products/bundles'); return }
+      if (!p) { navigate('/products'); return }
       const prod = p as FullProduct
       // Reciprocal guard: if the row isn't actually a bundle, bounce back
       // to EditProduct so the user doesn't edit it with the wrong form.

@@ -19,7 +19,7 @@ import { formatCurrency } from '@/lib/utils'
 import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
-  Edit, Package, Settings2, Layers, Ban, RotateCcw,
+  Edit, Package, Settings2, Layers, Ban, RotateCcw, Boxes,
 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -31,6 +31,9 @@ interface ProductRow extends Product {
   drug_type_name?: string
   unit_name?: string
   stock_qty: number
+  // Present on bundle rows (is_bundle=1): how many component lines the bundle
+  // contains — shown in the stock cell in place of an on-hand quantity.
+  component_count?: number
 }
 
 interface ProductsPrefs {
@@ -53,7 +56,7 @@ const PRODUCTS_DEFAULTS: ProductsPrefs = {
 
 export default function ProductsList() {
   const navigate = useNavigate()
-  const { refreshSummary, statusFilter, setStatusFilter } = useOutletContext<ProductsOutletContext>()
+  const { refreshSummary, statusFilter, setStatusFilter, typeFilter } = useOutletContext<ProductsOutletContext>()
   const { toast } = useToast()
 
   const [prefs, setPrefs] = usePagePrefs<ProductsPrefs>('products', PRODUCTS_DEFAULTS)
@@ -99,7 +102,7 @@ export default function ProductsList() {
     const t = setTimeout(() => { load(1) }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, categoryId, sort, pageSize, statusFilter])
+  }, [q, categoryId, sort, pageSize, statusFilter, typeFilter])
 
   const loadDropdowns = async () => {
     const cats = await window.api.settings.allCategories()
@@ -120,7 +123,8 @@ export default function ProductsList() {
         // · 'disabled' → only disabled (forced via stock_filter='disabled')
         stock_filter: statusFilter === 'disabled' ? 'disabled' : statusFilter === 'enabled' ? 'enabled' : 'all',
         include_disabled: statusFilter !== 'enabled',
-        is_bundle: 0,
+        // typeFilter: 'all' omits is_bundle (both types) · 'product' → 0 · 'bundle' → 1
+        is_bundle: typeFilter === 'product' ? 0 : typeFilter === 'bundle' ? 1 : undefined,
       }) as any
       setRows(res.rows)
       setTotal(res.total)
@@ -128,7 +132,7 @@ export default function ProductsList() {
     } finally {
       setLoading(false)
     }
-  }, [q, categoryId, page, pageSize, sort, statusFilter])
+  }, [q, categoryId, page, pageSize, sort, statusFilter, typeFilter])
 
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
@@ -137,9 +141,10 @@ export default function ProductsList() {
   }
 
   const toggleDisabled = async (row: ProductRow) => {
+    const noun = row.is_bundle ? 'ชุดสินค้า' : 'สินค้า'
     try {
       await window.api.products.update(row.id, { is_disabled: row.is_disabled ? 0 : 1 })
-      toast({ title: row.is_disabled ? 'เปิดใช้งานสินค้าแล้ว' : 'ปิดใช้งานสินค้าแล้ว', variant: 'success' })
+      toast({ title: row.is_disabled ? `เปิดใช้งาน${noun}แล้ว` : `ปิดใช้งาน${noun}แล้ว`, variant: 'success' })
       load(page)
       refreshSummary()
     } catch (e: any) {
@@ -246,6 +251,7 @@ export default function ProductsList() {
               <TableRow>
                 <TableHead className="w-8">#</TableHead>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>
+                <TableHead className="min-w-20 text-center">ประเภท</TableHead>
                 {showCost && (
                   <SortableTableHead field="cost_price" align="left" sort={sort} onToggle={toggleSort} className="min-w-24">ต้นทุน</SortableTableHead>
                 )}
@@ -265,11 +271,11 @@ export default function ProductsList() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
+                  <TableCell colSpan={5 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">กำลังโหลด...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">
+                  <TableCell colSpan={5 + (showCost ? 1 : 0) + (showPrice ? 1 : 0) + (showProfit ? 1 : 0) + (showStock ? 1 : 0)} className="text-center text-muted-foreground py-16">
                     <Package className="size-10 mx-auto mb-2 opacity-30" />
                     ไม่พบสินค้า
                   </TableCell>
@@ -283,6 +289,11 @@ export default function ProductsList() {
                     <TableCell className="text-muted-foreground text-sm">{(pageSize === 'all' ? 0 : (page - 1) * pageSize) + i + 1}</TableCell>
                     <TableCell className="max-w-0">
                       <div className="text-sm text-foreground truncate max-w-[400px]" title={row.trade_name}>{row.trade_name}</div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {row.is_bundle
+                        ? <Badge variant="info-outline" className="gap-1"><Boxes className="size-3.5" /> ชุด</Badge>
+                        : <Badge variant="neutral-outline">สินค้า</Badge>}
                     </TableCell>
                     {showCost && (
                       <TableCell className="text-left text-sm text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>
@@ -331,7 +342,9 @@ export default function ProductsList() {
                     )}
                     {showStock && (
                       <TableCell className="pr-6">
-                        {renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
+                        {row.is_bundle
+                          ? <span className="text-sm text-muted-foreground">สินค้าในชุด {(row.component_count ?? 0).toLocaleString()} รายการ</span>
+                          : renderStockCell(row.stock_qty, row.reorder_point ?? 0, row.safety_stock ?? 0, row.unit_name)}
                       </TableCell>
                     )}
                     <TableCell className="text-center">
@@ -345,24 +358,27 @@ export default function ProductsList() {
                           size="icon-lg"
                           variant="elevated"
                           tooltip="แก้ไข"
-                          onClick={() => navigate(`/products/${row.id}/edit`)}
+                          onClick={() => navigate(row.is_bundle ? `/products/bundles/${row.id}/edit` : `/products/${row.id}/edit`)}
                         >
                           <Edit />
                         </Button>
-                        <Button
-                          size="icon-lg"
-                          variant="elevated"
-                          tooltip="ปรับสต็อค"
-                          onClick={() => setAdjustTarget({
-                            id: row.id,
-                            trade_name: row.trade_name,
-                            stock_qty: row.stock_qty,
-                            unit_name: row.unit_name,
-                            last_cost_price: row.last_cost_price,
-                          })}
-                        >
-                          <Layers />
-                        </Button>
+                        {/* ปรับสต็อค = product-only; bundles hold no lots of their own. */}
+                        {!row.is_bundle && (
+                          <Button
+                            size="icon-lg"
+                            variant="elevated"
+                            tooltip="ปรับสต็อค"
+                            onClick={() => setAdjustTarget({
+                              id: row.id,
+                              trade_name: row.trade_name,
+                              stock_qty: row.stock_qty,
+                              unit_name: row.unit_name,
+                              last_cost_price: row.last_cost_price,
+                            })}
+                          >
+                            <Layers />
+                          </Button>
+                        )}
                         <Button
                           size="icon-lg"
                           variant={isDisabled ? 'elevated-success-soft' : 'elevated-destructive-soft'}
