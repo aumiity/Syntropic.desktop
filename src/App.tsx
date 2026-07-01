@@ -5,6 +5,12 @@ import { ToastProvider } from './components/ui/toast'
 import { TooltipProvider } from './components/ui/tooltip'
 import { useUserStore } from './stores/userStore'
 
+// DEV-only UI review/annotation overlay. Gated on import.meta.env.DEV so both the
+// component and this import are tree-shaken out of production builds.
+const ReviewOverlay = import.meta.env.DEV
+  ? lazy(() => import('./dev/ReviewOverlay'))
+  : null
+
 const SetupWizard = lazy(() => import('./pages/Setup/SetupWizard').then(m => ({ default: m.SetupWizard })))
 const LoginScreen = lazy(() => import('./pages/Auth/LoginScreen').then(m => ({ default: m.LoginScreen })))
 
@@ -113,6 +119,9 @@ export default function App() {
           in the context of a <Router>") if mounted outside the router. Do not
           move it back inside the gates. */}
       <HashRouter>
+      {ReviewOverlay && (
+        <Suspense fallback={null}><ReviewOverlay /></Suspense>
+      )}
       <SetupGate>
       <LoginGate>
         <Suspense fallback={<PageLoader />}>
