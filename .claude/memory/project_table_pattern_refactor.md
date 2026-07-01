@@ -15,6 +15,8 @@ Visual + UX consistency across all list pages — one filter strip layout, one r
 
 **Why:** การ์ดเดิม Manage ทำเป็น clickable StatCard ตัดสลับกับ Products ที่ใช้ passive MetricCard. ผู้ใช้ตัดสินใจให้ Sales/Purchases ย้าย filter ลงปุ่ม Filter popover แทน clickable card → ทุกหน้าใช้ MetricCard เป็น dashboard อย่างเดียว.
 
+**SUPERSEDED 2026-07-01:** ทิศทางกลับด้านอีกที — `MetricCard` เองได้ prop `isActive` แล้วกดเป็นตัวกรองได้ตรง ๆ (ring สีตาม tint), เลิกสลับไป `StatCard` เพื่อความ clickable. ดู [[project-metriccard-clickable-filter]] สำหรับรายละเอียดปัจจุบัน — บรรทัด "Manage render branches: c.onClick → StatCard" ด้านล่างนี้ **ล้าสมัยแล้ว**.
+
 **How to apply:** ก่อนแก้ตารางใหม่ อ่านไฟล์อ้างอิงคู่ — `src/pages/Products/ProductsList.tsx` (full canonical) + `src/components/ui/card.tsx` (MetricCard primitive) + `src/components/ui/table.tsx` (TableRow with `has-[td[colspan]]:hover:bg-transparent` for empty-state) + `src/components/ui/avatar.tsx` (new). ใช้ pattern ที่ปักไว้แล้ว ไม่ต้องคิดใหม่.
 
 ## Pattern parts (HARD invariants for any list page)
@@ -39,7 +41,7 @@ Visual + UX consistency across all list pages — one filter strip layout, one r
 
 ## Files converted (full pattern unless noted)
 
-- Products/ProductsList ✓ Products/BundlesList ✓
+- Products/ProductsList ✓ Products/BundlesList ✓ (**BundlesList.tsx DELETED 2026-07-01 — merged into ProductsList; see [[project_products_bundles_merge]], don't look for this file**)
 - People/index.tsx (3 tabs: Customers/Suppliers/Staff) ✓ — shell hosts 4 MetricCards + add button next to tabs, `addNonce` nonce drives each tab's add dialog
 - Manage/Sales ✓ — filter moved from cards into Filter popover today, cards became MetricCard
 - Manage/Purchases ✓ Manage/LowStock ✓ Manage/NegativeStock ✓ Manage/Expiry ✓ (cards still clickable StatCard — only Sales did the migration; others can follow same path if desired)
