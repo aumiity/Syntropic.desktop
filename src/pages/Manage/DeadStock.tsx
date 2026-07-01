@@ -119,10 +119,11 @@ export default function ManageDeadStockPage() {
     [filteredRows],
   )
 
-  // Passive MetricCard snapshot of the threshold counts. The active window
-  // filter lives in the filter strip's Filter popover (no onClick → ManageLayout
-  // renders MetricCard instead of the clickable StatCard). Counts are nested
-  // (m1 >= m3 >= m6 >= m12) by construction.
+  // MetricCards of the threshold counts double as the active-window filter —
+  // clicking a card selects that window (active = ring), staying in sync with
+  // the filter strip's Filter popover (both drive `months`). The windows are
+  // mutually exclusive so one is always active (no toggle-off). Counts are
+  // nested (m1 >= m3 >= m6 >= m12) by construction.
   useEffect(() => {
     setSummary(THRESHOLDS.map(t => ({
       label: `ไม่ขายเกิน ${t.months} เดือน`,
@@ -131,8 +132,10 @@ export default function ManageDeadStockPage() {
       tint: t.tint,
       sub: 'รายการ',
       subClassName: 'text-base text-foreground',
+      onClick: () => setMonths(t.months),
+      isActive: months === t.months,
     })))
-  }, [counts, setSummary])
+  }, [counts, months, setSummary])
 
   // Clear slot summary on unmount so cards don't leak into the next tab.
   useEffect(() => {

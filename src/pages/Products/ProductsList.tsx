@@ -53,7 +53,7 @@ const PRODUCTS_DEFAULTS: ProductsPrefs = {
 
 export default function ProductsList() {
   const navigate = useNavigate()
-  const { refreshSummary } = useOutletContext<ProductsOutletContext>()
+  const { refreshSummary, statusFilter, setStatusFilter } = useOutletContext<ProductsOutletContext>()
   const { toast } = useToast()
 
   const [prefs, setPrefs] = usePagePrefs<ProductsPrefs>('products', PRODUCTS_DEFAULTS)
@@ -63,10 +63,10 @@ export default function ProductsList() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
 
-  // Filters (q, categoryId, statusFilter NOT persisted — reset per session)
+  // Filters (q, categoryId NOT persisted — reset per session). statusFilter is
+  // lifted to the shell (shared with the clickable summary cards) via context.
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState<number>(0)
-  const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
   const showCost = prefs.showCost
   const showProfit = prefs.showProfit
   const showPrice = prefs.showPrice

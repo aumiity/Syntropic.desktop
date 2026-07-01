@@ -218,22 +218,30 @@ export default function ManagePurchasesPage() {
     }
   }, [histQ, histSupplierId, histDateFrom, histDateTo, histPaymentFilter, histVatFilter, histPageSize, histSort, selectedInvoice])
 
-  // All roles see the same plain view: count MetricCards in the parent summary
-  // slot. The status filter lives in the filter strip's Filter popover. The
-  // finance numbers now live only on the Dashboard.
+  // All roles see the same view: count MetricCards in the parent summary slot,
+  // which double as the status filter — clicking a card applies it (active =
+  // ring), clicking the already-active card toggles back to 'all'. They stay in
+  // sync with the Filter popover since both drive `histPaymentFilter`. Card
+  // clicks must call loadHistory themselves (this page has no filter effect).
+  // The finance numbers now live only on the Dashboard.
   useEffect(() => {
     // 5 mutually-exclusive status buckets + a total — ค้างชำระ = unpaid not yet
     // overdue (unpaid − overdue), so the 5 statuses sum to the bill count.
     const staffDuenow = Math.max(0, histSummary.unpaid_count - histSummary.overdue_count)
+    const pick = (v: typeof histPaymentFilter) => () => {
+      const next = histPaymentFilter === v && v !== 'all' ? 'all' : v
+      setHistPaymentFilter(next)
+      loadHistory(1, next, undefined, true)
+    }
     setSlotSummary([
-      { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'เงินสด',    value: histSummary.cash_count.toLocaleString(),      icon: Banknote,      tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ชำระแล้ว',  value: histSummary.paid_count.toLocaleString(),      icon: BadgeCheck,    tint: 'success',      sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ค้างชำระ',  value: staffDuenow.toLocaleString(),                 icon: CreditCard,    tint: 'amber',        sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'เกินกำหนด', value: histSummary.overdue_count.toLocaleString(),   icon: AlertTriangle, tint: 'violet',       sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+      { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('all'),       isActive: histPaymentFilter === 'all' },
+      { label: 'เงินสด',    value: histSummary.cash_count.toLocaleString(),      icon: Banknote,      tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('cash'),      isActive: histPaymentFilter === 'cash' },
+      { label: 'ชำระแล้ว',  value: histSummary.paid_count.toLocaleString(),      icon: BadgeCheck,    tint: 'success',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('paid'),      isActive: histPaymentFilter === 'paid' },
+      { label: 'ค้างชำระ',  value: staffDuenow.toLocaleString(),                 icon: CreditCard,    tint: 'amber',        sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('duenow'),    isActive: histPaymentFilter === 'duenow' },
+      { label: 'เกินกำหนด', value: histSummary.overdue_count.toLocaleString(),   icon: AlertTriangle, tint: 'violet',       sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('overdue'),   isActive: histPaymentFilter === 'overdue' },
+      { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pick('cancelled'), isActive: histPaymentFilter === 'cancelled' },
     ])
-  }, [histSummary, setSlotSummary])
+  }, [histSummary, histPaymentFilter, loadHistory, setSlotSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).

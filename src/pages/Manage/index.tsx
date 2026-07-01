@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
-import { MetricCard, StatCard, type MetricTint } from '@/components/ui/card'
+import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus, Wallet, Box, Boxes } from 'lucide-react'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useCan } from '@/hooks/useCan'
@@ -54,8 +54,8 @@ export interface ManageSummaryCard {
   // Override the auto-tinted value/sub color on passive MetricCard.
   valueClassName?: string
   subClassName?: string
-  // When set, the card renders as a clickable StatCard filter shortcut
-  // (active = ring) instead of a passive MetricCard.
+  // When set, the MetricCard becomes clickable (a filter shortcut) and shows a
+  // tinted ring while active — same card look, just interactive.
   onClick?: () => void
   isActive?: boolean
 }
@@ -229,9 +229,7 @@ export default function ManageLayout() {
                   transition={{ duration: 0.15, ease: 'easeOut' }}
                   className={`grid grid-cols-2 md:grid-cols-3 ${COLS_BY_COUNT[summary.length] ?? 'xl:grid-cols-6'} gap-3 p-0.5`}
                 >
-                  {summary.map((c, i) => c.onClick
-                    ? <StatCard key={i} label={c.label} value={c.value} icon={c.icon} tint={c.tint} onClick={c.onClick} isActive={c.isActive} />
-                    : <MetricCard key={i} {...c} />)}
+                  {summary.map((c, i) => <MetricCard key={i} {...c} />)}
                 </motion.div>
               </AnimatePresence>
             </div>

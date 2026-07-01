@@ -217,17 +217,18 @@ export default function ManageExpiryPage() {
     if (mode !== 'inline') setExpiring(false)
   }
 
-  // Passive MetricCard snapshot of the q/category set. The time-range filter
-  // lives in the filter strip's Filter popover (no onClick → ManageLayout
-  // renders MetricCard instead of the clickable StatCard).
+  // MetricCards of the q/category counts double as the time-range filter —
+  // clicking a card selects that range (active = ring), staying in sync with the
+  // filter strip's Filter popover (both drive `filter`). The ranges are mutually
+  // exclusive so one is always active (no toggle-off).
   useEffect(() => {
     setSummary([
-      { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive', sub: 'ล็อต', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-      { label: '≤ 30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'amber',         sub: 'ล็อต', subClassName: 'text-base text-foreground' },
-      { label: '≤ 90 วัน',     value: counts.d90.toLocaleString(),     icon: ClockAlert, tint: 'info-soft',    sub: 'ล็อต', subClassName: 'text-base text-foreground' },
-      { label: '≤ 180 วัน',    value: counts.d180.toLocaleString(),    icon: ClockAlert, tint: 'primary',      sub: 'ล็อต', subClassName: 'text-base text-foreground' },
+      { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive', sub: 'ล็อต', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: () => setFilter('expired'), isActive: filter === 'expired' },
+      { label: '≤ 30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'amber',         sub: 'ล็อต', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(30),        isActive: filter === 30 },
+      { label: '≤ 90 วัน',     value: counts.d90.toLocaleString(),     icon: ClockAlert, tint: 'info-soft',    sub: 'ล็อต', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(90),        isActive: filter === 90 },
+      { label: '≤ 180 วัน',    value: counts.d180.toLocaleString(),    icon: ClockAlert, tint: 'primary',      sub: 'ล็อต', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(180),       isActive: filter === 180 },
     ])
-  }, [counts, setSummary])
+  }, [counts, filter, setSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).

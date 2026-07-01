@@ -228,18 +228,22 @@ export default function ManageSalesPage() {
     )
   }
 
-  // All roles see the same plain view: the five count MetricCards in the parent
-  // summary slot above the history table. The finance numbers now live only on
-  // the Dashboard.
+  // All roles see the same view: the five count cards in the parent summary slot
+  // double as the status filter — clicking one applies it (active = ring), and
+  // clicking the already-active card toggles back to 'all'. They stay in sync
+  // with the Filter popover since both drive `statusFilter`. The finance numbers
+  // now live only on the Dashboard.
   useEffect(() => {
+    const pick = (s: StatusFilter) => () =>
+      setStatusFilter(cur => (cur === s && s !== 'all' ? 'all' : s))
     setSlotSummary([
-      { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(),       icon: ReceiptText,  tint: 'info-soft', sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ขายปลีก',   value: summary.count_retail.toLocaleString(),    icon: ShoppingCart, tint: 'primary',   sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-      { label: 'ขายส่ง',    value: summary.count_wholesale.toLocaleString(), icon: ShoppingBag,  tint: 'amber',     sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'รับคืน',    value: summary.count_return.toLocaleString(),    icon: RotateCcw,    tint: 'violet',    sub: 'รายการ', subClassName: 'text-base text-foreground' },
-      { label: 'ยกเลิก',    value: summary.count_voided.toLocaleString(),    icon: Ban,          tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+      { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(),       icon: ReceiptText,  tint: 'info-soft',   sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('all'),       isActive: statusFilter === 'all' },
+      { label: 'ขายปลีก',   value: summary.count_retail.toLocaleString(),    icon: ShoppingCart, tint: 'primary',     sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pick('retail'),    isActive: statusFilter === 'retail' },
+      { label: 'ขายส่ง',    value: summary.count_wholesale.toLocaleString(), icon: ShoppingBag,  tint: 'amber',       sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('wholesale'), isActive: statusFilter === 'wholesale' },
+      { label: 'รับคืน',    value: summary.count_return.toLocaleString(),    icon: RotateCcw,    tint: 'violet',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('return'),    isActive: statusFilter === 'return' },
+      { label: 'ยกเลิก',    value: summary.count_voided.toLocaleString(),    icon: Ban,          tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pick('voided'),    isActive: statusFilter === 'voided' },
     ])
-  }, [summary, setSlotSummary])
+  }, [summary, statusFilter, setSlotSummary])
 
   // Clear slot summary on unmount — prevents stale cards leaking into the next
   // tab (esp. NegativeStock which has no summary of its own to overwrite).

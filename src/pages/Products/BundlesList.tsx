@@ -45,7 +45,7 @@ const BUNDLES_DEFAULTS: BundlesPrefs = {
 
 export default function BundlesList() {
   const navigate = useNavigate()
-  const { refreshSummary } = useOutletContext<ProductsOutletContext>()
+  const { refreshSummary, statusFilter, setStatusFilter } = useOutletContext<ProductsOutletContext>()
   const { toast } = useToast()
 
   const [prefs, setPrefs] = usePagePrefs<BundlesPrefs>('bundles', BUNDLES_DEFAULTS)
@@ -60,7 +60,6 @@ export default function BundlesList() {
   const [q, setQ] = useState('')
   const showCost = prefs.showCost
   const showProfit = prefs.showProfit
-  const [stockFilter, setStockFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
   const sort = prefs.sort
   const setSort = (next: SortState | ((prev: SortState) => SortState)) => {
     setPrefs({ sort: typeof next === 'function' ? next(prefs.sort) : next })
@@ -79,8 +78,8 @@ export default function BundlesList() {
         limit: pageSize,
         sort_by: sort.by,
         sort_dir: sort.dir,
-        stock_filter: stockFilter,
-        include_disabled: stockFilter === 'disabled',
+        stock_filter: statusFilter,
+        include_disabled: statusFilter === 'disabled',
         is_bundle: 1,
       }) as any
       setRows(res.rows)
@@ -89,13 +88,13 @@ export default function BundlesList() {
     } finally {
       setLoading(false)
     }
-  }, [q, page, pageSize, sort, stockFilter])
+  }, [q, page, pageSize, sort, statusFilter])
 
   useEffect(() => {
     const t = setTimeout(() => { load(1) }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, stockFilter, sort, pageSize])
+  }, [q, statusFilter, sort, pageSize])
 
   const toggleSort = (field: SortField) => {
     setSort(s => s.by === field
@@ -136,7 +135,7 @@ export default function BundlesList() {
           />
 
           {/* Filter popover — usage status (enabled/disabled) */}
-          <StatusFilterButton value={stockFilter} onChange={setStockFilter} />
+          <StatusFilterButton value={statusFilter} onChange={setStatusFilter} />
 
           {/* Column settings popover */}
           <Popover>

@@ -30,10 +30,17 @@ const COLS_BY_COUNT: Record<number, string> = {
   4: 'md:grid-cols-2 xl:grid-cols-4',
 }
 
+type UsageFilter = 'all' | 'enabled' | 'disabled'
+
 export interface ProductsOutletContext {
   // Children call this after a mutation (toggle disabled, adjust stock, etc.)
   // to ask the shell to re-fetch the shared summary stats.
   refreshSummary: () => void
+  // Usage-status filter is lifted to the shell so the shared summary cards can
+  // drive it (click a card = filter, active = ring) and stay in sync with each
+  // list's StatusFilterButton. Shared across the Products + Bundles tabs.
+  statusFilter: UsageFilter
+  setStatusFilter: React.Dispatch<React.SetStateAction<UsageFilter>>
 }
 
 interface GlobalStats {
@@ -56,6 +63,9 @@ export default function ProductsLayout() {
   // both children read the same source of truth.
   const [allStats, setAllStats] = useState<GlobalStats>({ total_all: 0, disabled: 0 })
   const [bundleCount, setBundleCount] = useState(0)
+  // Shared usage-status filter (see ProductsOutletContext). Not persisted —
+  // resets per session, same as when it lived in the child lists.
+  const [statusFilter, setStatusFilter] = useState<UsageFilter>('all')
 
   const refreshSummary = useCallback(() => {
     window.api.products.stockStats({ include_disabled: true })
@@ -66,14 +76,19 @@ export default function ProductsLayout() {
 
   useEffect(() => { refreshSummary() }, [refreshSummary])
 
+  // Clicking a status card applies its filter; clicking the active one (except
+  // ทั้งหมด) toggles back to 'all'. The ชุดสินค้า card is a shortcut to the
+  // Bundles tab (active while that tab is showing), not a status filter.
+  const pickStatus = (v: UsageFilter) => () =>
+    setStatusFilter(cur => (cur === v && v !== 'all' ? 'all' : v))
   const summary = useMemo(() => [
-    { label: 'ทั้งหมด',     value: allStats.total_all.toLocaleString(),                       icon: Package, tint: 'primary'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground' },
-    { label: 'เปิดใช้งาน',   value: (allStats.total_all - allStats.disabled).toLocaleString(), icon: Check,   tint: 'success'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-    { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(),                        icon: Ban,     tint: 'destructive' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
-    { label: 'ชุดสินค้า',    value: bundleCount.toLocaleString(),                              icon: Boxes,   tint: 'info-soft' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground' },
-  ], [allStats, bundleCount])
+    { label: 'ทั้งหมด',     value: allStats.total_all.toLocaleString(),                       icon: Package, tint: 'primary'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickStatus('all'),      isActive: statusFilter === 'all' },
+    { label: 'เปิดใช้งาน',   value: (allStats.total_all - allStats.disabled).toLocaleString(), icon: Check,   tint: 'success'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickStatus('enabled'),  isActive: statusFilter === 'enabled' },
+    { label: 'ปิดการใช้งาน', value: allStats.disabled.toLocaleString(),                        icon: Ban,     tint: 'destructive' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickStatus('disabled'), isActive: statusFilter === 'disabled' },
+    { label: 'ชุดสินค้า',    value: bundleCount.toLocaleString(),                              icon: Boxes,   tint: 'info-soft' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => navigate('/products/bundles'), isActive: tab === 'bundles' },
+  ], [allStats, bundleCount, statusFilter, tab, navigate])
 
-  const ctx = useMemo<ProductsOutletContext>(() => ({ refreshSummary }), [refreshSummary])
+  const ctx = useMemo<ProductsOutletContext>(() => ({ refreshSummary, statusFilter, setStatusFilter }), [refreshSummary, statusFilter])
 
   return (
     <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
