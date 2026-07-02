@@ -19,7 +19,7 @@ import { formatCurrency } from '@/lib/utils'
 import type { Product, ProductCategory } from '@/types'
 import type { ProductsOutletContext } from './index'
 import {
-  Edit, Package, Settings2, Layers, Ban, RotateCcw, Boxes,
+  Edit, Package, Settings2, Layers, Ban, RotateCcw,
 } from 'lucide-react'
 
 type SortField = 'trade_name' | 'cost_price' | 'price_retail' | 'profit' | 'stock_qty'
@@ -292,7 +292,7 @@ export default function ProductsList() {
                     </TableCell>
                     <TableCell className="text-center">
                       {row.is_bundle
-                        ? <Badge variant="info-outline" className="gap-1"><Boxes className="size-3.5" /> ชุด</Badge>
+                        ? <Badge variant="info-outline">ชุดสินค้า</Badge>
                         : <Badge variant="neutral-outline">สินค้า</Badge>}
                     </TableCell>
                     {showCost && (
