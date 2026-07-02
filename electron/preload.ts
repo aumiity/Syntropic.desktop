@@ -1,6 +1,19 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { PermState } from '../src/lib/permissions/registry'
 
+// Structural mirror of src/lib/tags/types → TagCell (kept inline so the electron
+// tsconfig project doesn't have to pull a src file into its file list). The
+// renderer re-types this against the real TagCell at the call site.
+type TagCellData = {
+  product_id: number
+  name: string
+  unit_name: string
+  price: number
+  code: string
+  barcode: string
+  barcode_source: 'own' | 'none'
+}
+
 // Electron ห่อ error จาก main เป็น "Error invoking remote method 'X': Error: <ของจริง>".
 // ครอบ invoke ทุกครั้งตรงนี้จุดเดียว เพื่อตัด prefix สองชั้นนั้นออกให้เหลือแค่ข้อความ
 // ภาษาไทยที่ผู้ใช้อ่านรู้เรื่อง — ทุก toast/หน้าจอทั้งแอปได้ผลโดยไม่ต้องไล่แก้ทีละจุด.
@@ -18,6 +31,7 @@ const api = {
     searchProducts: (q: string) => invoke('pos:searchProducts', q),
     getProductsByIds: (ids: number[]) => invoke('pos:getProductsByIds', ids),
     getUnitFactors: (unitIds: number[]): Promise<Array<{ id: number; qty_per_base: number }>> => invoke('pos:getUnitFactors', unitIds),
+    resolveBarcodes: (barcodes: string[]): Promise<Array<{ barcode: string; cell: TagCellData | null }>> => invoke('pos:resolveBarcodes', barcodes),
     searchCustomers: (q: string) => invoke('pos:searchCustomers', q),
     saveBill: (payload: any) => invoke('pos:saveBill', payload),
     getDailyStats: () => invoke('pos:getDailyStats'),

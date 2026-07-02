@@ -8,10 +8,11 @@ import { ZoomControl } from '@/components/ui/zoom-control'
 import { QtyDialog } from '@/components/ui/qty-dialog'
 import { useToast } from '@/components/ui/toast'
 import { TagProductSearchDialog } from '@/components/dialogs/TagProductSearchDialog'
+import { BarcodeCsvImportDialog } from '@/components/dialogs/BarcodeCsvImportDialog'
 import { GridEditor, padCells } from './GridEditor'
 import { PriceTagList } from './PriceTagList'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Printer, FileText, PenLine, AlignLeft, AlignCenter, AlignRight, ClipboardPaste, RefreshCcw, RotateCcw, Plus } from 'lucide-react'
+import { Printer, FileText, PenLine, AlignLeft, AlignCenter, AlignRight, ClipboardPaste, RefreshCcw, RotateCcw, Plus, FileUp } from 'lucide-react'
 import {
   resolveStickerLayout,
   resolvePriceTagPreset,
@@ -72,6 +73,8 @@ export default function PrintTab() {
 
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchIdx, setSearchIdx] = useState<number | null>(null)
+  // Bulk CSV/scan import (price-tag mode only).
+  const [importOpen, setImportOpen] = useState(false)
   const [previewHtml, setPreviewHtml] = useState('')
   const [busy, setBusy] = useState(false)
   // Copies are chosen in a modal (QtyDialog) that pops up on พิมพ์, not inline.
@@ -205,6 +208,9 @@ export default function PrintTab() {
     if (searchIdx == null) return
     setCells((arr) => { const next = arr.slice(); next[searchIdx] = cell; return next })
   }
+  // Bulk import (price-tag only): append resolved cells in order, capped at PRICE_MAX.
+  const importCells = (incoming: TagCell[]) =>
+    setPriceCells((arr) => [...arr, ...incoming].slice(0, PRICE_MAX))
   const removeCell = (index: number) => setCells((arr) => { const next = arr.slice(); next[index] = null; return next })
   const copyFirst = () => setCells((arr) => { const f = arr[0]; return f ? arr.map(() => ({ ...f })) : arr })
   const clearAll = () => { if (mode === 'pricetag') setPriceCells([]); else setCells((arr) => arr.map(() => null)) }
@@ -517,6 +523,9 @@ export default function PrintTab() {
                   <Button variant="primary-soft" size="lg" className="h-9" disabled={priceItems.length >= PRICE_MAX} onClick={openAdd}>
                     <Plus className="size-4" /> เพิ่มสินค้า
                   </Button>
+                  <Button variant="elevated" size="lg" className="h-9" disabled={priceItems.length >= PRICE_MAX} onClick={() => setImportOpen(true)} tooltip="วางบาร์โค้ดจาก Excel หรือเลือกไฟล์ CSV">
+                    <FileUp className="size-4" /> นำเข้า CSV
+                  </Button>
                   <Button variant="outline" size="lg" className="h-9" disabled={priceItems.length === 0} onClick={clearAll}>
                     <RefreshCcw className="size-4" /> ล้างทั้งหมด
                   </Button>
@@ -644,6 +653,15 @@ export default function PrintTab() {
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
         onPick={assignCell}
+      />
+
+      {/* Bulk import: paste a scanned barcode column (Excel) or a CSV file →
+          resolve each barcode exactly → append to the price-tag list. */}
+      <BarcodeCsvImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        remaining={PRICE_MAX - priceItems.length}
+        onImport={importCells}
       />
 
       {/* Copies modal — pops up on พิมพ์, then prints the chosen count. Reuses

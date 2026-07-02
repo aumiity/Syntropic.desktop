@@ -182,6 +182,75 @@ export function registerPosHandlers() {
     ).all(...unique) as Array<{ id: number; qty_per_base: number }>
   })
 
+  // Resolve a batch of EXACT barcodes → printable price-tag cells. Powers the
+  // CSV/scan bulk-import in the price-tag print tab: the operator scans barcodes
+  // into an Excel column, pastes them, and each is matched to its product+unit.
+  // Unlike pos:searchProducts (fuzzy LIKE, top-30), this is an EXACT equality
+  // match so a scanned UNIT barcode resolves to that unit's price — never the
+  // base. Precedence per barcode: a sellable product_unit barcode wins; else a
+  // products.barcode/2/3/4 base match. Disabled products/units never match.
+  // The printed barcode is the scanned string itself (so the tag scans back to
+  // the same row). Returns one entry per UNIQUE barcode (cell=null if unmatched);
+  // the renderer expands duplicates + preserves the pasted order.
+  ipcMain.handle('pos:resolveBarcodes', (_e, barcodes: string[]) => {
+    const db = getDb()
+    const unique = Array.from(
+      new Set((barcodes ?? []).map((b) => String(b ?? '').trim()).filter(Boolean)),
+    )
+    const unitStmt = db.prepare(`
+      SELECT pu.product_id, pu.price_retail AS unit_price, u.name AS unit_name,
+             p.trade_name, p.code
+      FROM product_units pu
+      JOIN item_units u ON u.id = pu.unit_id
+      JOIN products p ON p.id = pu.product_id
+      WHERE pu.barcode = ? AND pu.is_disabled = 0 AND pu.is_for_sale = 1
+        AND p.is_disabled = 0
+      LIMIT 1
+    `)
+    const baseStmt = db.prepare(`
+      SELECT p.id AS product_id, p.trade_name, p.code, p.price_retail,
+             u.name AS unit_name
+      FROM products p
+      LEFT JOIN item_units u ON u.id = p.unit_id
+      WHERE p.is_disabled = 0
+        AND (p.barcode = ? OR p.barcode2 = ? OR p.barcode3 = ? OR p.barcode4 = ?)
+      LIMIT 1
+    `)
+    return unique.map((barcode) => {
+      const unit = unitStmt.get(barcode) as any
+      if (unit) {
+        return {
+          barcode,
+          cell: {
+            product_id: unit.product_id,
+            name: unit.trade_name,
+            unit_name: unit.unit_name ?? '',
+            price: unit.unit_price ?? 0,
+            code: unit.code ?? '',
+            barcode,
+            barcode_source: 'own',
+          },
+        }
+      }
+      const base = baseStmt.get(barcode, barcode, barcode, barcode) as any
+      if (base) {
+        return {
+          barcode,
+          cell: {
+            product_id: base.product_id,
+            name: base.trade_name,
+            unit_name: base.unit_name ?? '',
+            price: base.price_retail ?? 0,
+            code: base.code ?? '',
+            barcode,
+            barcode_source: 'own',
+          },
+        }
+      }
+      return { barcode, cell: null }
+    })
+  })
+
   // Search customers
   ipcMain.handle('pos:searchCustomers', (_e, query: string) => {
     const q = `%${query}%`
