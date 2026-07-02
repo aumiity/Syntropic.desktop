@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Badge } from '@/components/ui/badge'
 import { Package, Boxes, Plus, Ban, Tags, LayoutGrid, ChevronDown } from 'lucide-react'
 
 // Products page is a Tabs shell. Products AND bundles now share ONE unified list
@@ -67,6 +68,11 @@ export default function ProductsLayout() {
   // Shared filters (see ProductsOutletContext). Not persisted — reset per session.
   const [statusFilter, setStatusFilter] = useState<UsageFilter>('all')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  // 3-stage cycle for the ปิดการใช้งาน card — kept as explicit state (not derived
+  // from typeFilter/statusFilter) so the next stage in the cycle is unambiguous.
+  // Deriving from filters alone can't tell "stage 1/2 disabled" apart from a plain
+  // สินค้า/ชุด type pick (same typeFilter value, different origin).
+  const [disabledStage, setDisabledStage] = useState<0 | 1 | 2>(0)
 
   const refreshSummary = useCallback(() => {
     window.api.products.stockStats({ include_disabled: true, is_bundle: 0 })
@@ -77,23 +83,44 @@ export default function ProductsLayout() {
 
   useEffect(() => { refreshSummary() }, [refreshSummary])
 
-  // Cards double as filters: ทั้งหมด/สินค้า/ชุด drive the type filter, ปิดการใช้งาน
-  // drives the status filter. Clicking the active card (except ทั้งหมด) toggles
-  // back to 'all'. Both facets can be active at once (e.g. ชุด + ปิดการใช้งาน).
-  const pickType = (v: TypeFilter) => () =>
-    setTypeFilter(cur => (cur === v && v !== 'all' ? 'all' : v))
-  const pickStatus = (v: UsageFilter) => () =>
-    setStatusFilter(cur => (cur === v && v !== 'all' ? 'all' : v))
+  // The list's StatusFilterButton can set statusFilter independently. If status
+  // leaves 'disabled' by any path other than the card cycle, drop back to stage 0
+  // so the ปิดการใช้งาน card's badge/ring don't go stale.
+  useEffect(() => {
+    if (statusFilter !== 'disabled') setDisabledStage(0)
+  }, [statusFilter])
+
+  // Cards are mutually-exclusive filters (highlight one at a time; ทั้งหมด is the
+  // default). ทั้งหมด/สินค้า/ชุด set the type facet and always clear the disabled
+  // cycle + status. ปิดการใช้งาน is a 3-stage cycle: off → disabled-สินค้า →
+  // disabled-ชุด → off.
+  const pickType = (v: TypeFilter) => () => {
+    setDisabledStage(0)
+    setStatusFilter('all')
+    if (v === 'all') { setTypeFilter('all'); return }
+    // Toggle off only if THIS card is the active one (type matches AND we're in an
+    // all-status view). During disabledStage 1/2 typeFilter is product/bundle too,
+    // but that card isn't "active", so clicking selects it instead of toggling off.
+    const wasActive = typeFilter === v && statusFilter === 'all'
+    setTypeFilter(wasActive ? 'all' : v)
+  }
+  const pickDisabled = () => {
+    const next = ((disabledStage + 1) % 3) as 0 | 1 | 2
+    setDisabledStage(next)
+    if (next === 0)      { setTypeFilter('all');     setStatusFilter('all') }
+    else if (next === 1) { setTypeFilter('product'); setStatusFilter('disabled') }
+    else                 { setTypeFilter('bundle');  setStatusFilter('disabled') }
+  }
   const summary = useMemo(() => {
     const totalAll = prodStats.total_all + bundleStats.total_all
     const disabledAll = prodStats.disabled + bundleStats.disabled
     return [
       { label: 'ทั้งหมด',     value: totalAll.toLocaleString(),                   icon: LayoutGrid, tint: 'primary'     as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('all'),        isActive: typeFilter === 'all' },
-      { label: 'สินค้า',      value: prodStats.total_all.toLocaleString(),        icon: Package,    tint: 'info-soft'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('product'),    isActive: typeFilter === 'product' },
-      { label: 'ชุดสินค้า',    value: bundleStats.total_all.toLocaleString(),      icon: Boxes,      tint: 'amber'       as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('bundle'),     isActive: typeFilter === 'bundle' },
-      { label: 'ปิดการใช้งาน', value: disabledAll.toLocaleString(),                icon: Ban,        tint: 'destructive' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickStatus('disabled'), isActive: statusFilter === 'disabled' },
+      { label: 'สินค้า',      value: prodStats.total_all.toLocaleString(),        icon: Package,    tint: 'info-soft'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('product'),    isActive: typeFilter === 'product' && statusFilter === 'all' },
+      { label: 'ชุดสินค้า',    value: bundleStats.total_all.toLocaleString(),      icon: Boxes,      tint: 'amber'       as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('bundle'),     isActive: typeFilter === 'bundle' && statusFilter === 'all' },
+      { label: 'ปิดการใช้งาน', value: disabledAll.toLocaleString(),                icon: Ban,        tint: 'destructive' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickDisabled, isActive: disabledStage !== 0, badge: disabledStage === 0 ? undefined : <Badge variant="destructive-soft">{disabledStage === 1 ? 'สินค้า' : 'ชุดสินค้า'}</Badge> },
     ]
-  }, [prodStats, bundleStats, typeFilter, statusFilter])
+  }, [prodStats, bundleStats, typeFilter, statusFilter, disabledStage])
 
   const ctx = useMemo<ProductsOutletContext>(
     () => ({ refreshSummary, statusFilter, setStatusFilter, typeFilter, setTypeFilter }),
