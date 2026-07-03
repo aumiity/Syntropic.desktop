@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Minus, Plus, X, Maximize2, Copy, Check, ShieldCheck, User } from 'lucide-react'
+import { Minus, Plus, X, Maximize2, Copy, Check, ShieldCheck, User, MessageSquarePlus, List } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useDevTabStore } from '@/stores/devTabStore'
 import { useUserStore } from '@/stores/userStore'
+import { useReviewOverlayStore } from '@/stores/reviewOverlayStore'
 
 // DEV ONLY — route path → source file map for quick copy-paste to Claude
 const ROUTE_FILE_MAP: { pattern: string; file: string }[] = [
@@ -146,6 +147,11 @@ export function TitleBar() {
   const devTabs = useDevTabStore((s) => s.tabs)
   // DEV ONLY — role switch (admin <-> staff) for testing. REMOVE before release.
   const currentUser = useUserStore((s) => s.current)
+  // DEV ONLY — UI review-notes overlay launcher (moved up from a floating widget).
+  const noting = useReviewOverlayStore((s) => s.noting)
+  const noteCount = useReviewOverlayStore((s) => s.count)
+  const toggleNoting = useReviewOverlayStore((s) => s.toggleNoting)
+  const togglePanel = useReviewOverlayStore((s) => s.togglePanel)
 
   const filePath = matchFilePath(location.pathname, devTabs)
 
@@ -267,6 +273,35 @@ export function TitleBar() {
                 : <User className="size-3.5" />
               }
               <span>{currentUser.role === 'owner' ? 'เจ้าของร้าน' : currentUser.role === 'pharmacist' ? 'เภสัชกร' : 'พนักงาน'}</span>
+            </button>
+          </>
+        )}
+
+        {/* DEV ONLY — UI review-notes launcher (toggle note mode + open list panel). */}
+        {import.meta.env.DEV && (
+          <>
+            <div className="w-px h-3.5 bg-border mx-0.5" />
+            <button
+              type="button"
+              onClick={toggleNoting}
+              title="เปิด/ปิดโหมดปักโน้ต"
+              className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-xs transition-colors ${
+                noting
+                  ? 'text-accent-soft-foreground bg-accent-soft'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-surface-hover'
+              }`}
+            >
+              <MessageSquarePlus className="size-3.5" />
+              <span>{noting ? 'กำลังปักโน้ต' : 'โหมดโน้ต'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={togglePanel}
+              title="รายการโน้ตรีวิว UI"
+              className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors"
+            >
+              <List className="size-3.5" />
+              <span>{noteCount}</span>
             </button>
           </>
         )}

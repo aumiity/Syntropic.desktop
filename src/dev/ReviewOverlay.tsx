@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
-import { MessageSquarePlus, List, Copy, Download, Trash2, X, Check, Pin } from 'lucide-react'
+import { List, Copy, Download, Trash2, X, Check, Pin } from 'lucide-react'
+import { useReviewOverlayStore } from '@/stores/reviewOverlayStore'
 
 // ── DEV-ONLY UI review/annotation overlay ───────────────────────────────────
 // A floating tool that lets the operator click any element on ANY page, drop a
@@ -146,8 +147,12 @@ export default function ReviewOverlay() {
   const route = location.pathname
 
   const [notes, setNotes] = useState<Note[]>(load)
-  const [noting, setNoting] = useState(false)
-  const [panelOpen, setPanelOpen] = useState(false)
+  // noting / panelOpen live in a shared store so the launcher can sit in the TitleBar.
+  const noting = useReviewOverlayStore((s) => s.noting)
+  const setNoting = useReviewOverlayStore((s) => s.setNoting)
+  const panelOpen = useReviewOverlayStore((s) => s.panelOpen)
+  const setPanelOpen = useReviewOverlayStore((s) => s.setPanelOpen)
+  const setCount = useReviewOverlayStore((s) => s.setCount)
   const [editing, setEditing] = useState<string | null>(null)
   // Live highlight box (viewport coords) around the element under the cursor.
   const [hoverRect, setHoverRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
@@ -155,6 +160,9 @@ export default function ReviewOverlay() {
   const [, setTick] = useState(0)  // bumped on scroll/resize to reposition pins
 
   useEffect(() => { localStorage.setItem(STORE_KEY, JSON.stringify(notes)) }, [notes])
+
+  // Mirror the note count into the shared store for the TitleBar chip.
+  useEffect(() => { setCount(notes.length) }, [notes.length, setCount])
 
   const notesHere = useMemo(() => notes.filter(n => n.route === route), [notes, route])
 
@@ -394,27 +402,6 @@ export default function ReviewOverlay() {
           </div>
         </div>
       )}
-
-      {/* Floating launcher (bottom-right) */}
-      <div data-review-ui className="fixed bottom-4 right-4 z-[9996] flex flex-col items-end gap-2">
-        <button
-          onClick={() => setPanelOpen(o => !o)}
-          className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs shadow-lg hover:bg-muted"
-          title="รายการโน้ต"
-        >
-          <List className="size-4" /> {notes.length}
-        </button>
-        <button
-          onClick={() => setNoting(o => !o)}
-          className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold shadow-lg transition-colors ${
-            noting ? 'bg-accent text-accent-foreground' : 'bg-primary text-white hover:brightness-110'
-          }`}
-          title="เปิด/ปิดโหมดปักโน้ต"
-        >
-          <MessageSquarePlus className="size-4" />
-          {noting ? 'กำลังปักโน้ต (คลิกบนหน้า)' : 'เปิดโหมดโน้ต'}
-        </button>
-      </div>
     </>,
     document.body,
   )
