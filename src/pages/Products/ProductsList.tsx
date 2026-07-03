@@ -292,8 +292,8 @@ export default function ProductsList() {
                     </TableCell>
                     <TableCell className="text-center">
                       {row.is_bundle
-                        ? <Badge variant="info-outline">ชุดสินค้า</Badge>
-                        : <Badge variant="neutral-outline">สินค้า</Badge>}
+                        ? <Badge variant="amber-outline">ชุดสินค้า</Badge>
+                        : <Badge variant="info-outline">สินค้า</Badge>}
                     </TableCell>
                     {showCost && (
                       <TableCell className="text-left text-sm text-muted-foreground">{formatCurrency(row.cost_price)}</TableCell>

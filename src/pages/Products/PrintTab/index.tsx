@@ -520,14 +520,14 @@ export default function PrintTab() {
               mode === 'pricetag' ? (
                 <div className="flex items-center gap-2">
                   <span className="mr-1 text-xs text-muted-foreground">{priceItems.length} / {PRICE_MAX}</span>
-                  <Button variant="primary-soft" size="lg" className="h-9" disabled={priceItems.length >= PRICE_MAX} onClick={openAdd}>
-                    <Plus className="size-4" /> เพิ่มสินค้า
+                  <Button variant="primary-soft" size="lg" className="h-9 w-9 p-0" disabled={priceItems.length >= PRICE_MAX} onClick={openAdd} tooltip="เพิ่มสินค้า">
+                    <Plus className="size-4" />
                   </Button>
-                  <Button variant="elevated" size="lg" className="h-9" disabled={priceItems.length >= PRICE_MAX} onClick={() => setImportOpen(true)} tooltip="วางบาร์โค้ดจาก Excel หรือเลือกไฟล์ CSV">
-                    <FileUp className="size-4" /> นำเข้า CSV
+                  <Button variant="elevated" size="lg" className="h-9 w-9 p-0" disabled={priceItems.length >= PRICE_MAX} onClick={() => setImportOpen(true)} tooltip="นำเข้า CSV — วางบาร์โค้ดจาก Excel หรือเลือกไฟล์ CSV">
+                    <FileUp className="size-4" />
                   </Button>
-                  <Button variant="outline" size="lg" className="h-9" disabled={priceItems.length === 0} onClick={clearAll}>
-                    <RefreshCcw className="size-4" /> ล้างทั้งหมด
+                  <Button variant="outline" size="lg" className="h-9 w-9 p-0" disabled={priceItems.length === 0} onClick={clearAll} tooltip="ล้างทั้งหมด">
+                    <RefreshCcw className="size-4" />
                   </Button>
                 </div>
               ) : (

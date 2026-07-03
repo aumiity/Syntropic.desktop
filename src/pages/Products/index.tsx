@@ -120,8 +120,8 @@ export default function ProductsLayout() {
       { label: 'ชุดสินค้า',    value: bundleStats.total_all.toLocaleString(),      icon: Boxes,      tint: 'amber'       as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('bundle'),     isActive: typeFilter === 'bundle' && statusFilter === 'all' },
       { label: 'ปิดการใช้งาน', value: disabledAll.toLocaleString(),                icon: Ban,        tint: 'destructive' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickDisabled, isActive: disabledStage !== 0, badge: disabledStage === 0 ? undefined : (
         disabledStage === 1
-          ? <Badge variant="neutral-outline">สินค้า</Badge>
-          : <Badge variant="info-outline">ชุดสินค้า</Badge>
+          ? <Badge variant="info-outline">สินค้า</Badge>
+          : <Badge variant="amber-outline">ชุดสินค้า</Badge>
       ) },
     ]
   }, [prodStats, bundleStats, typeFilter, statusFilter, disabledStage])
