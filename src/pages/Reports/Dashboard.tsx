@@ -369,20 +369,21 @@ export default function DashboardPage() {
 
   // Averages for the sales/purchase key-value blocks.
   const sd = fin.selling_days || 0
-  const salesRows = [
+  const salesRows: KVRow[] = [
+    // จำนวนวันที่ขาย = บรรทัดแรกสุด (ตามรีวิว).
+    { label: 'จำนวนวันที่ขาย', value: `${sd.toLocaleString()} วัน` },
     // Headline totals — so the การขาย card reads on its own, independent of the
     // top KPI strip (which mixes sales + purchase). กำไร shows margin% in the
-    // right-most unit column, mirroring the KPI card's valueSuffix.
+    // right-most unit column (colored like the KPI card's valueSuffix).
     { label: 'ยอดขายทั้งหมด', value: money(fin.sales_net) },
     { label: 'ต้นทุน', value: money(fin.sales_cost) },
-    { label: 'กำไร', value: money(fin.sales_profit), unit: fin.sales_net > 0 ? `${margin.toFixed(1)}%` : undefined },
-    // Averages
-    { label: 'จำนวนวันที่ขาย', value: `${sd.toLocaleString()} วัน` },
-    { label: 'บิลเฉลี่ยต่อวัน', value: `${(sd ? fin.sale_count / sd : 0).toFixed(1)} บิล` },
-    { label: 'ยอดขายเฉลี่ย', value: money(fin.sale_count ? fin.sales_net / fin.sale_count : 0), unit: 'ต่อบิล' },
-    { label: '', value: money(sd ? fin.sales_net / sd : 0), unit: 'ต่อวัน' },
-    { label: 'กำไรเฉลี่ย', value: money(fin.sale_count ? fin.sales_profit / fin.sale_count : 0), unit: 'ต่อบิล' },
-    { label: '', value: money(sd ? fin.sales_profit / sd : 0), unit: 'ต่อวัน' },
+    { label: 'กำไร', value: money(fin.sales_profit), unit: fin.sales_net > 0 ? `${margin.toFixed(1)}%` : undefined, unitClassName: fin.sales_profit >= 0 ? 'font-semibold text-success' : 'font-semibold text-destructive' },
+    // Averages — the ต่อบิล/ต่อวัน unit lives IN the label now (no unit column).
+    { label: 'ยอดขายเฉลี่ย ต่อบิล', value: money(fin.sale_count ? fin.sales_net / fin.sale_count : 0) },
+    { label: 'ยอดขายเฉลี่ย ต่อวัน', value: money(sd ? fin.sales_net / sd : 0) },
+    { label: 'กำไรเฉลี่ย ต่อบิล', value: money(fin.sale_count ? fin.sales_profit / fin.sale_count : 0) },
+    { label: 'กำไรเฉลี่ย ต่อวัน', value: money(sd ? fin.sales_profit / sd : 0) },
+    { label: 'จำนวนบิล ต่อวัน', value: `${Math.round(sd ? fin.sale_count / sd : 0).toLocaleString()} บิล` },
     { label: 'ส่วนลดรวม', value: money(fin.sales_discount) },
   ]
   const purchaseRows = [
@@ -670,7 +671,7 @@ function chartLegend(mode: DivergingMode) {
 // of cells (per-bill / per-day) aligned vertically.
 // A row is: a single value (spans both right columns), a pair of cells, or a
 // value + a right-most `unit` word (e.g. figure … "ต่อบิล" pinned far right).
-type KVRow = { label: string; value?: string; cells?: [string, string]; unit?: string }
+type KVRow = { label: string; value?: string; cells?: [string, string]; unit?: string; unitClassName?: string }
 function keyValueCard(rows: KVRow[]) {
   return (
     <div className="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-4 gap-y-2 text-sm">
@@ -685,7 +686,7 @@ function keyValueCard(rows: KVRow[]) {
           ) : r.unit ? (
             <>
               <span className="text-right font-semibold text-foreground">{r.value}</span>
-              <span className="text-right text-muted-foreground whitespace-nowrap">{r.unit}</span>
+              <span className={cn('text-right whitespace-nowrap', r.unitClassName ?? 'text-muted-foreground')}>{r.unit}</span>
             </>
           ) : (
             <span className="col-span-2 text-right font-semibold text-foreground">{r.value}</span>

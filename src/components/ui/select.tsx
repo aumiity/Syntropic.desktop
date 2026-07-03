@@ -219,18 +219,25 @@ function SelectScrollDownButton({
   )
 }
 
-function NativeSelect({ value, onChange, children, className, selectClassName }: {
+function NativeSelect({ value, onChange, children, className, selectClassName, variant = 'elevated' }: {
   value: number | string
   onChange: (v: string) => void
   children: React.ReactNode
   className?: string
   selectClassName?: string
+  /** House standard = 'elevated' (bg-card + border + shadow, matches SelectTrigger/Input).
+   *  'filled' = the recessed bg-input look, opt-in only. */
+  variant?: 'elevated' | 'filled'
 }) {
   return (
     <div className={cn('relative', className)}>
       <select
         className={cn(
-          'w-full h-9 rounded-xl bg-input px-3 pr-9 text-sm appearance-none outline-none transition-all focus:ring-[2px] focus:ring-ring',
+          'w-full h-9 rounded-control px-3 pr-9 text-sm appearance-none outline-none transition-colors',
+          'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
+          variant === 'filled'
+            ? 'bg-muted dark:bg-input/30'
+            : 'bg-card border border-border shadow-sm hover:bg-muted dark:hover:bg-input/50',
           selectClassName,
         )}
         value={value}
