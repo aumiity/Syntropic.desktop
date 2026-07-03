@@ -112,9 +112,10 @@ export default function ManageExpiryPage() {
 
   const [prefs, setPrefs] = usePagePrefs<ExpiryPrefs>('expiry', EXPIRY_DEFAULTS)
 
-  // filter (90/30/180/expired) and categoryId are NOT persisted — they're
-  // primary navigation in this view and reset per session.
-  const [filter, setFilter] = useState<FilterType>(90)
+  // filter (30/90/180/expired) and categoryId are NOT persisted — they're
+  // primary navigation in this view and reset per session. Default = the most
+  // urgent still-sellable band (0–30 วัน) so the page opens on what needs action.
+  const [filter, setFilter] = useState<FilterType>(30)
   const [categoryId, setCategoryId] = useState<string>('0')
   const [q, setQ] = useState('')
   const [rows, setRows] = useState<ExpiringLot[]>([])
@@ -223,10 +224,10 @@ export default function ManageExpiryPage() {
   // exclusive so one is always active (no toggle-off).
   useEffect(() => {
     setSummary([
-      { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive', sub: 'ล็อต', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: () => setFilter('expired'), isActive: filter === 'expired' },
-      { label: '≤ 30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'amber',         sub: 'ล็อต', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(30),        isActive: filter === 30 },
-      { label: '≤ 90 วัน',     value: counts.d90.toLocaleString(),     icon: ClockAlert, tint: 'info-soft',    sub: 'ล็อต', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(90),        isActive: filter === 90 },
-      { label: '≤ 180 วัน',    value: counts.d180.toLocaleString(),    icon: ClockAlert, tint: 'primary',      sub: 'ล็อต', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(180),       isActive: filter === 180 },
+      { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: () => setFilter('expired'), isActive: filter === 'expired' },
+      { label: '0–30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'amber',         sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(30),        isActive: filter === 30 },
+      { label: '31–90 วัน',    value: counts.d90.toLocaleString(),     icon: ClockAlert, tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(90),        isActive: filter === 90 },
+      { label: '91–180 วัน',   value: counts.d180.toLocaleString(),    icon: ClockAlert, tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(180),       isActive: filter === 180 },
     ])
   }, [counts, filter, setSummary])
 
@@ -294,9 +295,9 @@ export default function ManageExpiryPage() {
           {(() => {
             const RANGE_OPTIONS: { value: FilterType; label: string }[] = [
               { value: 'expired', label: 'หมดอายุแล้ว' },
-              { value: 30,        label: '≤ 30 วัน' },
-              { value: 90,        label: '≤ 90 วัน' },
-              { value: 180,       label: '≤ 180 วัน' },
+              { value: 30,        label: '0–30 วัน' },
+              { value: 90,        label: '31–90 วัน' },
+              { value: 180,       label: '91–180 วัน' },
             ]
             return (
               <Popover>

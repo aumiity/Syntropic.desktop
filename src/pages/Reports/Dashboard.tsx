@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/table'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { DivergingTrendChart, type DivergingMode } from '@/components/ui/charts/diverging-trend-chart'
+import { DonutChart } from '@/components/ui/charts/donut-chart'
 import { type TrendDatum } from '@/components/ui/charts/trend-chart'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { delta } from '@/lib/delta'
@@ -369,7 +370,15 @@ export default function DashboardPage() {
   // Averages for the sales/purchase key-value blocks.
   const sd = fin.selling_days || 0
   const salesRows = [
+    // Headline totals — so the การขาย card reads on its own, independent of the
+    // top KPI strip (which mixes sales + purchase). กำไร shows margin% in the
+    // right-most unit column, mirroring the KPI card's valueSuffix.
+    { label: 'ยอดขายทั้งหมด', value: money(fin.sales_net) },
+    { label: 'ต้นทุน', value: money(fin.sales_cost) },
+    { label: 'กำไร', value: money(fin.sales_profit), unit: fin.sales_net > 0 ? `${margin.toFixed(1)}%` : undefined },
+    // Averages
     { label: 'จำนวนวันที่ขาย', value: `${sd.toLocaleString()} วัน` },
+    { label: 'บิลเฉลี่ยต่อวัน', value: `${(sd ? fin.sale_count / sd : 0).toFixed(1)} บิล` },
     { label: 'ยอดขายเฉลี่ย', value: money(fin.sale_count ? fin.sales_net / fin.sale_count : 0), unit: 'ต่อบิล' },
     { label: '', value: money(sd ? fin.sales_net / sd : 0), unit: 'ต่อวัน' },
     { label: 'กำไรเฉลี่ย', value: money(fin.sale_count ? fin.sales_profit / fin.sale_count : 0), unit: 'ต่อบิล' },
@@ -475,6 +484,7 @@ export default function DashboardPage() {
           : statusBreakdownCard({
               icon: Truck, title: 'การซื้อ', subtitle: `${purSummary.count.toLocaleString()} บิล`, tint: 'info-soft',
               segments: purchaseSegments, rows: purchaseRows, hovered: hoveredStatus, onHover: setHoveredStatus,
+              chart: 'donut',
             })}
       </div>
 
@@ -699,8 +709,10 @@ function statusBreakdownCard(opts: {
   rows?: KVRow[]
   hovered: string | null
   onHover: (v: string | null) => void
+  /** 'bar' = horizontal proportion bar (default); 'donut' = SVG ring + vertical legend. */
+  chart?: 'bar' | 'donut'
 }) {
-  const { icon: Icon, title, subtitle, tint, segments, rows, hovered, onHover } = opts
+  const { icon: Icon, title, subtitle, tint, segments, rows, hovered, onHover, chart = 'bar' } = opts
   const total = segments.reduce((s, t) => s + t.count, 0)
   const sum = total || 1
   const segs = segments.filter(t => t.count > 0)
@@ -726,6 +738,35 @@ function statusBreakdownCard(opts: {
       </div>
 
       <TooltipProvider>
+        {chart === 'donut' ? (
+          <div className="flex items-center gap-4 py-1">
+            <DonutChart
+              segments={segments}
+              hovered={hovered}
+              onHover={onHover}
+              centerLabel={total.toLocaleString()}
+              centerSub="บิล"
+              renderTip={t => tip(t)}
+            />
+            <div className="flex flex-1 flex-col gap-1.5 min-w-0">
+              {segments.map(t => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onMouseEnter={() => onHover(t.key)}
+                  onMouseLeave={() => onHover(null)}
+                  className={cn('flex cursor-default items-center gap-2 text-sm transition-opacity', dim(t.key))}
+                >
+                  <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                  <span className="flex-1 text-left text-muted-foreground truncate">{t.label}</span>
+                  <span className="font-semibold text-foreground">{t.count.toLocaleString()}</span>
+                  <span className="w-12 text-right text-xs text-muted-foreground">{((t.count / sum) * 100).toFixed(1)}%</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="flex h-3">
           {segs.map((t, i) => {
             const ends = i === 0 && i === segs.length - 1 ? 'rounded-full'
@@ -766,6 +807,8 @@ function statusBreakdownCard(opts: {
             </Tooltip>
           ))}
         </div>
+        </>
+        )}
       </TooltipProvider>
 
       {rows && (

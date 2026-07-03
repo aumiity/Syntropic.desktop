@@ -88,6 +88,22 @@ export function computeVatSummary(db: Database.Database, filters: { date_from?: 
   }
 }
 
+// Exclusive expiry bands (non-overlapping) for the ใกล้หมดอายุ view. Each band is
+// its OWN window — clicking "91–180" shows only 91–180-day lots and no longer
+// drags in the ≤30/≤90/expired lots (they live in their own bands). The numeric
+// key is the band's upper bound in days; its lower bound is the previous band's
+// upper. Returns pure literals (no bound params) → safe to inline into a WHERE
+// clause AND a SUM(CASE …) alike, so counts and the row filter never drift apart.
+// `col` = the expiry-date column expression to test.
+export function expiryBandSql(band: 'expired' | 30 | 90 | 180, col = 'pl.expiry_date'): string {
+  switch (band) {
+    case 'expired': return `date(${col}) <  date('now')`
+    case 30:  return `date(${col}) >= date('now')             AND date(${col}) <= date('now', '+30 days')`
+    case 90:  return `date(${col}) >  date('now', '+30 days')  AND date(${col}) <= date('now', '+90 days')`
+    case 180: return `date(${col}) >  date('now', '+90 days')  AND date(${col}) <= date('now', '+180 days')`
+  }
+}
+
 export function registerReportHandlers() {
   ipcMain.handle('reports:salesList', (_e, filters: {
     q?: string; date_from?: string; date_to?: string
@@ -333,8 +349,8 @@ export function registerReportHandlers() {
   })
 
   // System C — Expiry report data.
-  // Returns { rows (paginated, filter-applied), total, counts (cumulative
-  // buckets — same q/category scope, ignores `filter`) }. With 16k+ tracked
+  // Returns { rows (paginated, filter-applied), total, counts (exclusive
+  // bands — same q/category scope, ignores `filter`) }. With 16k+ tracked
   // lots in long-running stores, returning everything + filtering client-side
   // froze the UI; the rows query is now LIMIT-paginated and the four card
   // counts come from a single cheap aggregate. Pass `count_only: true` to
@@ -362,10 +378,10 @@ export function registerReportHandlers() {
 
     const counts = db.prepare(`
       SELECT
-        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <  date('now')              THEN 1 ELSE 0 END), 0) AS expired,
-        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <= date('now', '+30 days')  THEN 1 ELSE 0 END), 0) AS d30,
-        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <= date('now', '+90 days')  THEN 1 ELSE 0 END), 0) AS d90,
-        COALESCE(SUM(CASE WHEN date(pl.expiry_date) <= date('now', '+180 days') THEN 1 ELSE 0 END), 0) AS d180
+        COALESCE(SUM(CASE WHEN ${expiryBandSql('expired')} THEN 1 ELSE 0 END), 0) AS expired,
+        COALESCE(SUM(CASE WHEN ${expiryBandSql(30)}        THEN 1 ELSE 0 END), 0) AS d30,
+        COALESCE(SUM(CASE WHEN ${expiryBandSql(90)}        THEN 1 ELSE 0 END), 0) AS d90,
+        COALESCE(SUM(CASE WHEN ${expiryBandSql(180)}       THEN 1 ELSE 0 END), 0) AS d180
       FROM product_lots pl
       JOIN products p ON p.id = pl.product_id
       ${baseWhere}
@@ -375,11 +391,8 @@ export function registerReportHandlers() {
 
     const rowConds = [...baseConds]
     const rowParams = [...baseParams]
-    if (filter === 'expired') {
-      rowConds.push(`date(pl.expiry_date) < date('now')`)
-    } else if (typeof filter === 'number') {
-      rowConds.push(`date(pl.expiry_date) <= date('now', '+' || ? || ' days')`)
-      rowParams.push(filter)
+    if (filter === 'expired' || filter === 30 || filter === 90 || filter === 180) {
+      rowConds.push(expiryBandSql(filter))
     }
     const rowWhere = `WHERE ${rowConds.join(' AND ')}`
 

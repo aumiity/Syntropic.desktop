@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import { getDb } from '../db'
 import { getSessionRole } from '../auth/session'
 import { requirePermission, stateFor } from '../auth/permissions'
-import { computeVatSummary } from './reports'
+import { computeVatSummary, expiryBandSql } from './reports'
 import { writeWorkbook, fmtDate, type SheetSpec, type SheetColumn } from '../services/excel'
 
 // Excel export handlers. Two tiers:
@@ -356,8 +356,7 @@ export function registerExportHandlers() {
     const params: any[] = []
     if (category_id) { conds.push(`p.category_id = ?`); params.push(category_id) }
     if (q) { conds.push(`(p.trade_name LIKE ? OR pl.lot_number LIKE ?)`); const lq = `%${q}%`; params.push(lq, lq) }
-    if (filter === 'expired') { conds.push(`date(pl.expiry_date) < date('now')`) }
-    else if (typeof filter === 'number') { conds.push(`date(pl.expiry_date) <= date('now', '+' || ? || ' days')`); params.push(filter) }
+    if (filter === 'expired' || filter === 30 || filter === 90 || filter === 180) { conds.push(expiryBandSql(filter)) }
 
     const rows = db.prepare(`
       SELECT pl.lot_number, pl.expiry_date, pl.qty_on_hand, pl.cost_price,
