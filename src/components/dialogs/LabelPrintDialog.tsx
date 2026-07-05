@@ -127,6 +127,9 @@ export function LabelPrintDialog({ open, onClose }: Props) {
   const items = useCartStore(s => s.items)
 
   const [labelSettings, setLabelSettings] = useState<LabelSettingsForm>(LABEL_DEFAULTS)
+  // Blank labels have their OWN settings row (label_settings profile='blank',
+  // designed at พิมพ์ฉลาก > ฉลากเปล่า) — independent of the drug label above.
+  const [blankSettings, setBlankSettings] = useState<LabelSettingsForm>(LABEL_DEFAULTS)
   const [shop, setShop] = useState<any>(null)
   const [lookups, setLookups] = useState<LabelFormLookups>(emptyLookups)
   const [rows, setRows] = useState<Row[]>([])
@@ -149,9 +152,9 @@ export function LabelPrintDialog({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return
     setBlankCopies('1')
-    window.api.settings.getLabelSettings().then((data: any) => {
+    const mergeForm = (data: any, set: React.Dispatch<React.SetStateAction<LabelSettingsForm>>) => {
       if (!data) return
-      setLabelSettings(prev => {
+      set(prev => {
         const next = { ...prev }
         for (const k of Object.keys(prev) as (keyof LabelSettingsForm)[]) {
           const val = (data as any)[k]
@@ -159,7 +162,9 @@ export function LabelPrintDialog({ open, onClose }: Props) {
         }
         return next
       })
-    }).catch(() => {})
+    }
+    window.api.settings.getLabelSettings().then((data: any) => mergeForm(data, setLabelSettings)).catch(() => {})
+    window.api.settings.getLabelSettings('blank').then((data: any) => mergeForm(data, setBlankSettings)).catch(() => {})
     window.api.settings.getShop().then((s: any) => setShop(s)).catch(() => {})
     Promise.all([
       window.api.settings.listLabelFrequencies(),
@@ -229,11 +234,11 @@ export function LabelPrintDialog({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    buildBlankLabelHtml(labelSettings, shop, 1, true)
+    buildBlankLabelHtml(blankSettings, shop, 1, true)
       .then(h => { if (!cancelled) setBlankHtml(h) })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [open, labelSettings, shop])
+  }, [open, blankSettings, shop])
 
   const labeledRows = useMemo(() => rows.filter(r => r.labels.length > 0), [rows])
   const noLabelCount = rows.length - labeledRows.length
@@ -334,18 +339,18 @@ export function LabelPrintDialog({ open, onClose }: Props) {
 
   const handlePrintBlank = async () => {
     if (blankPrinting) return
-    if (!(labelSettings.width_mm > 0) || !(labelSettings.height_mm > 0)) {
-      toast({ title: 'ยังไม่ได้ตั้งขนาดกระดาษฉลาก', description: 'ไปที่ ตั้งค่า > ฉลากยา เพื่อกำหนดขนาดกระดาษก่อน', variant: 'error' })
+    if (!(blankSettings.width_mm > 0) || !(blankSettings.height_mm > 0)) {
+      toast({ title: 'ยังไม่ได้ตั้งขนาดกระดาษฉลาก', description: 'ไปที่ พิมพ์ฉลาก > ฉลากเปล่า เพื่อกำหนดขนาดกระดาษก่อน', variant: 'error' })
       return
     }
     setBlankPrinting(true)
     try {
-      const html = await buildBlankLabelHtml(labelSettings, shop, copiesNum(blankCopies), true)
+      const html = await buildBlankLabelHtml(blankSettings, shop, copiesNum(blankCopies), true)
       const res = await window.api.printer.printLabel({
         html,
-        printerName: labelSettings.printer_name,
-        paperWidthMm: labelSettings.width_mm,
-        paperHeightMm: labelSettings.height_mm,
+        printerName: blankSettings.printer_name,
+        paperWidthMm: blankSettings.width_mm,
+        paperHeightMm: blankSettings.height_mm,
       })
       if (res.success) toast({ title: 'ส่งงานพิมพ์ฉลากเปล่าแล้ว', variant: 'success' })
       else toast({ title: 'พิมพ์ไม่สำเร็จ', description: res.error, variant: 'error' })
@@ -421,15 +426,15 @@ export function LabelPrintDialog({ open, onClose }: Props) {
 
                 <div className="min-h-0 flex-1 overflow-hidden bg-muted/30 p-5">
                   {blankActive ? (
-                    <ScaledPaper widthMm={labelSettings.width_mm} heightMm={labelSettings.height_mm}>
+                    <ScaledPaper widthMm={blankSettings.width_mm} heightMm={blankSettings.height_mm}>
                       <iframe
                         title="ตัวอย่างฉลากเปล่า"
                         srcDoc={blankHtml}
                         scrolling="no"
                         className="block border-0 bg-white"
                         style={{
-                          width: `${labelSettings.width_mm}mm`,
-                          height: `${labelSettings.height_mm}mm`,
+                          width: `${blankSettings.width_mm}mm`,
+                          height: `${blankSettings.height_mm}mm`,
                           boxShadow: '0 4px 5px rgb(0 0 0 / 0.20), 0 12px 14px rgb(0 0 0 / 0.16)',
                         }}
                       />

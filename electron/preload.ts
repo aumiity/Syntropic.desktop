@@ -151,8 +151,10 @@ const api = {
     listDrugTypes: () => invoke('settings:listDrugTypes'),
     countUnclassifiedDrugs: () => invoke('settings:countUnclassifiedDrugs') as Promise<number>,
     saveDrugType: (data: any) => invoke('settings:saveDrugType', data),
-    getLabelSettings: () => invoke('settings:getLabelSettings'),
-    saveLabelSettings: (data: any) => invoke('settings:saveLabelSettings', data),
+    // profile: 'drug' (default — the real drug label) | 'blank' (the
+    // write-your-own blank label, independent settings row).
+    getLabelSettings: (profile?: 'drug' | 'blank') => invoke('settings:getLabelSettings', profile),
+    saveLabelSettings: (data: any, profile?: 'drug' | 'blank') => invoke('settings:saveLabelSettings', data, profile),
     getSalesSettings: () => invoke('settings:getSalesSettings'),
     saveSalesSettings: (data: any) => invoke('settings:saveSalesSettings', data),
     upgradeToVat: (data: any) => invoke('settings:upgradeToVat', data),

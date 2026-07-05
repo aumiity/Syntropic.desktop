@@ -442,6 +442,10 @@ export function initializeSchema(db: Database.Database) {
     -- Label Settings (print configuration)
     CREATE TABLE IF NOT EXISTS label_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      -- One row per template profile: 'drug' = the real drug label, 'blank' = the
+      -- write-your-own blank label (fully independent settings since 2026-07-05;
+      -- the blank row is lazily seeded as a COPY of the drug row on first read).
+      profile TEXT NOT NULL DEFAULT 'drug',
       width_mm REAL NOT NULL DEFAULT 80,
       height_mm REAL NOT NULL DEFAULT 50,
       pad_top REAL NOT NULL DEFAULT 3,
@@ -993,6 +997,10 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE label_settings ADD COLUMN bold_expiry        INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_x_expiry    REAL NOT NULL DEFAULT 0`,
     `ALTER TABLE label_settings ADD COLUMN offset_y_expiry    REAL NOT NULL DEFAULT 0`,
+    // Blank-label settings split (2026-07-05): one row per template profile.
+    // Existing singleton row becomes 'drug' via the DEFAULT; the 'blank' row is
+    // lazily seeded (copy of drug) by settings:getLabelSettings.
+    `ALTER TABLE label_settings ADD COLUMN profile TEXT NOT NULL DEFAULT 'drug'`,
     // product_labels restructure: persist the advice + time-of-day lookups and
     // the per-label default / show-barcode toggles. Without these columns the
     // saveLabel UPDATE (dynamic from Object.keys) threw "no such column".

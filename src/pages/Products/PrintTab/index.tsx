@@ -28,7 +28,9 @@ import {
   type TagCell,
 } from '@/lib/tags/types'
 import { LABEL_DEFAULTS, type LabelSettingsForm } from '@/lib/label/sections'
-import { buildBlankLabelHtml, type BlankLabelShop } from '@/lib/label/blankLabel'
+// Blank-label mode is the full designer (own label_settings profile='blank',
+// preview + per-section editor + print) — shared with ตั้งค่า > ฉลากยา.
+import { LabelDesigner } from '@/components/label/LabelDesigner'
 import { useTagDraftStore } from '@/stores/tagDraftStore'
 
 type Mode = 'sticker' | 'pricetag' | 'blank'
@@ -55,15 +57,11 @@ export default function PrintTab() {
   const [doc, setDoc] = useState<DocSettings>({ printer_name: '', paper_size: 'A4' })
   const [stickerCfg, setStickerCfg] = useState<BarcodeStickerForm>(BARCODE_STICKER_DEFAULTS)
   const [priceCfg, setPriceCfg] = useState<PriceTagForm>(PRICE_TAG_DEFAULTS)
-  const [shop, setShop] = useState<BlankLabelShop | null>(null)
   const [printers, setPrinters] = useState<string[]>([])
   const [loaded, setLoaded] = useState(false)
 
   const [mode, setMode] = useState<Mode>('sticker')
   const [copies, setCopies] = useState(1)
-  // Blank label: print today's date in the shop row, or leave it blank to write
-  // by hand. Pre-printed stock → uncheck; print-on-demand → keep checked.
-  const [printDate, setPrintDate] = useState(true)
   // Cells are kept per mode so switching back and forth doesn't lose work.
   // Sticker cells are page-local (quick to rebuild); the PRICE-TAG list lives in a
   // draft store so it survives navigating away (selling to a walk-in) and back.
@@ -101,15 +99,13 @@ export default function PrintTab() {
       window.api.settings.getBarcodeStickerSettings(),
       window.api.settings.getPriceTagSettings(),
       window.api.printer.listPrinters(),
-      window.api.settings.getShop(),
-    ]).then(([lbl, dc, sk, pt, prs, sh]) => {
+    ]).then(([lbl, dc, sk, pt, prs]) => {
       if (lbl) setLabel({ ...LABEL_DEFAULTS, ...lbl })
       if (dc) setDoc({ printer_name: dc.printer_name ?? '', paper_size: 'A4' })
       if (sk) setStickerCfg({ ...BARCODE_STICKER_DEFAULTS, ...sk })
       // preset is LOCKED to '50up' (picker removed) — ignore any older saved value.
       if (pt) setPriceCfg({ ...PRICE_TAG_DEFAULTS, ...pt, preset: '50up' })
       setPrinters(((prs as any[]) ?? []).map((p) => p.name))
-      if (sh) setShop(sh as BlankLabelShop)
       setLoaded(true)
     })
   }, [])
@@ -161,19 +157,19 @@ export default function PrintTab() {
   }, [priceCfg, loaded])
 
   // Live preview: rebuild the same builder used for the real print job (1 page).
+  // Blank mode renders its own preview inside LabelDesigner — skip it here.
   useEffect(() => {
+    if (mode === 'blank') return
     let cancelled = false
     const t = setTimeout(async () => {
       const html =
         mode === 'sticker'
           ? await buildBarcodeStickerHtml(label, stickerCfg, cells, 1)
-          : mode === 'blank'
-            ? await buildBlankLabelHtml(label, shop, 1, printDate)
-            : await buildPriceTagHtml(priceCfg, cells, doc.paper_size)
+          : await buildPriceTagHtml(priceCfg, cells, doc.paper_size)
       if (!cancelled) setPreviewHtml(html)
     }, 300)
     return () => { cancelled = true; clearTimeout(t) }
-  }, [mode, label, stickerCfg, priceCfg, cells, doc.paper_size, shop, printDate])
+  }, [mode, label, stickerCfg, priceCfg, cells, doc.paper_size])
 
   // Fit the A4 page to the preview WIDTH only (fills the block horizontally). The
   // height follows the A4 aspect at natural size — if it's taller than the area,
@@ -195,9 +191,9 @@ export default function PrintTab() {
   }, [mode])
 
   const hasAny = cells.some((c) => c != null)
-  // Blank labels need no product cells, so they're always printable. Sticker /
-  // price-tag modes still require at least one assigned cell.
-  const canPrint = mode === 'blank' ? true : hasAny
+  // Sticker / price-tag modes require at least one assigned cell. (Blank mode
+  // prints from inside LabelDesigner and never reaches this gate.)
+  const canPrint = hasAny
 
   const openSearch = (index: number) => { setSearchIdx(index); setSearchOpen(true) }
   // Price-tag "เพิ่มสินค้า" → append mode (no target cell index).
@@ -242,17 +238,7 @@ export default function PrintTab() {
     if (!canPrint || busy) return
     setBusy(true)
     try {
-      if (mode === 'blank') {
-        const html = await buildBlankLabelHtml(label, shop, n, printDate)
-        const res = await window.api.printer.printLabel({
-          html,
-          printerName: label.printer_name || '',
-          paperWidthMm: label.width_mm,
-          paperHeightMm: label.height_mm,
-        })
-        if (res.success) toast('ส่งงานพิมพ์ฉลากเปล่าแล้ว', 'success')
-        else toast(res.error || 'พิมพ์ไม่สำเร็จ', 'error')
-      } else if (mode === 'sticker') {
+      if (mode === 'sticker') {
         const html = await buildBarcodeStickerHtml(label, stickerCfg, cells, n)
         const res = await window.api.printer.printLabel({
           html,
@@ -292,31 +278,17 @@ export default function PrintTab() {
         </Tabs>
       </div>
 
+      {mode === 'blank' ? (
+        /* Blank mode = the full blank-label designer — its OWN label_settings
+           profile ('blank', seeded as a copy of the drug label), edited with the
+           same per-section editor as ตั้งค่า > ฉลากยา. Preview/print live inside. */
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+          <LabelDesigner profile="blank" />
+        </div>
+      ) : (
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[5fr_4fr] gap-3 overflow-y-auto scrollbar-thin">
         {/* Right: settings + grid */}
         <div className="space-y-3 min-w-0 order-2">
-          {mode === 'blank' ? (
-          <SectionCard title="ฉลากเปล่า (เขียนเอง)" icon={PenLine} tint="primary">
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p className="text-foreground">
-                ใช้รูปแบบเดียวกับฉลากยาที่ตั้งค่าไว้ทุกประการ (ตำแหน่ง/ฟอนต์/ขนาด) แต่ช่องข้อมูลยาเว้นว่างไว้ให้เขียน/วงด้วยปากกาเอง
-              </p>
-              <ul className="list-inside list-disc space-y-1">
-                <li>ส่วนหัวร้าน (ชื่อร้าน/ที่อยู่/โทร/LINE) ดึงจากที่ตั้งค่าไว้จริง</li>
-                <li>ช่อง "ชื่อยา" "รับประทานครั้งละ" "ความถี่" เว้นเส้นให้เขียนเอง</li>
-                <li>มื้อ (ก่อน/หลัง/พร้อมอาหาร) และ เวลา (เช้า/กลางวัน/เย็น/ก่อนนอน) ให้วงเลือกเอง</li>
-                <li>section ที่ปิดไว้ใน ตั้งค่า &gt; ฉลากยา จะไม่แสดงบนฉลากเปล่าเช่นกัน</li>
-              </ul>
-            </div>
-            <CheckRow
-              framed
-              className="h-12"
-              label="ใส่ช่องวันที่ (เขียนเอง)"
-              checked={printDate}
-              onChange={setPrintDate}
-            />
-          </SectionCard>
-          ) : (
           <>
           <SectionCard
             title="ตั้งค่า"
@@ -555,7 +527,6 @@ export default function PrintTab() {
             )}
           </SectionCard>
           </>
-          )}
         </div>
 
         {/* Left: live preview + read-only printer/paper */}
@@ -597,7 +568,7 @@ export default function PrintTab() {
                   }}
                 >
                   <iframe
-                    title={mode === 'blank' ? 'ตัวอย่างฉลากเปล่า' : 'ตัวอย่างฉลากสติ๊กเกอร์'}
+                    title="ตัวอย่างฉลากสติ๊กเกอร์"
                     srcDoc={previewHtml}
                     scrolling="no"
                     className="block border-0 bg-white"
@@ -648,6 +619,7 @@ export default function PrintTab() {
           </SectionCard>
         </div>
       </div>
+      )}
 
       <TagProductSearchDialog
         open={searchOpen}
@@ -670,7 +642,7 @@ export default function PrintTab() {
       <QtyDialog
         open={copiesOpen}
         onClose={() => setCopiesOpen(false)}
-        itemName={mode === 'sticker' ? 'สติ๊กเกอร์บาร์โค้ด' : mode === 'pricetag' ? 'ป้ายราคา A4' : 'ฉลากเปล่า'}
+        itemName={mode === 'sticker' ? 'สติ๊กเกอร์บาร์โค้ด' : 'ป้ายราคา A4'}
         unitName="สำเนา"
         initialQty={copies}
         presets={[]}

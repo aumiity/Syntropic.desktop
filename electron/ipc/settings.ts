@@ -425,26 +425,49 @@ export function registerSettingsHandlers() {
     return true
   })
 
-  // Label settings (singleton). ORDER BY id keeps reads deterministic if a
-  // legacy DB ended up with multiple rows; the seed now guarantees only one.
-  ipcMain.handle('settings:getLabelSettings', () => {
-    return getDb().prepare(`SELECT * FROM label_settings ORDER BY id LIMIT 1`).get()
+  // Label settings — one row per template profile: 'drug' (the real drug label,
+  // default → every legacy caller keeps working unchanged) and 'blank' (the
+  // write-your-own blank label, fully independent since 2026-07-05). The blank
+  // row is lazily seeded as a COPY of the drug row on first read, so the blank
+  // designer starts pixel-identical to the drug label and diverges from there.
+  // ORDER BY id keeps reads deterministic if a legacy DB ended up with
+  // duplicate rows in a profile.
+  const labelProfile = (p: unknown): 'drug' | 'blank' => (p === 'blank' ? 'blank' : 'drug')
+  const getLabelRow = (db: ReturnType<typeof getDb>, profile: 'drug' | 'blank') => {
+    let row = db.prepare(`SELECT * FROM label_settings WHERE profile = ? ORDER BY id LIMIT 1`).get(profile) as any
+    if (!row && profile === 'blank') {
+      const drug = db.prepare(`SELECT * FROM label_settings WHERE profile = 'drug' ORDER BY id LIMIT 1`).get() as any
+      if (drug) {
+        const { id: _id, profile: _p, ...rest } = drug
+        const cols = Object.keys(rest)
+        db.prepare(`INSERT INTO label_settings (${cols.join(', ')}, profile) VALUES (${cols.map(c => '@' + c).join(', ')}, 'blank')`).run(rest)
+      } else {
+        db.prepare(`INSERT INTO label_settings (profile) VALUES ('blank')`).run()
+      }
+      row = db.prepare(`SELECT * FROM label_settings WHERE profile = 'blank' ORDER BY id LIMIT 1`).get()
+    }
+    return row
+  }
+  ipcMain.handle('settings:getLabelSettings', (_e, profile?: string) => {
+    return getLabelRow(getDb(), labelProfile(profile))
   })
-  ipcMain.handle('settings:saveLabelSettings', (_e, data: any) => {
+  ipcMain.handle('settings:saveLabelSettings', (_e, data: any, profileArg?: string) => {
     requirePermission(_e, 'settings.manage')
     const db = getDb()
-    const existing = db.prepare(`SELECT id FROM label_settings ORDER BY id LIMIT 1`).get() as any
+    const profile = labelProfile(profileArg)
+    const existing = getLabelRow(db, profile) as any
     if (existing) {
-      const { id: _drop, ...rest } = data
+      // Strip id AND profile — profile is row identity, never form data.
+      const { id: _drop, profile: _p, ...rest } = data
       const fields = Object.keys(rest).map(k => `${k} = @${k}`).join(', ')
       // Bind id as @id (named) — mixing `?` with an object binding throws
       // "Too few parameter values were provided" in better-sqlite3.
       db.prepare(`UPDATE label_settings SET ${fields}, updated_at = datetime('now','localtime') WHERE id = @id`)
         .run({ ...rest, id: existing.id })
     } else {
-      db.prepare(`INSERT INTO label_settings DEFAULT VALUES`).run()
+      db.prepare(`INSERT INTO label_settings (profile) VALUES (?)`).run(profile)
     }
-    return db.prepare(`SELECT * FROM label_settings ORDER BY id LIMIT 1`).get()
+    return db.prepare(`SELECT * FROM label_settings WHERE profile = ? ORDER BY id LIMIT 1`).get(profile)
   })
 
   // Sales settings (singleton) — POS cart alert thresholds and toggles.
