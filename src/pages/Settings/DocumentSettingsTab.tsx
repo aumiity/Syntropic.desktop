@@ -65,6 +65,7 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   const [shop, setShop] = useState<Partial<Setting>>({})
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
   const [saving, setSaving] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
   const [printRender, setPrintRender] = useState(false)  // mount the hidden .a4-doc only while test-printing
   // Preview zoom — on top of the fit-to-box scale (like the receipt/label tabs).
   const [zoom, setZoom] = useState(2)
@@ -110,13 +111,13 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
     }).catch(() => setPrinters([]))
   }, [])
 
-  const setF = <K extends keyof DocumentForm>(k: K, v: DocumentForm[K]) =>
-    setForm(f => ({ ...f, [k]: v }))
+  const setF = <K extends keyof DocumentForm>(k: K, v: DocumentForm[K]) => { setForm(f => ({ ...f, [k]: v })); setIsDirty(true) }
 
   const handleSave = useCallback(async () => {
     setSaving(true)
     try {
       await window.api.settings.saveDocumentSettings(form)
+      setIsDirty(false)
       toast({ title: 'บันทึกการตั้งค่าเอกสาร A4 สำเร็จ', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
@@ -174,12 +175,12 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
   actRef.current = { handleSave }
   useEffect(() => {
     onActions?.(
-      <Button className="h-10" onClick={() => actRef.current.handleSave()} disabled={saving}>
+      <Button className="h-10" dirty={isDirty} onClick={() => actRef.current.handleSave()} disabled={saving}>
         <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
       </Button>
     )
     return () => onActions?.(null)
-  }, [onActions, saving])
+  }, [onActions, saving, isDirty])
 
   const previewActions = (
     <div className="flex items-center gap-2">
