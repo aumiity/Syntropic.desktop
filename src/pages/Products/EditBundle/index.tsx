@@ -413,6 +413,7 @@ export default function EditBundlePage() {
             <Button
               size="lg"
               className="h-10 px-3"
+              dirty={isDirty}
               onClick={handleSave}
               disabled={saving || draftItems.length < 2}
               title={draftItems.length < 2 ? 'ต้องเพิ่มรายการอย่างน้อย 2 รายการก่อน' : undefined}

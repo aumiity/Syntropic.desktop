@@ -400,7 +400,7 @@ export default function EditProductPage() {
             <ArrowLeft className="size-4" /> ย้อนกลับ
           </Button>
           {tab === 'general' && (
-            <Button size="lg" className="h-10 px-3" onClick={handleSave} disabled={saving}>
+            <Button size="lg" className="h-10 px-3" dirty={isDirty} onClick={handleSave} disabled={saving}>
               <Save className="size-4" /> {saving ? 'กำลังบันทึก...' : isNew ? 'เพิ่มสินค้า' : 'บันทึก'}
             </Button>
           )}
