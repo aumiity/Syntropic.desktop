@@ -18,7 +18,7 @@ metadata:
 
 ## UI
 - **`src/components/label/LabelDesigner.tsx` (ใหม่)** = designer เต็มรูปที่ generalize จาก LabelSettingsTab (preview 1:1 + กระดาษ/ขอบ + ตาราง per-section font/bold/offset + PositionPad + reset ตามขนาด) รับ prop `profile: 'drug'|'blank'` + `onActions?`
-  - `profile='blank'`: ซ่อนแถว **วันหมดอายุ** + การ์ด **บาร์โค้ด** (blankLabel.ts skip ทั้งคู่ — per-dispense data), ปุ่มพิมพ์ = งานพิมพ์จริงพร้อม stepper จำนวน (ไม่ใช่ทดสอบพิมพ์), ไม่มี onActions → ปุ่มบันทึกอยู่หัวการ์ด preview, มีโน้ต info "ตั้งค่าแยก ไม่กระทบฉลากยาจริง"
+  - `profile='blank'`: ซ่อนแถว **วันหมดอายุ** + การ์ด **บาร์โค้ด** (blankLabel.ts skip ทั้งคู่ — per-dispense data), ปุ่มพิมพ์ = งานพิมพ์จริงพร้อม stepper จำนวน (ไม่ใช่ทดสอบพิมพ์), มีโน้ต info "ตั้งค่าแยก ไม่กระทบฉลากยาจริง"; **ปุ่มบันทึก (UPD 2026-07-05): PrintTab ส่ง `onActions={setBlankActions}` → ปุ่มขึ้นไปอยู่บนแถบแท็บบนสุด ตำแหน่งเดียวกับ ตั้งค่า > ฉลากยา** (เดิมอยู่หัวการ์ด preview — เจ้าของขอย้ายให้เหมือนกัน)
   - **CheckRow "ใส่ช่องวันที่ (เขียนเอง)" ถูกถอดทิ้ง 2026-07-05 (เจ้าของชี้ว่าซ้ำ)** — ช่องวันที่บนฉลากเปล่าคุมด้วยแถว "วันที่" (`show_print_date`) ในตารางรูปแบบการพิมพ์ตัวเดียว; param `printDate` ของ `buildBlankLabelHtml` ตัดออกแล้ว (signature เหลือ `(settings, shop, copies)`) — อย่า re-add toggle ชั่วคราวซ้อน setting ถาวรอีก
   - **preview toggle ฉลากเปล่า/ตัวอย่าง ถูกถอดทิ้ง** — แต่ละ profile พรีวิว path ของตัวเองเท่านั้น (drug=sample, blank=blank) เพราะแยกกันแล้วโชว์ข้ามกันจะหลอกตา
 - `Settings/LabelSettingsTab.tsx` → thin wrapper `<LabelDesigner profile="drug" onActions/>`  (import path เดิมทุกจุดไม่แตก)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Checkbox, CheckRow } from '@/components/ui/checkbox'
@@ -62,6 +62,10 @@ export default function PrintTab() {
 
   const [mode, setMode] = useState<Mode>('sticker')
   const [copies, setCopies] = useState(1)
+  // บันทึก button lifted OUT of the blank designer onto the top tab strip
+  // (LabelDesigner onActions) — same spot as ตั้งค่า > ฉลากยา. Cleared to null
+  // by the designer's unmount cleanup when leaving blank mode.
+  const [blankActions, setBlankActions] = useState<ReactNode>(null)
   // Cells are kept per mode so switching back and forth doesn't lose work.
   // Sticker cells are page-local (quick to rebuild); the PRICE-TAG list lives in a
   // draft store so it survives navigating away (selling to a walk-in) and back.
@@ -276,6 +280,9 @@ export default function PrintTab() {
             <TabsTrigger value="blank" className="flex-1 px-4 py-2"><PenLine /> ฉลากเปล่า</TabsTrigger>
           </TabsList>
         </Tabs>
+        {/* Blank designer lifts its บันทึก button up here (onActions) so the save
+            sits on the tab strip — the SAME spot as ตั้งค่า > ฉลากยา. */}
+        {mode === 'blank' && blankActions}
       </div>
 
       {mode === 'blank' ? (
@@ -283,7 +290,7 @@ export default function PrintTab() {
            profile ('blank', seeded as a copy of the drug label), edited with the
            same per-section editor as ตั้งค่า > ฉลากยา. Preview/print live inside. */
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
-          <LabelDesigner profile="blank" />
+          <LabelDesigner profile="blank" onActions={setBlankActions} />
         </div>
       ) : (
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[5fr_4fr] gap-3 overflow-y-auto scrollbar-thin">
