@@ -98,6 +98,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
   const [shop, setShop] = useState<Partial<Setting>>({})
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
   const [saving, setSaving] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [subTab, setSubTab] = useState<'paper' | 'format'>('paper')
   // Preview zoom — the slip renders at true 1:1 mm (small on screen); zoom
@@ -130,8 +131,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     }).catch(() => setPrinters([]))
   }, [])
 
-  const setF = <K extends keyof ReceiptForm>(k: K, v: ReceiptForm[K]) =>
-    setForm(f => ({ ...f, [k]: v }))
+  const setF = <K extends keyof ReceiptForm>(k: K, v: ReceiptForm[K]) => { setForm(f => ({ ...f, [k]: v })); setIsDirty(true) }
 
   // auto_print isn't used by the slip builder (it's a POS behavior flag, not a
   // layout flag); supply a placeholder so the spread satisfies ReceiptSettings.
@@ -149,6 +149,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     setSaving(true)
     try {
       await window.api.settings.saveReceiptSettings(form)
+      setIsDirty(false)
       toast({ title: 'บันทึกการตั้งค่าใบเสร็จสำเร็จ', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
@@ -177,12 +178,12 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
   actRef.current = { handleSave }
   useEffect(() => {
     onActions?.(
-      <Button className="h-10" onClick={() => actRef.current.handleSave()} disabled={saving}>
+      <Button className="h-10" dirty={isDirty} onClick={() => actRef.current.handleSave()} disabled={saving}>
         <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
       </Button>
     )
     return () => onActions?.(null)
-  }, [onActions, saving])
+  }, [onActions, saving, isDirty])
 
   // Preview/test-print actions live INSIDE the preview card header (beside the
   // zoom control) — only บันทึก rides the top sub-tab strip.
