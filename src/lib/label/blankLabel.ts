@@ -192,73 +192,76 @@ function lineIdQtyRow(settings: LabelSettingsForm, shop: BlankLabelShop | null):
 // become blank write-in rows / circle choices; qty becomes a compact "[ ___ ]" box on
 // the shop_line_id row (lineIdQtyRow); expiry / barcode are skipped (per-dispense data
 // meaningless on a generic blank, and they fold onto host rows that still render so
-// alignment holds). Visibility honours
-// the same show_* toggles as the real label, so a section hidden in Settings is
-// hidden here too. Empty rows are filtered so the `.label-fit > :first-child`
-// margin reset lands on the true first row.
+// alignment holds). Visibility honours the same show_* toggles as the real label.
+//
+// NO row EVER collapses (owner decision 2026-07-05): every non-folded section
+// occupies exactly one slot — real content when it has any, otherwise the same
+// invisible space-reserving placeholder a toggled-OFF row gets. This kills the
+// trap where a row toggled ON but with nothing to show (e.g. LINE ID checked but
+// no LINE ID in shop settings, จำนวน unchecked) vanished and dragged every line
+// below it upward, wrecking the hand-tuned layout. The blank is a fixed FORM —
+// its geometry must never depend on which shop fields happen to be filled in.
+// (The real drug label in html.ts still compacts empty rows on purpose —
+// per-product content varies and gaps there waste sticker space.)
 function renderBlankInner(settings: LabelSettingsForm, shop: BlankLabelShop | null): string {
   const out: string[] = []
   for (const sec of SECTIONS) {
-    // Lines are INDEPENDENT (option 1, owner decision 2026-06-29) — same as the
-    // real label. Folded rows get no slot; a row toggled OFF reserves an
-    // invisible placeholder (buildReservedSlotStyle) so the rows below keep their
-    // position and the blank stays in lock-step with the real label's rhythm. A
-    // row toggled ON but with no write-in data still collapses (pushes '' →
-    // filtered) exactly as before.
+    // Folded rows never get a slot of their own (they ride a host row's right side).
     if (isFoldedSection(sec.key)) continue
-    if (!isSectionToggledOn(sec.key, settings)) {
-      const slot = styleToCss(buildReservedSlotStyle(sec, settings))
-      out.push(`<div style="${slot}">${sec.kind === 'line' ? '' : '&nbsp;'}</div>`)
-      continue
-    }
-    const css = styleToCss(buildSectionStyle(sec, settings))
-    switch (sec.key) {
-      case 'shop':
-        out.push(shopRow(settings, shop)); break
-      case 'print_date': break // folded into the shop row
-      case 'shop_address': {
-        // ที่อยู่ร้าน + เบอร์โทร share one line (phone merged up 2026-06-20).
-        // Gated by show_shop_address (the merged setting). Barcode never prints
-        // on a blank, so no fold here.
-        if (!settings.show_shop_address) break
-        const addr = shop?.shop_address?.trim() || ''
-        const phone = shop?.shop_phone?.trim() || ''
-        const merged = [addr, phone].filter(Boolean).join('  ')
-        if (merged) out.push(`<div style="${css}">${esc(merged)}</div>`)
-        break
+    let row = ''
+    if (isSectionToggledOn(sec.key, settings)) {
+      const css = styleToCss(buildSectionStyle(sec, settings))
+      switch (sec.key) {
+        case 'shop':
+          row = shopRow(settings, shop); break
+        case 'shop_address': {
+          // ที่อยู่ร้าน + เบอร์โทร share one line (phone merged up 2026-06-20).
+          // Gated by show_shop_address (the merged setting). Barcode never prints
+          // on a blank, so no fold here.
+          const addr = shop?.shop_address?.trim() || ''
+          const phone = shop?.shop_phone?.trim() || ''
+          const merged = [addr, phone].filter(Boolean).join('  ')
+          if (merged) row = `<div style="${css}">${esc(merged)}</div>`
+          break
+        }
+        case 'shop_phone': break // merged into the shop_address row (no own line)
+        case 'shop_line_id':
+          // LINE id (left) + จำนวน write-in (right) — mirrors the real label's
+          // shop_line_id row so the blank keeps the same vertical rhythm (see
+          // lineIdQtyRow). Empty when neither shows → reserved slot below.
+          row = lineIdQtyRow(settings, shop); break
+        case 'header_line':
+          if (settings.show_header_line) row = `<div style="${css}"></div>`
+          break
+        case 'product':
+          if (settings.show_product) row = fieldRow(css, 'ชื่อ'); break
+        case 'dosage':
+          // วิธีใช้ + ความถี่ on one shared line (frequency is no longer its own
+          // section as of 2026-06-20 — it folds into the dosage row).
+          if (settings.show_dosage) row = dosageFreqRow(css); break
+        case 'frequency': break // merged into the dosage row (no own line)
+        case 'timing':
+          if (settings.show_timing) row = timingRow(css); break
+        case 'indication':
+          if (settings.show_indication) row = fieldRow(css, 'ข้อบ่งใช้:'); break
+        case 'advice':
+          if (settings.show_advice) row = fieldRow(css, 'คำแนะนำ:'); break
+        case 'custom_text':
+          if (settings.show_custom_text && settings.custom_text?.trim())
+            row = `<div style="${css}">${esc(settings.custom_text).replace(/\n/g, '<br>')}</div>`
+          break
+        default: break // folded keys (print_date/qty/expiry/barcode) never reach here
       }
-      case 'shop_phone': break // merged into the shop_address row (no own line)
-      case 'shop_line_id':
-        // LINE id (left) + จำนวน write-in (right) — mirrors the real label's
-        // shop_line_id row so the blank keeps the same vertical rhythm (see
-        // lineIdQtyRow). Empty string when neither would show → filtered below.
-        out.push(lineIdQtyRow(settings, shop)); break
-      case 'header_line':
-        if (settings.show_header_line) out.push(`<div style="${css}"></div>`)
-        break
-      case 'product':
-        if (settings.show_product) out.push(fieldRow(css, 'ชื่อ')); break
-      case 'qty': break // qty folds onto the shop_line_id row (จำนวน write-in) — no own line
-      case 'dosage':
-        // วิธีใช้ + ความถี่ on one shared line (frequency is no longer its own
-        // section as of 2026-06-20 — it folds into the dosage row).
-        if (settings.show_dosage) out.push(dosageFreqRow(css)); break
-      case 'expiry': break // no lot expiry on a generic blank
-      case 'frequency': break // merged into the dosage row (no own line)
-      case 'timing':
-        if (settings.show_timing) out.push(timingRow(css)); break
-      case 'indication':
-        if (settings.show_indication) out.push(fieldRow(css, 'ข้อบ่งใช้:')); break
-      case 'advice':
-        if (settings.show_advice) out.push(fieldRow(css, 'คำแนะนำ:')); break
-      case 'barcode': break // a barcode needs a real product
-      case 'custom_text':
-        if (settings.show_custom_text && settings.custom_text?.trim())
-          out.push(`<div style="${css}">${esc(settings.custom_text).replace(/\n/g, '<br>')}</div>`)
-        break
     }
+    // Toggled OFF — or toggled ON with nothing to show — reserve the slot so
+    // every line below keeps its exact position.
+    if (!row) {
+      const slot = styleToCss(buildReservedSlotStyle(sec, settings))
+      row = `<div style="${slot}">${sec.kind === 'line' ? '' : '&nbsp;'}</div>`
+    }
+    out.push(row)
   }
-  return out.filter(Boolean).join('')
+  return out.join('')
 }
 
 // Build the full print/preview document for the blank label: `copies` pages, one
