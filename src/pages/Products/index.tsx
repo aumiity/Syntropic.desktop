@@ -44,6 +44,9 @@ export interface ProductsOutletContext {
   setStatusFilter: React.Dispatch<React.SetStateAction<UsageFilter>>
   typeFilter: TypeFilter
   setTypeFilter: React.Dispatch<React.SetStateAction<TypeFilter>>
+  // Child tabs lift action buttons (e.g. the blank-label designer's บันทึก)
+  // onto the page's MAIN tab row — same placement as Settings' onActions slot.
+  setTabActions: (node: React.ReactNode) => void
 }
 
 interface GlobalStats {
@@ -73,6 +76,9 @@ export default function ProductsLayout() {
   // Deriving from filters alone can't tell "stage 1/2 disabled" apart from a plain
   // สินค้า/ชุด type pick (same typeFilter value, different origin).
   const [disabledStage, setDisabledStage] = useState<0 | 1 | 2>(0)
+  // Action node lifted from the active child tab onto the main tab row (see
+  // ProductsOutletContext.setTabActions). Cleared by the child's unmount cleanup.
+  const [tabActions, setTabActions] = useState<React.ReactNode>(null)
 
   const refreshSummary = useCallback(() => {
     window.api.products.stockStats({ include_disabled: true, is_bundle: 0 })
@@ -127,7 +133,7 @@ export default function ProductsLayout() {
   }, [prodStats, bundleStats, typeFilter, statusFilter, disabledStage])
 
   const ctx = useMemo<ProductsOutletContext>(
-    () => ({ refreshSummary, statusFilter, setStatusFilter, typeFilter, setTypeFilter }),
+    () => ({ refreshSummary, statusFilter, setStatusFilter, typeFilter, setTypeFilter, setTabActions }),
     [refreshSummary, statusFilter, typeFilter],
   )
 
@@ -154,6 +160,11 @@ export default function ProductsLayout() {
             ))}
           </TabsList>
         </Tabs>
+        {/* Child-tab actions (e.g. blank-label บันทึก) ride the main tab row,
+            right-aligned in the same slot the เพิ่ม button uses. */}
+        {tab === 'print' && tabActions ? (
+          <div className="ml-auto flex items-center gap-2">{tabActions}</div>
+        ) : null}
         {tab !== 'print' && (
           <Popover>
             <PopoverTrigger asChild>
