@@ -28,23 +28,27 @@ export function renderLabelSectionsHtml(
   content: Partial<Record<SectionKey, string>>,
   date: string,
 ): string {
-  // Lines are INDEPENDENT (option 1, owner decision 2026-06-29) — mirror of
-  // LabelPaper. A row toggled OFF renders an invisible, space-reserving
-  // placeholder (buildReservedSlotStyle) instead of being dropped, so turning a
-  // line off leaves its slot empty and the lines below stay put. We iterate ALL
-  // of SECTIONS (no `.filter`); the 4 folded rows (print_date / barcode / qty /
-  // expiry) get no slot at all; the first DOM child's marginTop is zeroed by the
+  // NO row EVER collapses (owner decision 2026-07-05, extended from the blank
+  // label) — mirror of LabelPaper. Every non-folded section occupies exactly one
+  // slot: real content when it has any, otherwise the same invisible
+  // space-reserving placeholder (buildReservedSlotStyle) a toggled-OFF row gets.
+  // Toggled ON but empty (e.g. LINE ID checked but the shop has no LINE ID, a
+  // product with no สรรพคุณ text) reserves too, so the label's geometry never
+  // depends on which fields happen to be filled in. We iterate ALL of SECTIONS
+  // (no `.filter`); the 4 folded rows (print_date / barcode / qty / expiry) get
+  // no slot at all; the first DOM child's marginTop is zeroed by the
   // `.label-fit > div:first-child` CSS rule (placeholders are real divs, so the
   // first reserved/real div lands flush at the padding edge — matches React).
+  const reserved = (s: (typeof SECTIONS)[number]) => {
+    const slot = styleToCss(buildReservedSlotStyle(s, settings))
+    return `<div style="${slot}">${s.kind === 'line' ? '' : '&nbsp;'}</div>`
+  }
   return SECTIONS
     .map(s => {
       // Folded rows never get a slot (they ride a host row's right side).
       if (isFoldedSection(s.key)) return ''
       // Toggled OFF → reserve an invisible slot so the layout below stays put.
-      if (!isSectionToggledOn(s.key, settings)) {
-        const slot = styleToCss(buildReservedSlotStyle(s, settings))
-        return `<div style="${slot}">${s.kind === 'line' ? '' : '&nbsp;'}</div>`
-      }
+      if (!isSectionToggledOn(s.key, settings)) return reserved(s)
       if (s.kind === 'line') {
         return `<div style="${styleToCss(buildSectionStyle(s, settings))}"></div>`
       }
@@ -57,7 +61,7 @@ export function renderLabelSectionsHtml(
         const showName = !!settings.show_shop
         const showDate = !!settings.show_print_date && !!date
         const nameText = showName ? text : ''
-        if (!nameText && !showDate) return ''
+        if (!nameText && !showDate) return reserved(s)
         // Lift the shop offset OFF the flex container (it would drag the date too)
         // and re-apply it to the name span only; the date keeps its own offset.
         const secStyle = buildSectionStyle(s, settings)
@@ -85,7 +89,7 @@ export function renderLabelSectionsHtml(
         const addrText = settings.show_shop_address
           ? [text, content.shop_phone].filter(Boolean).join('  ')
           : ''
-        if (!addrText) return ''
+        if (!addrText) return reserved(s)
         const style = { ...buildSectionStyle(s, settings), whiteSpace: 'normal' } as CSSProperties
         return `<div style="${styleToCss(style)}">${esc(addrText)}</div>`
       }
@@ -97,7 +101,7 @@ export function renderLabelSectionsHtml(
         // otherwise-blank row). Must mirror LabelPaper (dual-render).
         const lineIdText = settings.show_shop_line_id ? text : ''
         const qtyText = settings.show_qty ? (content.qty ?? '') : ''
-        if (!lineIdText && !qtyText) return ''
+        if (!lineIdText && !qtyText) return reserved(s)
         // Lift the shop_line_id offset OFF the flex container (it would drag the qty
         // too) and re-apply to the text span only; qty keeps its own.
         const secStyle = buildSectionStyle(s, settings)
@@ -125,7 +129,7 @@ export function renderLabelSectionsHtml(
         // preview → print === preview. Must mirror LabelPaper (dual-render).
         const nameText = settings.show_product ? text : ''
         const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false, flat: true }) : ''
-        if (!nameText && !svg) return ''
+        if (!nameText && !svg) return reserved(s)
         // Lift the product offset OFF the flex container (it would drag the barcode
         // too) and re-apply to the name span only; the barcode keeps its own.
         const secStyle = buildSectionStyle(s, settings)
@@ -156,7 +160,7 @@ export function renderLabelSectionsHtml(
           ? [text, content.frequency].filter(Boolean).join(' ')
           : ''
         const expiryText = settings.show_expiry ? (content.expiry ?? '') : ''
-        if (!dosageText && !expiryText) return ''
+        if (!dosageText && !expiryText) return reserved(s)
         const secStyle = buildSectionStyle(s, settings)
         const dosageTransform = secStyle.transform
         const style = {
@@ -177,7 +181,7 @@ export function renderLabelSectionsHtml(
         const expirySpan = expiryText ? `<span style="${styleToCss(expiryStyle)}">${esc(expiryText)}</span>` : ''
         return `<div style="${styleToCss(style)}">${dosageSpan}${expirySpan}</div>`
       }
-      if (!text) return ''
+      if (!text) return reserved(s)
       const body = esc(text).replace(/\n/g, '<br>')
       return `<div style="${styleToCss(buildSectionStyle(s, settings))}">${body}</div>`
     })

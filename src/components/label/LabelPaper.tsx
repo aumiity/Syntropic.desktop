@@ -18,21 +18,22 @@ interface Props {
 }
 
 export function LabelPaper({ settings, content, date }: Props) {
-  // Lines are INDEPENDENT (option 1, owner decision 2026-06-29): every top-level
-  // row keeps a FIXED slot. A row whose show-toggle is OFF renders an invisible,
-  // space-reserving placeholder (buildReservedSlotStyle) instead of being dropped,
-  // so turning a line off no longer pulls the lines below it up — each line stays
-  // exactly where it was. We therefore iterate ALL of SECTIONS (no more `.filter`)
-  // and decide render-vs-reserve per row via isSectionToggledOn.
+  // NO row EVER collapses (owner decision 2026-07-05, extended from the blank
+  // label): every top-level row keeps a FIXED slot. A row whose show-toggle is
+  // OFF — or is ON but has nothing to show (e.g. LINE ID checked but the shop
+  // has no LINE ID, a product with no สรรพคุณ text) — renders an invisible,
+  // space-reserving placeholder (buildReservedSlotStyle) instead of being
+  // dropped, so no combination of toggles/data ever pulls the lines below it up.
+  // We therefore iterate ALL of SECTIONS (no more `.filter`) and every row
+  // resolves to either content or a reserved slot. Must mirror
+  // renderLabelSectionsHtml (dual-render).
   //
   // Four sections are never their OWN line — they fold into another row's flex
   // (right side): `print_date` → `shop`, `qty` → `shop_line_id`, `barcode` →
   // `product`, `expiry` → `dosage`. Those get NO slot at all (isFoldedSection),
   // reserved or otherwise. marginTop is killed on the first rendered/reserved
   // element so it sits flush at the padding edge (matches the print HTML
-  // `div:first-child` rule). A row toggled ON but with empty content still
-  // collapses (its branch returns null) — same as before; only the toggle drives
-  // reservation.
+  // `div:first-child` rule).
 
   // The configured family. Multi-word names (e.g. "Bai Jamjuree") MUST be
   // quoted in CSS. We re-apply this on EVERY text element below — not just the
@@ -50,6 +51,14 @@ export function LabelPaper({ settings, content, date }: Props) {
   // tags / stickers / blank form keep their own fit — that's intentional there.)
 
   let first = true
+  // Invisible space-reserving slot for a row that renders nothing (toggled off,
+  // or on with empty content) — consumes `first` like a real row so the flush-
+  // top rule stays consistent.
+  const reservedRow = (s: (typeof SECTIONS)[number]) => {
+    const slot: CSSProperties = buildReservedSlotStyle(s, settings)
+    if (first) { slot.marginTop = 0; first = false }
+    return <div key={s.key} style={slot}>{s.kind === 'line' ? undefined : '\u00A0'}</div>
+  }
   return (
     // Physical-paper preview: bg-white/text-black literals are intentional
     // (real-world ink on paper, not themed UI) and exempt from the
@@ -80,11 +89,7 @@ export function LabelPaper({ settings, content, date }: Props) {
         // Folded rows never get a slot (they ride a host row's right side).
         if (isFoldedSection(s.key)) return null
         // Toggled OFF → reserve an invisible slot so the layout below stays put.
-        if (!isSectionToggledOn(s.key, settings)) {
-          const slot: CSSProperties = buildReservedSlotStyle(s, settings)
-          if (first) { slot.marginTop = 0; first = false }
-          return <div key={s.key} style={slot}>{s.kind === 'line' ? undefined : '\u00A0'}</div>
-        }
+        if (!isSectionToggledOn(s.key, settings)) return reservedRow(s)
         const style: CSSProperties = buildSectionStyle(s, settings)
         if (s.kind === 'line') {
           if (first) { style.marginTop = 0; first = false }
@@ -102,7 +107,7 @@ export function LabelPaper({ settings, content, date }: Props) {
           const showName = !!settings.show_shop
           const showDate = !!settings.show_print_date && !!date
           const nameText = showName ? text : ''
-          if (!nameText && !showDate) return null
+          if (!nameText && !showDate) return reservedRow(s)
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
           // The shop offset must move ONLY the name, not the date. Lift the offset
@@ -138,7 +143,7 @@ export function LabelPaper({ settings, content, date }: Props) {
           const addrText = settings.show_shop_address
             ? [text, content.shop_phone].filter(Boolean).join('  ')
             : ''
-          if (!addrText) return null
+          if (!addrText) return reservedRow(s)
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
           return <div key={s.key} style={style}>{addrText}</div>
@@ -151,7 +156,7 @@ export function LabelPaper({ settings, content, date }: Props) {
           // on an otherwise-blank row). Must mirror renderLabelSectionsHtml.
           const lineIdText = settings.show_shop_line_id ? text : ''
           const qtyText = settings.show_qty ? (content.qty ?? '') : ''
-          if (!lineIdText && !qtyText) return null
+          if (!lineIdText && !qtyText) return reservedRow(s)
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
           // The shop_line_id offset must move ONLY the text, not the qty. Lift it off
@@ -181,7 +186,7 @@ export function LabelPaper({ settings, content, date }: Props) {
           // barcodeSvg → '' when blank). Bars only (no digits).
           const nameText = settings.show_product ? text : ''
           const svg = settings.show_barcode ? barcodeSvg(content.barcode ?? '', { displayValue: false, flat: true }) : ''
-          if (!nameText && !svg) return null
+          if (!nameText && !svg) return reservedRow(s)
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
           // The product offset must move ONLY the name, not the barcode. Lift it
@@ -226,7 +231,7 @@ export function LabelPaper({ settings, content, date }: Props) {
             ? [text, content.frequency].filter(Boolean).join(' ')
             : ''
           const expiryText = settings.show_expiry ? (content.expiry ?? '') : ''
-          if (!dosageText && !expiryText) return null
+          if (!dosageText && !expiryText) return reservedRow(s)
           if (first) { style.marginTop = 0; first = false }
           style.whiteSpace = 'normal'
           // The dosage offset must move ONLY the dosage text, not the expiry. Lift
@@ -249,7 +254,7 @@ export function LabelPaper({ settings, content, date }: Props) {
             </div>
           )
         }
-        if (!text) return null
+        if (!text) return reservedRow(s)
         if (first) { style.marginTop = 0; first = false }
         return <div key={s.key} style={style}>{text}</div>
       })}
