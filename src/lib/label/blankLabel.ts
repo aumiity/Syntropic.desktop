@@ -126,7 +126,7 @@ function shopRow(settings: LabelSettingsForm, shop: BlankLabelShop | null): stri
   } as CSSProperties)
   const nameSpan = name
     ? `<span style="${styleToCss({ transform: shopTransform, whiteSpace: 'nowrap' })}">${esc(name)}</span>`
-    : '<span></span>'
+    : '<span>&nbsp;</span>' // keep the row's own font line → date toggle can't shift rows below
   // The date block stays right-anchored (space-between) but its write-rule can
   // SHRINK (flex 0 1 18mm, min 6mm) so a wide shop name + "วันที่" + rule never
   // overflows the paper edge — the rule gives up width first, keeping everything on
@@ -140,7 +140,7 @@ function shopRow(settings: LabelSettingsForm, shop: BlankLabelShop | null): stri
   const dateSpan = showDate
     ? `<span style="${dateStyle}">` +
         `<span>${esc('วันที่')}</span>` +
-        writeRule('flex:0 1 18mm;min-width:10mm') +
+        writeRule('flex:0 1 10mm;min-width:10mm') +
       `</span>`
     : ''
   return `<div style="${style}">${nameSpan}${dateSpan}</div>`
@@ -170,8 +170,10 @@ function lineIdQtyRow(settings: LabelSettingsForm, shop: BlankLabelShop | null):
     ...secStyle, transform: undefined,
     whiteSpace: 'normal', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm',
   } as CSSProperties)
+  // &nbsp; on an empty LINE id keeps the row height pinned to the row's own
+  // font — toggling the qty box on/off never shifts the lines below.
   const lineIdSpan =
-    `<span style="${styleToCss({ transform: lineIdTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}">${esc(lineIdText)}</span>`
+    `<span style="${styleToCss({ transform: lineIdTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}">${lineIdText ? esc(lineIdText) : '&nbsp;'}</span>`
   const qtyStyle = styleToCss({
     fontSize:   `${settings.font_size_qty}pt`,
     fontWeight: settings.bold_qty ? 'bold' : 'normal',
@@ -182,7 +184,7 @@ function lineIdQtyRow(settings: LabelSettingsForm, shop: BlankLabelShop | null):
   // Compact "[ ___ ]" fill-in box — mirrors the real label's "[N]" qty format and
   // stays short so it never crowds the LINE id. ("จำนวน ___" was too wide.)
   const qtySpan = showQty
-    ? `<span style="${qtyStyle}"><span>${esc('[')}</span>${writeRule('flex:0 0 6mm;min-width:5mm')}<span>${esc(']')}</span></span>`
+    ? `<span style="${qtyStyle}"><span>${esc('[')}</span>${writeRule('flex:0 0 1mm;min-width:3mm')}<span>${esc(']')}</span></span>`
     : ''
   return `<div style="${style}">${lineIdSpan}${qtySpan}</div>`
 }

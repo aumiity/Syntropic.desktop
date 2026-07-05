@@ -129,7 +129,10 @@ export function LabelPaper({ settings, content, date }: Props) {
           }
           return (
             <div key={s.key} style={{ ...style, display: 'flex', justifyContent: 'space-between', gap: '4mm' }}>
-              <span style={{ fontFamily, transform: shopTransform }}>{nameText}</span>
+              {/* Empty left side still renders NBSP so the row's line box always
+                  includes the ROW's own font — toggling the folded partner can
+                  never change this row's height (mirrors html.ts). */}
+              <span style={{ fontFamily, transform: shopTransform }}>{nameText || '\u00A0'}</span>
               {showDate ? <span style={dateStyle}>{date}</span> : null}
             </div>
           )
@@ -173,7 +176,7 @@ export function LabelPaper({ settings, content, date }: Props) {
           }
           return (
             <div key={s.key} style={{ ...style, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm' }}>
-              <span style={{ fontFamily, transform: lineIdTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lineIdText}</span>
+              <span style={{ fontFamily, transform: lineIdTransform, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lineIdText || '\u00A0'}</span>
               {qtyText ? <span style={qtyStyle}>{qtyText}</span> : null}
             </div>
           )
@@ -207,7 +210,7 @@ export function LabelPaper({ settings, content, date }: Props) {
           }
           return (
             <div key={s.key} style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4mm' }}>
-              <span style={{ fontFamily, transform: nameTransform, minWidth: 0 }}>{nameText}</span>
+              <span style={{ fontFamily, transform: nameTransform, minWidth: 0 }}>{nameText || '\u00A0'}</span>
               {svg ? (
                 <img
                   src={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
@@ -249,7 +252,7 @@ export function LabelPaper({ settings, content, date }: Props) {
           }
           return (
             <div key={s.key} style={{ ...style, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4mm' }}>
-              <span style={{ fontFamily, transform: dosageTransform, minWidth: 0 }}>{dosageText}</span>
+              <span style={{ fontFamily, transform: dosageTransform, minWidth: 0 }}>{dosageText || '\u00A0'}</span>
               {expiryText ? <span style={expiryStyle}>{expiryText}</span> : null}
             </div>
           )

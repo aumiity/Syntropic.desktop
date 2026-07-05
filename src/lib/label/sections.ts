@@ -90,6 +90,9 @@ export interface LabelSettingsForm {
   // qty folds into the shop_address row (right); expiry folds into the dosage row (right).
   font_size_qty: number; font_size_expiry: number
   font_size_indication: number; font_size_advice: number; font_size_barcode: number
+  // Line sections reuse the font_size_<key> convention: value = rule THICKNESS
+  // in pt (not a font). Drives the designer's ขนาด column for the line row too.
+  font_size_header_line: number
   // Barcode is sized by a box: font_size_barcode = HEIGHT (mm), barcode_width_mm
   // = WIDTH (mm). Bars stretch to fill so every product's barcode is the same
   // footprint regardless of digit count.
@@ -139,6 +142,7 @@ export const LABEL_DEFAULTS: LabelSettingsForm = {
   font_size_product: 9, font_size_dosage: 9, font_size_timing: 9,
   font_size_qty: 9, font_size_expiry: 9,
   font_size_indication: 9, font_size_advice: 9, font_size_barcode: 4,
+  font_size_header_line: 0.5,
   barcode_width_mm: 26,
   font_size_custom_text: 9,
   // Bold only the shop name / address / phone / product name (date not bold).
@@ -253,7 +257,9 @@ export function buildSectionStyle(def: SectionDef, form: LabelSettingsForm): CSS
     position:  'relative',
   }
   if (def.kind === 'line') {
-    return { ...base, borderTop: '0.5pt solid #000', width: '100%' }
+    // Line sections: font_size_<key> = rule thickness in pt (0.5 = legacy look).
+    const pt = (form[`font_size_${def.key}` as keyof LabelSettingsForm] as number) || 0.5
+    return { ...base, borderTop: `${pt}pt solid #000`, width: '100%' }
   }
   const fontSize = form[`font_size_${def.key}` as keyof LabelSettingsForm] as number
   const bold = form[`bold_${def.key}` as keyof LabelSettingsForm] as number
@@ -303,7 +309,9 @@ export function buildReservedSlotStyle(def: SectionDef, form: LabelSettingsForm)
     position:   'relative',
   }
   if (def.kind === 'line') {
-    return { ...base, borderTop: '0.5pt solid #000', width: '100%' }
+    // Reserve the CONFIGURED thickness so a hidden thick line keeps its height.
+    const pt = (form[`font_size_${def.key}` as keyof LabelSettingsForm] as number) || 0.5
+    return { ...base, borderTop: `${pt}pt solid #000`, width: '100%' }
   }
   const fontSize = form[`font_size_${def.key}` as keyof LabelSettingsForm] as number
   return { ...base, fontSize: `${fontSize}pt`, whiteSpace: 'normal' }

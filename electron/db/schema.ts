@@ -474,6 +474,9 @@ export function initializeSchema(db: Database.Database) {
       -- FEFO lot) so they print blank outside the POS flow.
       font_size_qty           REAL NOT NULL DEFAULT 10,
       font_size_expiry        REAL NOT NULL DEFAULT 10,
+      -- Line sections reuse the font_size_<key> convention: value = rule
+      -- THICKNESS in pt (not a font). Drives the designer's ขนาด column too.
+      font_size_header_line   REAL NOT NULL DEFAULT 0.5,
       -- Per-section bold; only shop name / address / phone / product default on.
       bold_shop          INTEGER NOT NULL DEFAULT 1,
       bold_print_date    INTEGER NOT NULL DEFAULT 0,
@@ -1001,6 +1004,9 @@ export function initializeSchema(db: Database.Database) {
     // Existing singleton row becomes 'drug' via the DEFAULT; the 'blank' row is
     // lazily seeded (copy of drug) by settings:getLabelSettings.
     `ALTER TABLE label_settings ADD COLUMN profile TEXT NOT NULL DEFAULT 'drug'`,
+    // Header-line thickness (pt) — line sections reuse the font_size_<key>
+    // convention (value = rule thickness, not a font). 0.5 = the old hardcoded look.
+    `ALTER TABLE label_settings ADD COLUMN font_size_header_line REAL NOT NULL DEFAULT 0.5`,
     // product_labels restructure: persist the advice + time-of-day lookups and
     // the per-label default / show-barcode toggles. Without these columns the
     // saveLabel UPDATE (dynamic from Object.keys) threw "no such column".

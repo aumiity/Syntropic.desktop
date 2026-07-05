@@ -77,7 +77,10 @@ export function renderLabelSectionsHtml(
           transform:  `translate(${settings.offset_x_print_date}mm, ${settings.offset_y_print_date}mm)`,
         }
         const dateSpan = showDate ? `<span style="${styleToCss(dateStyle)}">${esc(date)}</span>` : ''
-        return `<div style="${styleToCss(style)}"><span style="${styleToCss(nameStyle)}">${esc(nameText)}</span>${dateSpan}</div>`
+        // Empty left side still renders &nbsp; so the row's line box always
+        // includes the ROW's own font — toggling the folded partner (date) can
+        // never change this row's height (matches the reserved-slot height).
+        return `<div style="${styleToCss(style)}"><span style="${styleToCss(nameStyle)}">${nameText ? esc(nameText) : '&nbsp;'}</span>${dateSpan}</div>`
       }
       if (s.key === 'shop_address') {
         // Special: ที่อยู่ร้าน + เบอร์โทร share one line (phone merged up
@@ -119,7 +122,9 @@ export function renderLabelSectionsHtml(
           transform:  `translate(${settings.offset_x_qty}mm, ${settings.offset_y_qty}mm)`,
         }
         const qtySpan = qtyText ? `<span style="${styleToCss(qtyStyle)}">${esc(qtyText)}</span>` : ''
-        return `<div style="${styleToCss(style)}"><span style="${styleToCss(lineIdStyle)}">${esc(lineIdText)}</span>${qtySpan}</div>`
+        // &nbsp; on an empty left side keeps the row height pinned to the row's
+        // own font — toggling qty on/off never shifts the lines below.
+        return `<div style="${styleToCss(style)}"><span style="${styleToCss(lineIdStyle)}">${lineIdText ? esc(lineIdText) : '&nbsp;'}</span>${qtySpan}</div>`
       }
       if (s.key === 'product') {
         // Special: product name (left, `product` style) + BARCODE (right, its OWN
@@ -141,7 +146,7 @@ export function renderLabelSectionsHtml(
         const nameStyle: CSSProperties = { transform: nameTransform, minWidth: 0 }
         const nameSpan = nameText
           ? `<span style="${styleToCss(nameStyle)}">${esc(nameText).replace(/\n/g, '<br>')}</span>`
-          : '<span></span>'
+          : '<span>&nbsp;</span>' // keep the row's own font line → barcode toggle can't shift rows below
         const barImg = svg
           ? `<img src="data:image/svg+xml;utf8,${encodeURIComponent(svg)}" style="height:${settings.font_size_barcode}mm;width:${settings.barcode_width_mm}mm;max-width:100%;flex-shrink:0;display:inline-block;transform:translate(${settings.offset_x_barcode}mm, ${settings.offset_y_barcode}mm)" />`
           : ''
@@ -177,7 +182,7 @@ export function renderLabelSectionsHtml(
         }
         const dosageSpan = dosageText
           ? `<span style="${styleToCss(dosageStyle)}">${esc(dosageText).replace(/\n/g, '<br>')}</span>`
-          : '<span></span>'
+          : '<span>&nbsp;</span>' // keep the row's own font line → expiry toggle can't shift rows below
         const expirySpan = expiryText ? `<span style="${styleToCss(expiryStyle)}">${esc(expiryText)}</span>` : ''
         return `<div style="${styleToCss(style)}">${dosageSpan}${expirySpan}</div>`
       }

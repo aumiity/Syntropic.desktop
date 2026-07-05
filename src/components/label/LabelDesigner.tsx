@@ -514,7 +514,14 @@ export function LabelDesigner({
                             </>
                           ) : (
                             <>
-                              <span className="w-20 shrink-0" />
+                              {/* Line sections: ขนาด = rule THICKNESS in pt
+                                  (font_size_<key> reused); no bold. */}
+                              <NumInput
+                                stepper
+                                value={form[fsKey] as number}
+                                onChange={n => setF(fsKey, n as never)}
+                                className="w-20" min={0.5} max={5} step={0.5} disabled={!visible}
+                              />
                               <span className="w-9 shrink-0" />
                             </>
                           )}
