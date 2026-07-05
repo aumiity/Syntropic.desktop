@@ -18,7 +18,8 @@ metadata:
 
 ## UI
 - **`src/components/label/LabelDesigner.tsx` (ใหม่)** = designer เต็มรูปที่ generalize จาก LabelSettingsTab (preview 1:1 + กระดาษ/ขอบ + ตาราง per-section font/bold/offset + PositionPad + reset ตามขนาด) รับ prop `profile: 'drug'|'blank'` + `onActions?`
-  - `profile='blank'`: ซ่อนแถว **วันหมดอายุ** + การ์ด **บาร์โค้ด** (blankLabel.ts skip ทั้งคู่ — per-dispense data), เพิ่ม CheckRow "ใส่ช่องวันที่", ปุ่มพิมพ์ = งานพิมพ์จริงพร้อม stepper จำนวน (ไม่ใช่ทดสอบพิมพ์), ไม่มี onActions → ปุ่มบันทึกอยู่หัวการ์ด preview, มีโน้ต info "ตั้งค่าแยก ไม่กระทบฉลากยาจริง"
+  - `profile='blank'`: ซ่อนแถว **วันหมดอายุ** + การ์ด **บาร์โค้ด** (blankLabel.ts skip ทั้งคู่ — per-dispense data), ปุ่มพิมพ์ = งานพิมพ์จริงพร้อม stepper จำนวน (ไม่ใช่ทดสอบพิมพ์), ไม่มี onActions → ปุ่มบันทึกอยู่หัวการ์ด preview, มีโน้ต info "ตั้งค่าแยก ไม่กระทบฉลากยาจริง"
+  - **CheckRow "ใส่ช่องวันที่ (เขียนเอง)" ถูกถอดทิ้ง 2026-07-05 (เจ้าของชี้ว่าซ้ำ)** — ช่องวันที่บนฉลากเปล่าคุมด้วยแถว "วันที่" (`show_print_date`) ในตารางรูปแบบการพิมพ์ตัวเดียว; param `printDate` ของ `buildBlankLabelHtml` ตัดออกแล้ว (signature เหลือ `(settings, shop, copies)`) — อย่า re-add toggle ชั่วคราวซ้อน setting ถาวรอีก
   - **preview toggle ฉลากเปล่า/ตัวอย่าง ถูกถอดทิ้ง** — แต่ละ profile พรีวิว path ของตัวเองเท่านั้น (drug=sample, blank=blank) เพราะแยกกันแล้วโชว์ข้ามกันจะหลอกตา
 - `Settings/LabelSettingsTab.tsx` → thin wrapper `<LabelDesigner profile="drug" onActions/>`  (import path เดิมทุกจุดไม่แตก)
 - `Products/PrintTab/index.tsx` โหมด blank → render `<LabelDesigner profile="blank"/>` ทั้งก้อน; ลบ state `shop`/`printDate` + blank branch ใน preview effect / handlePrint / QtyDialog ออกหมด; **`label` (drug settings) ยังอยู่ เพราะโหมดสติ๊กเกอร์ใช้กระดาษ/เครื่องพิมพ์เดียวกับฉลากยา — อย่าลบ**

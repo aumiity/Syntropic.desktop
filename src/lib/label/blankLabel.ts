@@ -111,12 +111,12 @@ function timingRow(sectionCss: string): string {
 // shop handling (renderLabelSectionsHtml): lift the shop offset OFF the flex
 // container and re-apply to the name span only so the date keeps its own offset.
 // On a blank this is a WRITE-IN line — "วันที่ ____" with a rule to fill by hand —
-// not today's printed date (the staff dates it themselves). It shows when
-// `printDate` is on; otherwise the right side is blank.
-function shopRow(settings: LabelSettingsForm, shop: BlankLabelShop | null, printDate: boolean): string {
+// not today's printed date (the staff dates it themselves). Gated by the same
+// `show_print_date` setting as the real label; otherwise the right side is blank.
+function shopRow(settings: LabelSettingsForm, shop: BlankLabelShop | null): string {
   const sec = SECTIONS.find(s => s.key === 'shop')!
   const name = settings.show_shop ? (shop?.shop_name?.trim() || '') : ''
-  const showDate = printDate && !!settings.show_print_date
+  const showDate = !!settings.show_print_date
   if (!name && !showDate) return ''
   const secStyle = buildSectionStyle(sec, settings)
   const shopTransform = secStyle.transform
@@ -140,7 +140,7 @@ function shopRow(settings: LabelSettingsForm, shop: BlankLabelShop | null, print
   const dateSpan = showDate
     ? `<span style="${dateStyle}">` +
         `<span>${esc('วันที่')}</span>` +
-        writeRule('flex:0 1 18mm;min-width:16mm') +
+        writeRule('flex:0 1 18mm;min-width:10mm') +
       `</span>`
     : ''
   return `<div style="${style}">${nameSpan}${dateSpan}</div>`
@@ -196,7 +196,7 @@ function lineIdQtyRow(settings: LabelSettingsForm, shop: BlankLabelShop | null):
 // the same show_* toggles as the real label, so a section hidden in Settings is
 // hidden here too. Empty rows are filtered so the `.label-fit > :first-child`
 // margin reset lands on the true first row.
-function renderBlankInner(settings: LabelSettingsForm, shop: BlankLabelShop | null, printDate: boolean): string {
+function renderBlankInner(settings: LabelSettingsForm, shop: BlankLabelShop | null): string {
   const out: string[] = []
   for (const sec of SECTIONS) {
     // Lines are INDEPENDENT (option 1, owner decision 2026-06-29) — same as the
@@ -214,7 +214,7 @@ function renderBlankInner(settings: LabelSettingsForm, shop: BlankLabelShop | nu
     const css = styleToCss(buildSectionStyle(sec, settings))
     switch (sec.key) {
       case 'shop':
-        out.push(shopRow(settings, shop, printDate)); break
+        out.push(shopRow(settings, shop)); break
       case 'print_date': break // folded into the shop row
       case 'shop_address': {
         // ที่อยู่ร้าน + เบอร์โทร share one line (phone merged up 2026-06-20).
@@ -271,11 +271,10 @@ export async function buildBlankLabelHtml(
   settings: LabelSettingsForm,
   shop: BlankLabelShop | null,
   copies: number,
-  printDate = false,
 ): Promise<string> {
   const n = Math.max(1, Math.min(99, Math.floor(copies) || 1))
   const fontFaceCss = await buildPrintFontFaceCss(settings.font_family)
-  const inner = renderBlankInner(settings, shop, printDate)
+  const inner = renderBlankInner(settings, shop)
 
   const pageStyle = [
     `width:${settings.width_mm}mm`,

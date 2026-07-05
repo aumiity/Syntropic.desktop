@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SectionCard } from '@/components/ui/card'
 import { FormField } from '@/components/ui/label'
-import { Checkbox, CheckRow } from '@/components/ui/checkbox'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ZoomControl } from '@/components/ui/zoom-control'
 import { NumInput, useHoldRepeat } from '@/components/ui/num-input'
@@ -119,9 +119,6 @@ export function LabelDesigner({
   const [customSizeMode, setCustomSizeMode] = useState(false)
   // Real shop info for the preview header (ชื่อร้าน / ที่อยู่ / เบอร์ / LINE ID).
   const [shop, setShop] = useState<any>(null)
-  // Blank profile only: print today's date in the shop row, or leave a write-in
-  // box. Pre-printed stock → uncheck; print-on-demand → keep checked.
-  const [printDate, setPrintDate] = useState(true)
   // Blank profile only: real print copies (the drug designer only test-prints 1).
   const [copies, setCopies] = useState(1)
   // Pending confirmation before applying size defaults. `mode` distinguishes the
@@ -181,17 +178,17 @@ export function LabelDesigner({
   }), [shop])
 
   // Debounced rebuild of the preview whenever the form (paper / font / offsets /
-  // show toggles), shop header, or the blank date toggle changes.
+  // show toggles) or the shop header changes.
   useEffect(() => {
     let cancelled = false
     const t = setTimeout(async () => {
       const html = isBlank
-        ? await buildBlankLabelHtml(form, shop, 1, printDate)
+        ? await buildBlankLabelHtml(form, shop, 1)
         : await buildLabelHtml(form, sampleContent, todayBE())
       if (!cancelled) setPreviewHtml(html)
     }, 200)
     return () => { cancelled = true; clearTimeout(t) }
-  }, [form, shop, isBlank, printDate, sampleContent])
+  }, [form, shop, isBlank, sampleContent])
 
   const setF = <K extends keyof LabelSettingsForm>(k: K, v: LabelSettingsForm[K]) =>
     setForm(f => ({ ...f, [k]: v }))
@@ -244,7 +241,7 @@ export function LabelDesigner({
     if (!validatePaper()) return
     const n = isBlank ? Math.min(50, Math.max(1, Math.round(copies))) : 1
     const html = isBlank
-      ? await buildBlankLabelHtml(form, shop, n, printDate)
+      ? await buildBlankLabelHtml(form, shop, n)
       : await buildLabelHtml(form, sampleContent, todayBE())
 
     setPrinting(true)
@@ -369,12 +366,6 @@ export function LabelDesigner({
             <div className="pr-1">
               <TabsContent value="paper" className="space-y-3 mt-0">
                 <SectionCard icon={Printer} title="ตั้งค่า" tint="primary">
-                  {isBlank && (
-                    <div className="flex items-start gap-1.5 rounded-lg border border-info/30 bg-info-soft p-2.5 text-xs text-info-soft-foreground">
-                      <Info className="size-4 shrink-0 mt-0.5" />
-                      <span>ฉลากเปล่ามีการตั้งค่าแยกเป็นของตัวเอง — ปรับที่นี่ไม่กระทบฉลากยาจริง (ตั้งค่า &gt; ฉลากยา)</span>
-                    </div>
-                  )}
                   <FormField label="เครื่องพิมพ์">
                     <Select value={form.printer_name || '__default__'} onValueChange={v => setF('printer_name', v === '__default__' ? '' : v)}>
                       <SelectTrigger variant="elevated" className="w-full">
@@ -435,15 +426,6 @@ export function LabelDesigner({
                       <span />
                     </div>
                   </FormField>
-                  {isBlank && (
-                    <CheckRow
-                      framed
-                      className="h-12"
-                      label="ใส่ช่องวันที่ (เขียนเอง)"
-                      checked={printDate}
-                      onChange={setPrintDate}
-                    />
-                  )}
                   <div className="pt-1">
                     <Button
                       type="button"
