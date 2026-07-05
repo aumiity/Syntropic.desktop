@@ -18,6 +18,7 @@ export function ShopTab() {
   const { toast } = useToast()
   const [form, setForm] = useState<Partial<Setting>>({})
   const [saving, setSaving] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
   // DEV ONLY — toggles the setup-wizard preview overlay.
   const [previewSetup, setPreviewSetup] = useState(false)
   // DEV ONLY — toggles the login-screen mockup overlay.
@@ -27,12 +28,13 @@ export function ShopTab() {
     window.api.settings.getShop().then(data => setForm((data as Setting) ?? {}))
   }, [])
 
-  const setF = (k: keyof Setting, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const setF = (k: keyof Setting, v: string) => { setForm(f => ({ ...f, [k]: v })); setIsDirty(true) }
 
   const handleSave = async () => {
     setSaving(true)
     try {
       await window.api.settings.saveShop(form)
+      setIsDirty(false)
       toast({ title: 'บันทึกข้อมูลร้านสำเร็จ', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
@@ -56,7 +58,7 @@ export function ShopTab() {
             <Button variant="elevated" onClick={() => setPreviewLogin(true)}>
               <Eye className="size-4" />ดูตัวอย่าง Login (DEV)
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button dirty={isDirty} onClick={handleSave} disabled={saving}>
               <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
           </div>
