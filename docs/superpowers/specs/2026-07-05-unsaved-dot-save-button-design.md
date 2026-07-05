@@ -31,6 +31,8 @@
 
 ### 3.1 Primitive — prop `dirty` บน `Button`
 
+> ยืนยันหน้าตาจาก mockup (2026-07-05): **จุด 8px · สีส้ม warning · นิ่งไม่กะพริบ**
+
 แก้ `src/components/ui/button.tsx`: เพิ่ม prop `dirty?: boolean`
 
 - `dirty === true` → เรนเดอร์จุดกลม **นำหน้า** `children` (จุด → ไอคอน Save → ข้อความ)
