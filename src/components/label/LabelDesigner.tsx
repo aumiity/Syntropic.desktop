@@ -138,17 +138,25 @@ export function LabelDesigner({
   // exactly what ITS profile prints, never the other's.
   const [previewHtml, setPreviewHtml] = useState('')
 
+  // Baseline snapshot of `form` at load / after save. isDirty = form ต่างจาก baseline.
+  // null = ยังไม่โหลด → ถือว่าไม่ dirty (กันจุดเด้งตอนเริ่ม). ผูกกับ load effect [profile]
+  // จึงรีเซ็ตเองเมื่อสลับ drug ↔ blank.
+  const savedRef = React.useRef<string | null>(null)
+  const isDirty = savedRef.current != null && JSON.stringify(form) !== savedRef.current
+
   // Load settings — explicit per-key overwrite to keep stale UI-only keys out
   // of `form` (which would later poison the dynamic-SQL UPDATE).
   useEffect(() => {
     window.api.settings.getLabelSettings(profile).then(data => {
-      if (!data) return
       setForm(prev => {
         const next = { ...prev }
-        for (const k of Object.keys(prev) as (keyof LabelSettingsForm)[]) {
-          const v = (data as any)[k]
-          if (v !== undefined && v !== null) (next as any)[k] = v
+        if (data) {
+          for (const k of Object.keys(prev) as (keyof LabelSettingsForm)[]) {
+            const v = (data as any)[k]
+            if (v !== undefined && v !== null) (next as any)[k] = v
+          }
         }
+        savedRef.current = JSON.stringify(next)
         return next
       })
     })
@@ -215,6 +223,7 @@ export function LabelDesigner({
     setSaving(true)
     try {
       await window.api.settings.saveLabelSettings(form, profile)
+      savedRef.current = JSON.stringify(form)
       toast({ title: 'บันทึกการตั้งค่าฉลากสำเร็จ', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
@@ -269,12 +278,12 @@ export function LabelDesigner({
   React.useEffect(() => {
     if (!onActions) return
     onActions(
-      <Button className="h-10" onClick={() => actRef.current.handleSave()} disabled={saving}>
+      <Button className="h-10" dirty={isDirty} onClick={() => actRef.current.handleSave()} disabled={saving}>
         <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
       </Button>
     )
     return () => onActions(null)
-  }, [onActions, saving])
+  }, [onActions, saving, isDirty])
 
   // Preview/print actions live INSIDE the preview card header (beside the zoom
   // control). Without an onActions slot (blank designer embedded in PrintTab)
@@ -290,7 +299,7 @@ export function LabelDesigner({
         <Printer className="size-4" />{printing ? 'กำลังพิมพ์...' : isBlank ? 'พิมพ์' : 'ทดสอบพิมพ์'}
       </Button>
       {!onActions && (
-        <Button className="h-9" onClick={handleSave} disabled={saving}>
+        <Button className="h-9" dirty={isDirty} onClick={handleSave} disabled={saving}>
           <Save className="size-4" />{saving ? 'กำลังบันทึก...' : 'บันทึก'}
         </Button>
       )}
