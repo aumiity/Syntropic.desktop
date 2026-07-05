@@ -54,7 +54,7 @@ import {
   AlertTriangle, CheckCircle, Package, ChevronRight,
   TrendingUp, TrendingDown, FileText, Boxes, AlertCircle, Coins, Building2,
   Settings2, Filter, Wallet, MoreHorizontal, Clock, PackageOpen,
-  RotateCcw, Printer, History, EyeOff, ClipboardList, Users, CreditCard,
+  RotateCcw, Printer, History, EyeOff, ClipboardList, Users, CreditCard, Save,
 } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
 import { PriceInput } from '@/components/ui/price-input'
@@ -429,6 +429,11 @@ export default function Theme() {
                   <Button variant="warning">Warning</Button>
                   <Button variant="destructive">Destructive</Button>
                   <Button variant="info">Info</Button>
+                </DemoRow>
+                <DemoRow label="Unsaved indicator (prop dirty) — จุดส้ม = ยังไม่บันทึก">
+                  <Button dirty><Save className="size-4" /> บันทึก</Button>
+                  <Button><Save className="size-4" /> บันทึก</Button>
+                  <Button variant="elevated" dirty><Save className="size-4" /> บันทึก</Button>
                 </DemoRow>
                 <DemoRow label="Status — soft">
                   <Button variant="primary-soft">Primary-soft</Button>

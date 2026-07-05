@@ -201,11 +201,30 @@ type ButtonProps = React.ComponentProps<"button"> &
     tooltip?: React.ReactNode
     /** Side the tooltip pops out toward. Defaults to "top". */
     tooltipSide?: React.ComponentProps<typeof TooltipContent>["side"]
+    /** Unsaved-changes indicator — shows an orange dot before the content. Ignored when asChild (Slot takes a single child). */
+    dirty?: boolean
   }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", asChild = false, tooltip, tooltipSide = "top", "aria-label": ariaLabel, ...props }, ref) => {
+  ({ className, variant = "default", size = "default", asChild = false, dirty = false, tooltip, tooltipSide = "top", "aria-label": ariaLabel, children, ...props }, ref) => {
   const Comp = asChild ? Slot.Root : "button"
+
+  // asChild → Slot requires exactly one child element, so never inject the dot there.
+  const showDot = !!dirty && !asChild
+  const content = asChild
+    ? children
+    : (
+      <>
+        {showDot && (
+          <span
+            data-slot="button-dirty-dot"
+            aria-hidden="true"
+            className="size-2 shrink-0 rounded-full bg-warning"
+          />
+        )}
+        {children}
+      </>
+    )
 
   const button = (
     <Comp
@@ -216,7 +235,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       aria-label={ariaLabel ?? (typeof tooltip === "string" ? tooltip : undefined)}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {content}
+    </Comp>
   )
 
   if (tooltip == null) return button
