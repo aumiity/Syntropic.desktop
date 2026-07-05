@@ -26,13 +26,15 @@ const DEFAULT_FORM: SalesForm = {
   qty_multiplier_enabled: 1,
 }
 
-export function SalesTab({ registerSave, saving, setSaving }: {
+export function SalesTab({ registerSave, saving, setSaving, setDirty }: {
   registerSave: (fn: () => void) => void
   saving: boolean
   setSaving: (v: boolean) => void
+  setDirty?: (v: boolean) => void
 }) {
   const { toast } = useToast()
   const [form, setForm] = useState<SalesForm>(DEFAULT_FORM)
+  const [isDirty, setIsDirty] = useState(false)
   // พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน — UI ย้ายมาอยู่ที่นี่ แต่ค่ายังเก็บที่
   // receipt_settings.auto_print (POS อ่านผ่าน getReceiptSettings) จึงโหลด/บันทึก
   // แยกผ่าน get/saveReceiptSettings ไม่ใช่ผ่าน sales_settings.
@@ -75,8 +77,7 @@ export function SalesTab({ registerSave, saving, setSaving }: {
     loadVatStatus()
   }, [loadVatStatus])
 
-  const setF = <K extends keyof SalesForm>(k: K, v: SalesForm[K]) =>
-    setForm(f => ({ ...f, [k]: v }))
+  const setF = <K extends keyof SalesForm>(k: K, v: SalesForm[K]) => { setForm(f => ({ ...f, [k]: v })); setIsDirty(true) }
 
   const handleSave = useCallback(async () => {
     setSaving(true)
@@ -87,6 +88,7 @@ export function SalesTab({ registerSave, saving, setSaving }: {
         window.api.settings.saveSalesSettings(form),
         window.api.settings.saveReceiptSettings({ auto_print: autoPrint }),
       ])
+      setIsDirty(false)
       toast({ title: 'บันทึกการตั้งค่าการขายสำเร็จ', variant: 'success' })
     } catch (e: any) {
       toast({ title: 'บันทึกไม่สำเร็จ', description: e?.message ?? '', variant: 'error' })
@@ -96,6 +98,8 @@ export function SalesTab({ registerSave, saving, setSaving }: {
   }, [form, autoPrint, setSaving, toast])
 
   useEffect(() => { registerSave(handleSave) }, [handleSave, registerSave])
+
+  useEffect(() => { setDirty?.(isDirty) }, [isDirty, setDirty])
 
   const expiryOn = !!form.expiry_alert_enabled
 
@@ -220,7 +224,7 @@ export function SalesTab({ registerSave, saving, setSaving }: {
                 className="w-full h-12 px-3"
                 label="พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน"
                 checked={!!autoPrint}
-                onChange={v => setAutoPrint(v ? 1 : 0)}
+                onChange={v => { setAutoPrint(v ? 1 : 0); setIsDirty(true) }}
               />
             </div>
 

@@ -20,6 +20,7 @@ export default function SettingsPage() {
   usePublishDevTab(tab) // DEV ONLY — surfaces open sub-tab file in TitleBar path
   const salesSaveFn = useRef<() => void>()
   const [salesSaving, setSalesSaving] = useState(false)
+  const [salesDirty, setSalesDirty] = useState(false)
   // The active การพิมพ์ sub-tab forwards its บันทึก button up here so it lands on
   // the MAIN tab row (same spot as the การขาย save button), not the sub-tab strip.
   const [printersActions, setPrintersActions] = useState<ReactNode>(null)
@@ -59,7 +60,7 @@ export default function SettingsPage() {
           </TabsList>
         </Tabs>
         {tab === 'sales' && (
-          <Button className="h-10 ml-auto" onClick={() => salesSaveFn.current?.()} disabled={salesSaving}>
+          <Button className="h-10 ml-auto" dirty={salesDirty} onClick={() => salesSaveFn.current?.()} disabled={salesSaving}>
             <Save className="size-4" />{salesSaving ? 'กำลังบันทึก...' : 'บันทึก'}
           </Button>
         )}
@@ -86,6 +87,7 @@ export default function SettingsPage() {
                 registerSave={fn => { salesSaveFn.current = fn }}
                 saving={salesSaving}
                 setSaving={setSalesSaving}
+                setDirty={setSalesDirty}
               />
             </div>
           </div>
