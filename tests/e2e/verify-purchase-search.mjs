@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const projectRoot = pathMod.resolve(pathMod.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const electronExe = pathMod.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe')
+const electronExe = process.platform === 'win32' ? pathMod.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe') : process.platform === 'darwin' ? pathMod.join(projectRoot, 'node_modules', 'electron', 'dist', 'Electron.app', 'Contents', 'MacOS', 'Electron') : pathMod.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron')
 const userDataDir = fsSync.mkdtempSync(pathMod.join(os.tmpdir(), 'syntropic-pur-e2e-'))
 const screenshotDir = pathMod.join(os.tmpdir(), 'syntropic-screenshots')
 fsSync.mkdirSync(screenshotDir, { recursive: true })
@@ -25,7 +25,7 @@ try{
   const setup=await apiCall(page,'settings.completeSetup',{shop:{shop_name:'E2E Pharmacy'},vat:{vat_enabled:false},adminPassword:ADMIN_PW})
   if(!setup.ok)throw new Error('setup:'+setup.error);console.log('Setup done')
   const users=(await apiCall(page,'auth.listLoginUsers')).value||[]
-  const admin=users.find(u=>u.role==='admin')
+  const admin=users.find(u=>(u.role==='owner'||u.role==='admin'))
   if(!admin)throw new Error('no admin user')
   const la=await apiCall(page,'auth.login',admin.id,ADMIN_PW)
   if(!la.ok)throw new Error('login:'+la.error);console.log('Logged in id='+admin.id)

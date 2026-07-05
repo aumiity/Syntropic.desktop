@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const projectRoot = pathMod.resolve(pathMod.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const electronExe = pathMod.join(projectRoot, 'node_modules', 'electron', 'dist', 'Electron.app', 'Contents', 'MacOS', 'Electron')
+const electronExe = process.platform === 'win32' ? pathMod.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe') : process.platform === 'darwin' ? pathMod.join(projectRoot, 'node_modules', 'electron', 'dist', 'Electron.app', 'Contents', 'MacOS', 'Electron') : pathMod.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron')
 const userDataDir = fsSync.mkdtempSync(pathMod.join(os.tmpdir(), 'syntropic-dash-e2e-'))
 const shotDir = pathMod.join(projectRoot, 'tests', 'e2e', '_shots')
 fsSync.mkdirSync(shotDir, { recursive: true })
@@ -165,8 +165,10 @@ try {
   await page.screenshot({path:pathMod.join(shotDir,'dashboard-alerts.png'),fullPage:false})
 
   // ── CHECK 6: Pagination buttons ──
-  const prevPag = page.locator('button[title="ก่อนหน้า"]')
-  const nextPag = page.locator('button[title="ถัดไป"]')
+  // Scope to the alert-table footer buttons (h-9 w-9 elevated) — the period
+  // picker's prev/next arrows share the same title but are size-8 ghost.
+  const prevPag = page.locator('button[title="ก่อนหน้า"][class*="w-9"]')
+  const nextPag = page.locator('button[title="ถัดไป"][class*="w-9"]')
   check('6a: ปุ่ม pagination "ก่อนหน้า"', await prevPag.count() > 0)
   check('6b: ปุ่ม pagination "ถัดไป"', await nextPag.count() > 0)
   if (await prevPag.count() > 0) {

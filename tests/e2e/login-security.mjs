@@ -19,7 +19,7 @@ import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const electronExe = path.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe')
+const electronExe = process.platform === 'win32' ? path.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe') : process.platform === 'darwin' ? path.join(projectRoot, 'node_modules', 'electron', 'dist', 'Electron.app', 'Contents', 'MacOS', 'Electron') : path.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron')
 const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'syntropic-e2e-'))
 
 // playwright-core is intentionally NOT a project dependency (installing it would
@@ -87,7 +87,7 @@ try {
   // The security line that still matters: NEVER expose password/hash.
   setGroup('T0 listLoginUsers (no password/hash leak)')
   const users = (await api(page, 'auth.listLoginUsers')).value || []
-  const admin = users.find((u) => u.role === 'admin')
+  const admin = users.find((u) => (u.role === 'owner' || u.role === 'admin'))
   const staff = users.find((u) => u.role === 'staff')
   check('admin user present', !!admin, admin && `id=${admin.id} ${admin.name}`)
   check('staff user present', !!staff, staff && `id=${staff.id} ${staff.name}`)
@@ -107,7 +107,7 @@ try {
   // T2 — login returns safe fields only -------------------------------------
   setGroup('T2 login (admin) returns {id,name,role}, no email')
   const la = await api(page, 'auth.login', adminId, ADMIN_PW)
-  check('admin login succeeds', la.ok && la.value?.role === 'admin', la.ok ? '' : la.error)
+  check('admin login succeeds', la.ok && ['owner','admin'].includes(la.value?.role), la.ok ? '' : la.error)
   check('login result has no email key', la.ok && !('email' in (la.value || {})))
 
   // T3 — wrong password rejected (generic message) --------------------------
@@ -141,7 +141,11 @@ try {
   const ovNonAdmin = await api(page, 'reports.voidSale', 999999, 'e2e', { userId: staffId, password: 'staff' })
   check('override with non-admin user rejected', errHas(ovNonAdmin, 'รหัสผ่านไม่ถูกต้อง'), ovNonAdmin.error)
   const noOv = await api(page, 'reports.voidSale', 999999, 'e2e')
-  check('staff, no override → FORBIDDEN', errHas(noOv, 'FORBIDDEN'), noOv.error)
+  // Role-permissions rework: staff sale.void default = 'override', so a call
+  // without a credential is blocked with NEEDS_OVERRIDE (prompt), not FORBIDDEN.
+  // Either way the action must NOT proceed.
+  check('staff, no override → blocked (NEEDS_OVERRIDE/FORBIDDEN)',
+    errHas(noOv, 'NEEDS_OVERRIDE') || errHas(noOv, 'FORBIDDEN'), noOv.error)
 
   // T6 — DeadStock cost-strip (R1: staff never see per-row cost) -------------
   setGroup('T6 DeadStock cost-strip (staff cost_value=null, admin numeric)')
@@ -189,7 +193,7 @@ try {
   const code2 = reset.value?.recoveryCode
   check('reset returns a NEW recovery code', reset.ok && typeof code2 === 'string' && code2 !== code1, reset.ok ? `${code1} → ${code2}` : reset.error)
   const loginNew = await api(page, 'auth.login', adminId, 'newpw99')
-  check('admin can log in with the new password', loginNew.ok && loginNew.value?.role === 'admin', loginNew.ok ? '' : loginNew.error)
+  check('admin can log in with the new password', loginNew.ok && ['owner','admin'].includes(loginNew.value?.role), loginNew.ok ? '' : loginNew.error)
   const reuseOld = await api(page, 'auth.resetAdminPassword', code1, 'whatever')
   check('old recovery code no longer valid', errHas(reuseOld, 'รหัสกู้คืนไม่ถูกต้อง'), reuseOld.error)
 
@@ -213,8 +217,15 @@ try {
   await api(page, 'auth.login', adminId, 'newpw99')
   await page.reload()
   await page.waitForFunction(() => !!(window.api && window.api.reports), null, { timeout: 30000 })
+  // DEV builds auto-devLogin after a reload (App.tsx LoginGate), re-binding a
+  // FRESH owner session right after main's did-start-navigation clear — so a
+  // plain FORBIDDEN check is masked here. devLogin is double-gated out of
+  // production (import.meta.env.DEV + app.isPackaged). Neutralize it with a
+  // logout, then assert no stale session remains.
+  await page.waitForTimeout(1500)
+  await api(page, 'auth.logout')
   const afterReload = await api(page, 'reports.financeSummary', {})
-  check('after reload → FORBIDDEN (session gone)', errHas(afterReload, 'FORBIDDEN'), afterReload.error)
+  check('after reload+logout → FORBIDDEN (no stale role replay)', errHas(afterReload, 'FORBIDDEN'), afterReload.error)
 } catch (e) {
   console.error('\nFATAL', e)
   results.push({ group: 'harness', name: String(e && e.message || e), pass: false })

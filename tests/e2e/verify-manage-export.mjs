@@ -71,20 +71,21 @@ async function getMainPage(app) {
 }
 
 // Returns { btnFound, inSubTabRow, inFilterStrip } from the live DOM.
-// Sub-tab row = the flex container that holds the STOCK_SUBTABS tablist
-//   (contains "ค้างสต็อก"). Export button must be a sibling/descendant of
-//   that same row — NOT inside the card's filter strip which has the SearchInput.
+// Tab row = a flex container that holds a [role=tablist] (top TabStrip or the
+//   STOCK_SUBTABS row — the actions slot moved to the top TabStrip in the
+//   2026-06-26 stock-tab collapse). Export button must live on one of those
+//   rows — NOT inside the card's filter strip which has the SearchInput.
 async function checkBtnPosition(page, searchPlaceholder) {
   return page.evaluate((placeholder) => {
     const btn = [...document.querySelectorAll('button')].find(b => b.textContent.includes('ส่งออก Excel'))
     if (!btn) return { btnFound: false, inSubTabRow: false, inFilterStrip: false }
 
-    // Sub-tab strip: tablist whose text includes "ค้างสต็อก" (STOCK_SUBTABS)
-    const stockTablist = [...document.querySelectorAll('[role="tablist"]')]
-      .find(el => el.textContent.includes('ค้างสต็อก'))
-    // Parent of that tablist is the flex row in ManageLayout that also slots subTabActions
-    const subTabRow = stockTablist ? stockTablist.parentElement?.parentElement ?? null : null
-    const inSubTabRow = subTabRow ? subTabRow.contains(btn) : false
+    // Any tab row: walk up 2 parents from each tablist (Tabs root → row container)
+    const tabRows = [...document.querySelectorAll('[role="tablist"]')]
+      .map(el => el.parentElement?.parentElement ?? null)
+      .filter(Boolean)
+    const subTabRow = tabRows.find(r => r.contains(btn)) ?? null
+    const inSubTabRow = subTabRow !== null
 
     // Filter strip: walk up from the search input to the first h-12 ancestor
     const searchInput = document.querySelector(`input[placeholder*="${placeholder}"]`)

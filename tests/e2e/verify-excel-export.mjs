@@ -94,7 +94,7 @@ try {
   // ---- admin session ----
   setGroup('admin session + dataset exports')
   const who = await page.evaluate(() => window.api.auth.devLogin())
-  check('devLogin returns an admin user', who && who.role === 'admin', JSON.stringify(who))
+  check('devLogin returns an admin user', who && ['owner','admin'].includes(who.role), JSON.stringify(who))
 
   const run = (ns, filters) => page.evaluate(([n, f]) => window.api.exports[n](f), [ns, filters])
 

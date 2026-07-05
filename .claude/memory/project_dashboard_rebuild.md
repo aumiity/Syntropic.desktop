@@ -57,9 +57,9 @@ metadata:
 
 **`src/lib/finance-panel.ts` ตอนนี้ import โดย `Dashboard.tsx` เท่านั้น** — Manage ไม่ใช้แล้ว
 
-### Gotcha — e2e scripts ที่ล้าสมัยหลัง Phase B
+### Gotcha — e2e scripts ที่ล้าสมัยหลัง Phase B — **RESOLVED 2026-07-05**
 
-**`tests/e2e/verify-purchases-dashboard.mjs`** และ **`tests/e2e/verify-finance-panel.mjs`** assert UI ของ finance panel เก่าใน Manage (MetricStrip, trend chart, "สถานะการซื้อ"/finance cards) ที่ถูกลบใน Phase B แล้ว — หลัง Phase B ทั้งสอง script จะ FAIL เสมอ; ความล้มเหลวนี้ **ไม่ใช่ code regression** — ต้อง retire หรือเขียนใหม่ก่อนรันซ้ำ
+~~`verify-purchases-dashboard.mjs` + `verify-finance-panel.mjs` assert UI เก่า~~ → **เขียนใหม่แล้วทั้งคู่ 2026-07-05** ให้ตรง Phase B: Part A (IPC financeSummary/taxonomy) คงเดิม, UI check กลับด้านเป็น ABSENCE (admin ต้องไม่เห็น MetricStrip/trend ใน Manage) + ยืนยันตัวเลขขึ้น Dashboard MetricStrip แทน — ผ่าน 26/26 + 12/12 (ดู [[project_e2e_readiness_2026-07-05]]). กับดักที่เจอตอนเขียนใหม่: Manage/Sales เป็น **index route** → navigate `#/manage` (ไม่ใช่ `#/manage/sales`)
 
 ### Related memories
 

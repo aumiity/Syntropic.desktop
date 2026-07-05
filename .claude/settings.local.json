@@ -172,7 +172,8 @@
       "Bash(sed -n '257,290p' electron/ipc/settings.ts)",
       "Bash(zsh -ic 'type claude-studio')",
       "Bash(open \"/Users/CYUT/Documents/GitHub/Syntropic.desktop/docs/shadcn-preset-showcase.html\")",
-      "Bash(rm -rf /tmp/shadcn-probe /tmp/probe2)"
+      "Bash(rm -rf /tmp/shadcn-probe /tmp/probe2)",
+      "Bash(lsof -i :5173 -sTCP:LISTEN)"
     ],
     "additionalDirectories": [
       "/tmp"

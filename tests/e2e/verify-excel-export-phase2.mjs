@@ -54,7 +54,7 @@ try {
   // ── admin: exports work AND include cost columns ──
   setGroup('admin — expiry/lowStock export with cost columns')
   const who = await page.evaluate(() => window.api.auth.devLogin())
-  check('devLogin = admin', who?.role === 'admin', JSON.stringify(who))
+  check('devLogin = admin', ['owner','admin'].includes(who?.role), JSON.stringify(who))
   for (const ns of ['expiry', 'lowStock']) {
     const res = await run(ns, {}).catch((e) => ({ ok: false, err: String(e) }))
     check(`admin exports.${ns} ok`, res?.ok === true && fs.existsSync(res.path), JSON.stringify(res))
