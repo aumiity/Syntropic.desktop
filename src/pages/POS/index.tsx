@@ -468,10 +468,11 @@ export default function POSPage() {
   }, [anyModalOpen, openPayment])
 
   // Kicks the cash drawer open. Shared by the "เปิดลิ้นชัก" button and F10.
-  const openCashDrawer = useCallback(() => {
-    (window.api.printer as any)?.openCashDrawer?.()
+  const openCashDrawer = useCallback(async () => {
+    const res = await (window.api.printer as any)?.openCashDrawer?.()
+    if (res && !res.success) toast(res.error ?? 'เปิดลิ้นชักไม่สำเร็จ', 'error')
     refocusSearch()
-  }, [])
+  }, [toast])
 
   // F10 opens the cash drawer — same "nothing else open" guard as F9.
   useEffect(() => {
@@ -1018,6 +1019,10 @@ export default function POSPage() {
       useNegativeStockBadge.getState().refresh()
       // Fire-and-forget print after the sale is committed.
       if (wantPrint) void printCompletedSale(snapshot)
+      // เปิดลิ้นชักอัตโนมัติเมื่อบิลมีเงินสด (เคารพ master enable ที่ฝั่ง IPC)
+      if (receiptSettings?.cash_drawer_auto_open && (snapshot.cash_amount ?? 0) > 0) {
+        void (window.api.printer as any)?.openCashDrawer?.()
+      }
     } catch (err: any) { toast(err.message ?? 'เกิดข้อผิดพลาด', 'error') }
     finally { setSaving(false) }
   }

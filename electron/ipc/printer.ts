@@ -1,7 +1,18 @@
 import { ipcMain, BrowserWindow, shell, app } from 'electron'
 import net from 'net'
+import { spawn } from 'child_process'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { getDb } from '../db'
+
+// Parse a hex byte string ("1B 70 00 19 FA") into 0–255 bytes. Each 1–2 digit
+// hex token is one byte; anything else is dropped. Used to build the cash
+// drawer open pulse from the stored/overridden open code.
+function parseHexBytes(s: string): number[] {
+  return (s.match(/[0-9a-fA-F]{1,2}/g) ?? [])
+    .map(h => parseInt(h, 16))
+    .filter(n => Number.isFinite(n) && n >= 0 && n <= 255)
+}
 
 // ESC/POS constants
 const ESC = 0x1b
@@ -448,21 +459,84 @@ export function registerPrinterHandlers() {
     }
   })
 
-  ipcMain.handle('printer:openCashDrawer', async (_e, data: { host?: string; port?: number }) => {
+  // List serial (COM) ports for the cash-drawer picker. Windows-only — uses
+  // PowerShell's [System.IO.Ports.SerialPort]::GetPortNames() (no native module).
+  // Any failure / non-Windows returns an empty list so the UI degrades to a free
+  // text entry.
+  ipcMain.handle('printer:listSerialPorts', async () => {
+    if (process.platform !== 'win32') return []
+    return await new Promise<string[]>((resolve) => {
+      let done = false
+      const finish = (ports: string[]) => { if (!done) { done = true; resolve(ports) } }
+      let out = ''
+      const child = spawn('powershell.exe', [
+        '-NoProfile', '-NonInteractive', '-Command',
+        '[System.IO.Ports.SerialPort]::GetPortNames()',
+      ])
+      const timer = setTimeout(() => { try { child.kill() } catch {} finish([]) }, 5000)
+      child.stdout.on('data', d => { out += d.toString() })
+      child.on('error', () => { clearTimeout(timer); finish([]) })
+      child.on('close', () => {
+        clearTimeout(timer)
+        finish(out.split(/\r?\n/).map(s => s.trim()).filter(Boolean))
+      })
+    })
+  })
+
+  // Kick the cash drawer open via a serial (COM) port ESC/POS pulse. Windows-only
+  // (spawns PowerShell — no native serial module). Values resolve from the
+  // override arg (the settings "test" button, using the un-saved form values)
+  // first, then fall back to the saved receipt_settings row.
+  ipcMain.handle('printer:openCashDrawer', async (_e, override?: { port?: string; baud?: number; hex?: string }) => {
+    if (process.platform !== 'win32') {
+      return { success: false, error: 'ลิ้นชักรองรับเฉพาะ Windows' }
+    }
     try {
-      const host = data.host ?? '192.168.1.100'
-      const port = data.port ?? 9100
-      // ESC/POS cash drawer open: ESC p 0 25 250
-      const cmd = Buffer.from([ESC, 0x70, 0x00, 0x19, 0xfa])
+      const row = getDb()
+        .prepare(`SELECT cash_drawer_enabled, cash_drawer_port, cash_drawer_baud, cash_drawer_open_code
+                  FROM receipt_settings ORDER BY id LIMIT 1`)
+        .get() as {
+          cash_drawer_enabled?: number
+          cash_drawer_port?: string
+          cash_drawer_baud?: number
+          cash_drawer_open_code?: string
+        } | undefined
+
+      const hasOverride = !!override && (override.port != null || override.baud != null || override.hex != null)
+      const port = override?.port ?? row?.cash_drawer_port ?? ''
+      const baud = Number(override?.baud ?? row?.cash_drawer_baud ?? 9600)
+      const hex = override?.hex ?? row?.cash_drawer_open_code ?? ''
+      // The test button forces enabled; normal (POS) opens honor the saved flag.
+      const enabled = hasOverride ? true : !!row?.cash_drawer_enabled
+
+      if (!enabled) return { success: false, error: 'ลิ้นชักปิดใช้งาน' }
+      // Strict COM-port shape guards against PowerShell -Command injection.
+      if (!/^COM\d+$/.test(port)) return { success: false, error: 'พอร์ตไม่ถูกต้อง (ต้องเป็น COMn)' }
+      if (!Number.isFinite(baud) || baud <= 0) return { success: false, error: 'ความเร็ว (baud) ไม่ถูกต้อง' }
+      const bytes = parseHexBytes(hex)
+      if (bytes.length < 1) return { success: false, error: 'รหัสเปิดลิ้นชักไม่ถูกต้อง' }
+
+      const byteList = bytes.join(',')
+      const script =
+        `$p = New-Object System.IO.Ports.SerialPort '${port}',${baud},None,8,One; ` +
+        `$p.Open(); $p.Write([byte[]](${byteList}),0,${bytes.length}); ` +
+        `Start-Sleep -Milliseconds 50; $p.Close()`
+
       await new Promise<void>((resolve, reject) => {
-        const client = new net.Socket()
-        client.connect(port, host, () => { client.write(cmd, () => { client.destroy(); resolve() }) })
-        client.on('error', reject)
-        setTimeout(() => { client.destroy(); reject(new Error('timeout')) }, 3000)
+        let stderr = ''
+        const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script])
+        const timer = setTimeout(() => { try { child.kill() } catch {} reject(new Error('timeout')) }, 5000)
+        child.stderr.on('data', d => { stderr += d.toString() })
+        child.on('error', err => { clearTimeout(timer); reject(err) })
+        child.on('close', code => {
+          clearTimeout(timer)
+          if (code === 0) resolve()
+          else reject(new Error(stderr.trim() || `exit ${code}`))
+        })
       })
       return { success: true }
     } catch (err: any) {
-      return { success: false, error: err.message }
+      return { success: false, error: err?.message ?? 'เปิดลิ้นชักไม่สำเร็จ' }
     }
   })
 }

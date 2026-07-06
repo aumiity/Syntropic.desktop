@@ -196,7 +196,9 @@ const api = {
   // Printer
   printer: {
     printReceipt: (data: any) => invoke('printer:printReceipt', data),
-    openCashDrawer: (data: any) => invoke('printer:openCashDrawer', data),
+    openCashDrawer: (data?: { port?: string; baud?: number; hex?: string }) =>
+      invoke('printer:openCashDrawer', data) as Promise<{ success: boolean; error?: string }>,
+    listSerialPorts: () => invoke('printer:listSerialPorts') as Promise<string[]>,
     listPrinters: () => invoke('printer:listPrinters') as Promise<Array<{
       name: string; displayName: string; description: string; status: number; isDefault: boolean
     }>>,

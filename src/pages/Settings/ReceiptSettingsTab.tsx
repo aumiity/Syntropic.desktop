@@ -9,6 +9,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ZoomControl } from '@/components/ui/zoom-control'
 import { Checkbox } from '@/components/ui/checkbox'
+import { SettingRow } from '@/components/ui/setting-row'
 import { useToast } from '@/components/ui/toast'
 import { useShopVat } from '@/hooks/useShopVat'
 import { FONTS } from '@/lib/print/fonts'
@@ -20,9 +21,11 @@ import { SlipPreview } from '@/components/receipt/SlipPreview'
 import { RC_SECTIONS, type RcAlign } from '@/lib/receipt/sections'
 import type { ReceiptSettings, SaleForPrint, Setting } from '@/types'
 import {
-  Printer, FileText, Save, Bold,
+  Printer, FileText, Save, Bold, Wallet,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
 } from 'lucide-react'
+
+const BAUD_PRESETS = [9600, 19200, 38400, 115200]
 
 // Form keys are canonical receipt_settings column names — Object.keys(form)
 // flows into the dynamic-SQL UPDATE in settings:saveReceiptSettings, so any key
@@ -51,6 +54,11 @@ const DEFAULTS: ReceiptForm = {
   show_payment: 1,      bold_payment: 0,      align_payment: 'justify',
   show_footer: 1,       bold_footer: 0,       align_footer: 'center',
   show_salesperson: 1,  bold_salesperson: 0,  align_salesperson: 'center',
+  cash_drawer_enabled: 0,
+  cash_drawer_port: '',
+  cash_drawer_baud: 9600,
+  cash_drawer_open_code: '1B 70 00 19 FA',
+  cash_drawer_auto_open: 0,
 }
 
 // Sample bill for the live preview / test print — includes VAT so the tax
@@ -97,6 +105,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
   const [form, setForm] = useState<ReceiptForm>(DEFAULTS)
   const [shop, setShop] = useState<Partial<Setting>>({})
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
+  const [ports, setPorts] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
   const [printing, setPrinting] = useState(false)
@@ -129,6 +138,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     window.api.printer.listPrinters().then(list => {
       setPrinters((list ?? []).map(p => ({ name: p.name, displayName: p.displayName || p.name, isDefault: !!p.isDefault })))
     }).catch(() => setPrinters([]))
+    window.api.printer.listSerialPorts().then(setPorts).catch(() => setPorts([]))
   }, [])
 
   const setF = <K extends keyof ReceiptForm>(k: K, v: ReceiptForm[K]) => { setForm(f => ({ ...f, [k]: v })); setIsDirty(true) }
@@ -170,7 +180,30 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
     } finally { setPrinting(false) }
   }
 
+  // Test the drawer with the CURRENT (un-saved) form values — passing an
+  // override forces enabled on the main side, so ticking the box isn't required
+  // to test the pulse before saving.
+  const handleTestDrawer = async () => {
+    const res = await window.api.printer.openCashDrawer({
+      port: form.cash_drawer_port,
+      baud: form.cash_drawer_baud,
+      hex: form.cash_drawer_open_code,
+    })
+    if (res?.success) toast({ title: 'ส่งคำสั่งเปิดลิ้นชักแล้ว', variant: 'success' })
+    else toast({ title: 'เปิดลิ้นชักไม่สำเร็จ', description: res?.error ?? '', variant: 'error' })
+  }
+
   const printerOptions = useMemo(() => buildPrinterOptions(printers), [printers])
+
+  // Merge the saved port into the option list so a stored value that the OS
+  // can't currently detect (cable unplugged, or non-Windows where ports=[])
+  // still shows in the Select — detected ports first, then the saved-but-missing
+  // one appended. De-duped; empty saved value contributes nothing.
+  const portOptions = useMemo(() => {
+    const saved = form.cash_drawer_port
+    if (saved && !ports.includes(saved)) return [...ports, saved]
+    return ports
+  }, [ports, form.cash_drawer_port])
 
   // Lift the action buttons up to the shared sub-tab strip (PrintersTab) — handlers
   // via a ref so the node never goes stale without a re-register every render.
@@ -261,6 +294,74 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
                   ไม่พิมพ์สำเนา — ทั้งคู่ไม่เปิดให้ปรับอีกต่อไป (บังคับ auto / 1 ใบ
                   ทุกที่ที่พิมพ์, ดู print.ts). */}
               {/* "พิมพ์ใบเสร็จอัตโนมัติหลังชำระเงิน" ย้ายไปอยู่แท็บ การขาย (SalesTab) แล้ว */}
+                  </div>
+                </SectionCard>
+
+                {/* ลิ้นชักเก็บเงิน — serial/COM ESC/POS pulse (Windows-only). ค่าไหลเข้า
+                    ปุ่มบันทึกแม่ผ่าน setF (คอลัมน์ cash_drawer_*). */}
+                <SectionCard icon={Wallet} title="ลิ้นชักเก็บเงิน" tint="info">
+                  <div className="space-y-3">
+                    <SettingRow
+                      control="checkbox"
+                      checked={!!form.cash_drawer_enabled}
+                      onChange={v => setF('cash_drawer_enabled', v ? 1 : 0)}
+                      title="เปิดใช้งานลิ้นชักเก็บเงิน"
+                      description="เปิดให้ปุ่มเปิดลิ้นชักและปุ่มลัด F10 ในหน้าขายทำงาน"
+                    />
+                    <SettingRow
+                      control="checkbox"
+                      checked={!!form.cash_drawer_auto_open}
+                      onChange={v => setF('cash_drawer_auto_open', v ? 1 : 0)}
+                      title="เปิดลิ้นชักอัตโนมัติหลังรับเงินสด"
+                      description="เมื่อปิดการขายที่มีเงินสด ลิ้นชักจะเปิดเองอัตโนมัติ (ต้องเปิดใช้งานลิ้นชักด้านบนก่อน)"
+                    />
+                    <FormField label="พอร์ต (COM)">
+                      {portOptions.length > 0 ? (
+                        <Select value={form.cash_drawer_port || '__none__'} onValueChange={v => setF('cash_drawer_port', v === '__none__' ? '' : v)}>
+                          <SelectTrigger variant="elevated" className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">— ไม่ระบุ —</SelectItem>
+                            {portOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          variant="elevated"
+                          value={form.cash_drawer_port}
+                          onChange={e => setF('cash_drawer_port', e.target.value)}
+                          placeholder="ยังไม่พบพอร์ต — กรอกเอง เช่น COM1"
+                        />
+                      )}
+                    </FormField>
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1 min-w-0">
+                        <FormField label="ความเร็ว (baud)">
+                          <Select value={String(form.cash_drawer_baud)} onValueChange={v => setF('cash_drawer_baud', Number(v))}>
+                            <SelectTrigger variant="elevated" className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {BAUD_PRESETS.map(b => <SelectItem key={b} value={String(b)}>{b}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </FormField>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <FormField label="รหัสเปิดลิ้นชัก (hex)">
+                          <Input
+                            variant="elevated"
+                            value={form.cash_drawer_open_code}
+                            onChange={e => setF('cash_drawer_open_code', e.target.value)}
+                            placeholder="1B 70 00 19 FA"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+                    <Button className="h-9" variant="elevated" onClick={handleTestDrawer}>
+                      <Wallet className="size-4" />ทดสอบเปิดลิ้นชัก
+                    </Button>
                   </div>
                 </SectionCard>
               </TabsContent>

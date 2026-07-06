@@ -183,6 +183,13 @@ export interface ReceiptSettings {
   show_payment: number;      bold_payment: number;      align_payment: string
   show_footer: number;       bold_footer: number;       align_footer: string
   show_salesperson: number;  bold_salesperson: number;  align_salesperson: string
+  // Cash drawer (serial/COM ESC/POS pulse) — Windows-only. open_code is a hex
+  // byte string; enabled/port/baud drive the pulse sent on cash-received.
+  cash_drawer_enabled: number
+  cash_drawer_port: string
+  cash_drawer_baud: number
+  cash_drawer_open_code: string
+  cash_drawer_auto_open: number
   updated_at?: string
 }
 

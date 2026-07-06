@@ -214,7 +214,15 @@ declare const api: {
     };
     printer: {
         printReceipt: (data: any) => Promise<any>;
-        openCashDrawer: (data: any) => Promise<any>;
+        openCashDrawer: (data?: {
+            port?: string;
+            baud?: number;
+            hex?: string;
+        }) => Promise<{
+            success: boolean;
+            error?: string;
+        }>;
+        listSerialPorts: () => Promise<string[]>;
         listPrinters: () => Promise<Array<{
             name: string;
             displayName: string;

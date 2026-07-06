@@ -586,6 +586,13 @@ export function initializeSchema(db: Database.Database) {
       show_payment       INTEGER NOT NULL DEFAULT 1, bold_payment       INTEGER NOT NULL DEFAULT 0, align_payment       TEXT NOT NULL DEFAULT 'justify',
       show_footer        INTEGER NOT NULL DEFAULT 1, bold_footer        INTEGER NOT NULL DEFAULT 0, align_footer        TEXT NOT NULL DEFAULT 'center',
       show_salesperson   INTEGER NOT NULL DEFAULT 1, bold_salesperson   INTEGER NOT NULL DEFAULT 0, align_salesperson   TEXT NOT NULL DEFAULT 'center',
+      -- Cash drawer (serial/COM ESC/POS pulse). Windows-only; the open pulse is a
+      -- hex byte string (default ESC p 0 25 250) sent over a serial port.
+      cash_drawer_enabled   INTEGER NOT NULL DEFAULT 0,
+      cash_drawer_port      TEXT    NOT NULL DEFAULT '',
+      cash_drawer_baud      INTEGER NOT NULL DEFAULT 9600,
+      cash_drawer_open_code TEXT    NOT NULL DEFAULT '1B 70 00 19 FA',
+      cash_drawer_auto_open INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
     );
 
@@ -1336,6 +1343,12 @@ export function initializeSchema(db: Database.Database) {
     `ALTER TABLE suppliers DROP COLUMN contact_name`,
     // ลำดับฉลาก (sort_order) ถอดออก — ฉลากเรียงตาม id (ลำดับสร้าง) แทน.
     `ALTER TABLE product_labels DROP COLUMN sort_order`,
+    // Cash drawer serial config on receipt_settings (added 2026-07-06).
+    `ALTER TABLE receipt_settings ADD COLUMN cash_drawer_enabled INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE receipt_settings ADD COLUMN cash_drawer_port TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE receipt_settings ADD COLUMN cash_drawer_baud INTEGER NOT NULL DEFAULT 9600`,
+    `ALTER TABLE receipt_settings ADD COLUMN cash_drawer_open_code TEXT NOT NULL DEFAULT '1B 70 00 19 FA'`,
+    `ALTER TABLE receipt_settings ADD COLUMN cash_drawer_auto_open INTEGER NOT NULL DEFAULT 0`,
   ]) {
     try { db.exec(sql) } catch {}
   }
