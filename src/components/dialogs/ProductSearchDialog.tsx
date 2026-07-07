@@ -115,6 +115,19 @@ export function ProductSearchDialog<Row>({
       <DialogContent
         showCloseButton={false}
         onClose={onClose}
+        // Radix FocusScope auto-focuses the first field with { select: true } on
+        // open, which highlights the whole query — so the NEXT keystroke replaces
+        // the first character (search silently drops its 1st letter). This is a
+        // live search box, never a value to overwrite: take focus ourselves and
+        // collapse the caret to the end instead of selecting.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault()
+          const el = localInputRef.current
+          if (!el) return
+          el.focus()
+          const len = el.value.length
+          el.setSelectionRange(len, len)
+        }}
         className="flex flex-col overflow-hidden p-0 gap-0 sm:max-w-none border-0 border-transparent"
         style={{
           width: size?.width ?? '800px',

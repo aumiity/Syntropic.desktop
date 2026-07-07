@@ -25,7 +25,7 @@ import { extractVat } from '@/lib/vat'
 import {
   Plus, Trash2, Package, Pencil,
   Building2, Banknote, CreditCard, FileText, ClipboardPaste, AlertTriangle,
-  Check, Minus, Info, Receipt,
+  Check, Minus, Receipt, Percent, Sigma,
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { motion } from 'framer-motion'
@@ -601,7 +601,7 @@ export default function PurchasePage() {
     }
     setDateErrors(errs)
     const missing: string[] = []
-    if (errs.order) missing.push('วันที่สั่งซื้อตามบิล')
+    if (errs.order) missing.push('วันที่สั่งซื้อสินค้า')
     if (errs.receive) missing.push('วันที่รับสินค้า')
     if (errs.due) missing.push('วันครบกำหนด')
     if (errs.paid) missing.push('วันที่ชำระ')
@@ -767,7 +767,7 @@ export default function PurchasePage() {
 
                     {/* Header fields */}
                     <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-3 shrink-0">
-                      <div className="grid grid-cols-[170px_1fr_200px_200px] gap-3">
+                      <div className="grid grid-cols-[minmax(150px,170px)_minmax(320px,1fr)_minmax(150px,200px)_minmax(150px,200px)_minmax(150px,200px)] gap-3">
 
                         {/* GR receipt no — auto-generated, read-only (โชว์เฉย ๆ) */}
                         <div>
@@ -820,12 +820,24 @@ export default function PurchasePage() {
 
                         {/* Order date (bill date) */}
                         <div>
-                          <label className="block text-base font-semibold text-muted-foreground mb-1.5">วันที่สั่งซื้อตามบิล<span className="text-destructive">*</span></label>
+                          <label className="block text-base font-semibold text-muted-foreground mb-1.5">วันที่สั่งซื้อสินค้า<span className="text-destructive">*</span></label>
                           <DateInput
                             variant="elevated"
                             value={orderDate}
                             onChange={v => { setOrderDate(v); setDateErrors(e => ({ ...e, order: false })) }}
                             error={dateErrors.order}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+
+                        {/* Receive date */}
+                        <div>
+                          <label className="block text-base font-semibold text-muted-foreground mb-1.5">วันที่รับสินค้า<span className="text-destructive">*</span></label>
+                          <DateInput
+                            variant="elevated"
+                            value={receiveDate}
+                            onChange={v => { setReceiveDate(v); setDateErrors(e => ({ ...e, receive: false })) }}
+                            error={dateErrors.receive}
                             className="h-9 text-sm"
                           />
                         </div>
@@ -845,26 +857,29 @@ export default function PurchasePage() {
 
                         <div className="flex items-center gap-2 ml-auto">
                           <Button size="lg" variant="elevated" onClick={() => setShowImport(true)} className="h-9 rounded-lg text-sm gap-1.5">
-                            <ClipboardPaste className="size-3.5" /> นำเข้าข้อมูล
+                            <ClipboardPaste className="size-4" /> นำเข้าข้อมูล
                           </Button>
                           <Button size="lg" variant="elevated" onClick={openBillAdjust} disabled={rows.length === 0} className="h-9 rounded-lg text-sm gap-1.5">
-                            ส่วนลดท้ายบิล
+                            <Percent className="size-4" /> ส่วนลดท้ายบิล
                           </Button>
+                          {/* ปุ่ม "เพิ่มต้นทุน" (bulk surcharge ท้ายบิล) ซ่อนไว้ชั่วคราว —
+                              เจ้าของไม่ค่อยได้ใช้ (แก้ต้นทุนรายบรรทัดสะดวกกว่า) และไม่แน่ใจว่าผู้ใช้ทั่วไปใช้ไหม
+                              ระบบยังอยู่ครบ (openSurcharge + dialog) แค่ยังไม่เปิดปุ่ม เผื่อเปิดใช้ทีหลัง
                           <Button size="lg" variant="elevated" onClick={openSurcharge} disabled={rows.length === 0} className="h-9 rounded-lg text-sm gap-1.5">
                             เพิ่มต้นทุน
                           </Button>
+                          */}
                           <Button
                             size="lg"
                             variant="elevated"
                             onClick={() => setShowMergeConfirm(true)}
                             disabled={lineDiscountTotal <= 0}
                             className="h-9 rounded-lg text-sm gap-1.5"
-                            tooltip="ยุบส่วนลดรายตัวเข้าไปในทุน/หน่วย แล้วล้างช่องส่วนลด (ย้อนกลับไม่ได้)"
                           >
-                            รวมส่วนลดในต้นทุน
+                            <Sigma className="size-4" /> รวมส่วนลดในต้นทุน
                           </Button>
                           <Button size="lg" onClick={openAddWizard} className="h-9 rounded-lg text-sm gap-1.5">
-                            <Plus className="size-3.5" /> เพิ่มสินค้า
+                            <Plus className="size-4" /> เพิ่มสินค้า
                           </Button>
                         </div>
                       </div>
@@ -962,10 +977,10 @@ export default function PurchasePage() {
                                   <TableCell className="px-2 py-2">
                                     <div className="flex items-center justify-center gap-1">
                                       <Button variant="elevated" size="icon-lg" onClick={() => openEditWizard(i)} tooltip="แก้ไข">
-                                        <Pencil className="size-3.5" />
+                                        <Pencil className="size-4" />
                                       </Button>
                                       <Button variant="elevated-destructive-soft" size="icon-lg" onClick={() => deleteRow(i)} tooltip="ลบ">
-                                        <Trash2 className="size-3.5" />
+                                        <Trash2 className="size-4" />
                                       </Button>
                                     </div>
                                   </TableCell>
@@ -1040,8 +1055,16 @@ export default function PurchasePage() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-sm text-foreground-subtle mb-1 block">วันที่รับสินค้า<span className="text-destructive">*</span></label>
-                        <DateInput variant="elevated" value={receiveDate} onChange={v => { setReceiveDate(v); setDateErrors(e => ({ ...e, receive: false })) }} error={dateErrors.receive} className="h-9 text-sm" />
+                        <div className="text-sm text-foreground-subtle mb-0.5">เลขที่ใบกำกับสินค้า</div>
+                        <div className="text-sm font-semibold text-foreground truncate">{supplierInvoiceNo || '—'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-foreground-subtle mb-0.5">วันที่สั่งซื้อสินค้า</div>
+                        <div className="text-sm font-semibold text-foreground">{orderDate ? formatDate(orderDate) : '—'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-foreground-subtle mb-0.5">วันที่รับสินค้า</div>
+                        <div className="text-sm font-semibold text-foreground">{receiveDate ? formatDate(receiveDate) : '—'}</div>
                       </div>
                     </div>
 
@@ -1068,7 +1091,7 @@ export default function PurchasePage() {
                             />
                           )}
                           <span className="relative z-10 inline-flex items-center gap-1.5">
-                            <Banknote className="size-3.5" /> เงินสด
+                            <Banknote className="size-4" /> เงินสด
                           </span>
                         </Button>
                         <Button
@@ -1090,7 +1113,7 @@ export default function PurchasePage() {
                             />
                           )}
                           <span className="relative z-10 inline-flex items-center gap-1.5">
-                            <CreditCard className="size-3.5" /> เครดิต
+                            <CreditCard className="size-4" /> เครดิต
                           </span>
                         </Button>
                       </div>
@@ -1154,20 +1177,14 @@ export default function PurchasePage() {
                         ไม่ติ๊ก = บิลไม่มี VAT ('none'). ร้านที่เปิด VAT default = ติ๊ก. */}
                     {shopVatEnabled && (
                       <div className="bg-card rounded-card shadow-card border border-border p-4 space-y-2">
-                        <div className="text-sm font-bold text-foreground uppercase tracking-wide">ภาษีมูลค่าเพิ่ม</div>
+                        <div className="text-sm font-bold text-foreground uppercase tracking-wide">ภาษีมูลค่าเพิ่ม (VAT)</div>
                         <label className="flex items-center gap-2 cursor-pointer select-none">
                           <Checkbox
                             checked={vatMode === 'inclusive'}
                             onCheckedChange={v => setVatMode(v === true ? 'inclusive' : 'none')}
                           />
-                          <span className="text-sm text-muted-foreground">บิลมีภาษีมูลค่าเพิ่ม</span>
+                          <span className="text-sm text-muted-foreground">รวมภาษีมูลค่าเพิ่มในบิล</span>
                         </label>
-                        {vatMode === 'inclusive' && (
-                          <div className="flex items-start gap-1.5 rounded-lg border border-info/30 bg-info-soft p-2.5 text-xs text-info-soft-foreground">
-                            <Info className="size-4 shrink-0 mt-0.5" />
-                            <span>ระบบจะแสดงราคาสินค้าที่รวมภาษีมูลค่าเพิ่มแล้วเท่านั้น</span>
-                          </div>
-                        )}
                       </div>
                     )}
 

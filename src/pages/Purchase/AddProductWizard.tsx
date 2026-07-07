@@ -875,13 +875,13 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
 
                 {/* อ้างอิงตอนกรอกต้นทุน: ทุนล่าสุดที่จ่ายจริง + ราคาขายปัจจุบัน (ของหน่วยที่รับเข้า) */}
                 <div className="mb-4 grid grid-cols-2 divide-x divide-border overflow-hidden rounded-lg bg-amber-soft/50 border border-amber-strong/25">
-                  <div className="px-4 py-2">
-                    <div className="text-sm text-muted-foreground">ทุนล่าสุด</div>
-                    <div className="mt-0.5 text-sm font-bold text-amber-strong">{lastCostForUnit != null ? formatCurrency(lastCostForUnit) : '—'}</div>
+                  <div className="px-4 py-2 flex items-center justify-between gap-2">
+                    <span className="text-sm text-muted-foreground">ทุนล่าสุด</span>
+                    <span className="text-sm font-bold text-amber-strong">{lastCostForUnit != null ? formatCurrency(lastCostForUnit) : '—'}</span>
                   </div>
-                  <div className="px-4 py-2">
-                    <div className="text-sm text-muted-foreground">ราคาขายปัจจุบัน</div>
-                    <div className="mt-0.5 text-sm font-bold text-amber-strong">{formatCurrency(row.default_sell_price ?? 0)}</div>
+                  <div className="px-4 py-2 flex items-center justify-between gap-2">
+                    <span className="text-sm text-muted-foreground">ราคาขายปัจจุบัน</span>
+                    <span className="text-sm font-bold text-amber-strong">{formatCurrency(row.default_sell_price ?? 0)}</span>
                   </div>
                 </div>
 
@@ -920,11 +920,11 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
 
                 {/* ต้นทุนที่กรอกต่างจากทุนล่าสุด → เตือนทิศทาง+ส่วนต่าง เพื่อไปทบทวนราคาขายให้ถูกต้อง */}
                 {costChanged && (
-                  <div className={`mt-3 flex items-start gap-2 rounded-lg border px-3.5 py-2.5 text-sm ${
+                  <div className={`mt-3 inline-flex w-max items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs ${
                     cost - prevCost! > 0 ? 'border-destructive/30 bg-destructive-soft/50 text-destructive'
                                          : 'border-success/30 bg-success-soft/50 text-success'}`}>
-                    <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
+                    <AlertTriangle className="size-3.5 shrink-0" />
+                    <div className="whitespace-nowrap">
                       <b className="font-semibold">ต้นทุน{cost - prevCost! > 0 ? 'เพิ่มขึ้น' : 'ลดลง'} {formatCurrency(Math.abs(cost - prevCost!))} บาท</b> — กรุณาตรวจสอบราคาขาย
                     </div>
                   </div>
@@ -942,7 +942,6 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                     <Table containerClassName="rounded-lg border border-border max-h-60 overflow-auto scrollbar-thin">
                       <TableHeader>
                         <TableRow className="[&>th]:h-9">
-                          <TableHead className="w-8 px-1" />
                           <TableHead>วันที่</TableHead>
                           <TableHead>ผู้จำหน่าย</TableHead>
                           <TableHead className="text-right">จำนวน</TableHead>
@@ -963,19 +962,20 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                                 }) : undefined}
                                 className={expandable ? 'cursor-pointer' : undefined}
                               >
-                                <TableCell className="w-8 px-1 text-center">
-                                  {expandable && (
-                                    <ChevronRight className={`size-4 text-muted-foreground shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
-                                  )}
+                                <TableCell>
+                                  <span className="inline-flex items-center gap-1.5">
+                                    {expandable && (
+                                      <ChevronRight className={`size-4 text-muted-foreground shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+                                    )}
+                                    {formatDate(h.order_date || h.created_at)}
+                                  </span>
                                 </TableCell>
-                                <TableCell>{formatDate(h.order_date || h.created_at)}</TableCell>
                                 <TableCell className="font-medium text-foreground">{h.supplier_name || '—'}</TableCell>
                                 <TableCell className="text-right">{formatNum(String(h.qty))} {h.unit_name || ''}</TableCell>
                                 <TableCell className="text-right font-semibold text-primary">{formatCurrency(h.cost_price)}</TableCell>
                               </TableRow>
                               {expandable && open && (
                                 <TableRow className="bg-muted/30">
-                                  <TableCell className="w-8 px-1" />
                                   <TableCell />
                                   <TableCell />
                                   <TableCell className="text-right">
