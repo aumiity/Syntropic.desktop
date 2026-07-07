@@ -2,9 +2,11 @@
 // Custom Claude Code statusline — gradient "tube" bars + emoji, 3 lines.
 // Reads the session JSON on stdin (see https://code.claude.com/docs/en/statusline)
 // and prints an ANSI status bar. Falls back gracefully on missing fields.
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, renameSync } from 'fs';
 import { join, basename, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
+import { hostname, uptime } from 'os';
 
 // directory this script lives in (.claude/) — used to read repo-tracked sidecar files
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -14,6 +16,24 @@ let raw = '';
 try { raw = readFileSync(0, 'utf8'); } catch { /* no stdin */ }
 let d = {};
 try { d = JSON.parse(raw || '{}'); } catch { d = {}; }
+
+// ---------- feed the wall dashboard (usage-monitor) — non-blocking, never fatal ----------
+// usage % is account-wide, so any machine reporting keeps the tablet fresh.
+// Machine label: USAGE_MACHINE env  ->  ~/.claude/usage-machine file  ->  hostname.
+// Dashboard URL overridable with USAGE_DASH_URL env.
+try {
+  const HOME = process.env.HOME || process.env.USERPROFILE || '.';
+  let machine = process.env.USAGE_MACHINE;
+  if (!machine) { try { machine = readFileSync(join(HOME, '.claude', 'usage-machine'), 'utf8').trim(); } catch { /* no file */ } }
+  if (!machine) machine = hostname();
+  const snap = JSON.stringify({ ...d, _snapshot_at: Date.now(), _machine: machine, _uptime: Math.round(uptime()) });
+  // local snapshot (harmless; used if this machine also runs the dashboard)
+  try { const p = join(HOME, '.claude', 'usage-snapshot.json'); writeFileSync(p + '.tmp', snap); renameSync(p + '.tmp', p); } catch { /* ignore */ }
+  // push to the dashboard over tailscale — DETACHED node process so the statusline never waits on the network
+  const DASH = process.env.USAGE_DASH_URL || 'http://100.94.208.11:8089/api/usage-push';
+  const code = `fetch(${JSON.stringify(DASH)},{method:'POST',headers:{'content-type':'application/json'},body:${JSON.stringify(snap)},signal:AbortSignal.timeout(4000)}).then(()=>process.exit(0)).catch(()=>process.exit(0));`;
+  spawn(process.execPath, ['-e', code], { detached: true, stdio: 'ignore' }).unref();
+} catch { /* never break the statusline */ }
 
 // ---------- ANSI helpers (24-bit truecolor) ----------
 const RST = '\x1b[0m';
