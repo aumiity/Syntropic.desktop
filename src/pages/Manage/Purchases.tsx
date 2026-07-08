@@ -98,6 +98,9 @@ export default function ManagePurchasesPage() {
   const [prefs, setPrefs] = usePagePrefs<PurchasesPrefs>('purchases', PURCHASES_DEFAULTS)
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  // Suppliers that actually appear in the purchase history — drives the filter
+  // dropdown only, so it lists relevant sources instead of every supplier.
+  const [filterSuppliers, setFilterSuppliers] = useState<Supplier[]>([])
 
   // History list
   const [history, setHistory] = useState<HistoryRow[]>([])
@@ -174,6 +177,10 @@ export default function ManagePurchasesPage() {
   // (DateInput's internal red border only fires for non-empty invalid text).
   const [dateErrors, setDateErrors] = useState({ order: false, receive: false, due: false, paid: false })
 
+  // All suppliers — for the edit-bill modal (a bill may be reassigned to any
+  // supplier). The history *filter* dropdown uses filterSuppliers instead, which
+  // is hydrated from each loadHistory response and cascades off the active
+  // status/date filters.
   const loadSuppliers = async () => {
     const data = await window.api.people.allSuppliers()
     setSuppliers(data as Supplier[])
@@ -184,15 +191,20 @@ export default function ManagePurchasesPage() {
     filterOverride?: 'all' | 'cash' | 'credit' | 'paid' | 'duenow' | 'overdue' | 'cancelled',
     dateOverride?: { from: string; to: string },
     clearIfMissing = false,
+    supplierOverride?: number,
   ) => {
     const filter = filterOverride ?? histPaymentFilter
     const dFrom = dateOverride?.from ?? histDateFrom
     const dTo = dateOverride?.to ?? histDateTo
+    // supplierOverride lets a status-card click clear the supplier chip and
+    // reload in one call (state updates are async, so we can't rely on
+    // histSupplierId here). 0 = ทุกผู้จัดจำหน่าย.
+    const supId = supplierOverride ?? histSupplierId
     setLoadingHist(true)
     try {
       const res = await window.api.purchase.history({
         q: histQ || undefined,
-        supplier_id: histSupplierId || undefined,
+        supplier_id: supId || undefined,
         date_from: dFrom || undefined,
         date_to: dTo || undefined,
         payment_type: (filter === 'cash' || filter === 'credit' || filter === 'paid' || filter === 'duenow' || filter === 'overdue') ? filter : undefined,
@@ -207,6 +219,9 @@ export default function ManagePurchasesPage() {
       setHistTotal(res.total)
       setHistPage(page)
       if (res.summary) setHistSummary(res.summary)
+      // Cascade the supplier filter off the active status/date filters — the
+      // dropdown lists only sources present in the current view.
+      if (res.suppliers) setFilterSuppliers(res.suppliers as Supplier[])
       // Drop the open detail when the user-applied filter excludes it,
       // so the right pane never shows an invoice that's not in the list.
       if (clearIfMissing && selectedInvoice && !res.rows.some((r: HistoryRow) => r.invoice_no === selectedInvoice)) {
@@ -228,10 +243,14 @@ export default function ManagePurchasesPage() {
     // 5 mutually-exclusive status buckets + a total — ค้างชำระ = unpaid not yet
     // overdue (unpaid − overdue), so the 5 statuses sum to the bill count.
     const staffDuenow = Math.max(0, histSummary.unpaid_count - histSummary.overdue_count)
+    // Clicking a status card resets the supplier chip back to ทุกผู้จัดจำหน่าย
+    // (the status filter is primary; supplier is a secondary narrowing under it).
     const pick = (v: typeof histPaymentFilter) => () => {
       const next = histPaymentFilter === v && v !== 'all' ? 'all' : v
+      if (histSupplierId !== 0) skipSupplierReload.current = true
       setHistPaymentFilter(next)
-      loadHistory(1, next, undefined, true)
+      setHistSupplierId(0)
+      loadHistory(1, next, undefined, true, 0)
     }
     setSlotSummary([
       { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('all'),       isActive: histPaymentFilter === 'all' },
@@ -285,9 +304,14 @@ export default function ManagePurchasesPage() {
   // Effect (not inline onValueChange) so the closure has the up-to-date
   // histSupplierId — otherwise we'd send the previous render's value to the API.
   // Skip the initial mount; loadHistory() above already populates the list.
+  // When a status-card / status-popover click clears the supplier chip, it
+  // already reloads with an explicit override — so skip this effect's reload
+  // that one time to avoid a redundant duplicate fetch.
+  const skipSupplierReload = useRef(false)
   const supplierEffectMounted = useRef(false)
   useEffect(() => {
     if (!supplierEffectMounted.current) { supplierEffectMounted.current = true; return }
+    if (skipSupplierReload.current) { skipSupplierReload.current = false; return }
     loadHistory(1, undefined, undefined, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [histSupplierId])
@@ -539,10 +563,10 @@ export default function ManagePurchasesPage() {
             onChange={e => setHistQ(e.target.value)}
             placeholder="ค้นหาเลขที่ใบรับ..."
           />
-          <div className="w-60 shrink-0">
+          <div className="w-80 shrink-0">
             <Combobox
               variant="elevated"
-              items={suppliers}
+              items={filterSuppliers}
               value={histSupplier}
               onChange={(s) => setHistSupplierId(s?.id ?? 0)}
               getKey={(s) => s.id}
@@ -582,7 +606,12 @@ export default function ManagePurchasesPage() {
                     <button
                       key={o.value}
                       type="button"
-                      onClick={() => { setHistPaymentFilter(o.value); loadHistory(1, o.value, undefined, true) }}
+                      onClick={() => {
+                        if (histSupplierId !== 0) skipSupplierReload.current = true
+                        setHistPaymentFilter(o.value)
+                        setHistSupplierId(0)
+                        loadHistory(1, o.value, undefined, true, 0)
+                      }}
                       className={cn(
                         'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors',
                         o.indent && 'pl-7',

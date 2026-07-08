@@ -4,6 +4,7 @@ import { assertNotBundle, recomputeAvgCost, propagateCostToBundles } from '../db
 import dayjs from 'dayjs'
 import { type Override } from '../auth/session'
 import { requirePermission } from '../auth/permissions'
+import { orderByBucket } from '../db/sortName'
 
 export function registerPurchaseHandlers() {
   const db = getDb()
@@ -321,20 +322,30 @@ export function registerPurchaseHandlers() {
     const sortDir = sort_dir === 'ASC' ? 'ASC' : 'DESC'
     const limit = limitOpt === 'all' ? null : (typeof limitOpt === 'number' && limitOpt > 0 ? limitOpt : 20)
     const offset = limit ? (page - 1) * limit : 0
-    const conditions: string[] = []
-    const params: any[] = []
+    // Base filters shared by the summary, the rows, AND the supplier dropdown:
+    // free-text search + date range.
+    const baseConds: string[] = []
+    const baseParams: any[] = []
+    if (q) { baseConds.push(`(pr.invoice_no LIKE ? OR pr.supplier_invoice_no LIKE ?)`); baseParams.push(`%${q}%`, `%${q}%`) }
+    if (date_from) { baseConds.push(`date(pr.created_at) >= ?`); baseParams.push(date_from) }
+    if (date_to) { baseConds.push(`date(pr.created_at) <= ?`); baseParams.push(date_to) }
 
-    if (q) { conditions.push(`(pr.invoice_no LIKE ? OR pr.supplier_invoice_no LIKE ?)`); params.push(`%${q}%`, `%${q}%`) }
-    if (date_from) { conditions.push(`date(pr.created_at) >= ?`); params.push(date_from) }
-    if (date_to) { conditions.push(`date(pr.created_at) <= ?`); params.push(date_to) }
-    if (supplier_id) { conditions.push(`pr.supplier_id = ?`); params.push(supplier_id) }
+    // Supplier chip — applied to the summary + rows, but deliberately NOT to the
+    // supplier dropdown query (that would collapse it to the one selected).
+    const supplierConds = supplier_id ? [`pr.supplier_id = ?`] : []
+    const supplierChipParams = supplier_id ? [supplier_id] : []
 
-    const baseWhere = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ``
+    // conditions = base + supplier chip. Feeds the ROW query only (the table
+    // respects the selected supplier). The summary + supplier-dropdown queries
+    // below use baseConds so they are NOT scoped to the supplier chip.
+    const conditions = [...baseConds, ...supplierConds]
+    const params = [...baseParams, ...supplierChipParams]
 
-    // Summary uses base filters only (no payment_type / status chip). These are
-    // receipt COUNTS per status — no finance figures (kept to a restricted
-    // finance page). The cash/credit/unpaid counts exclude cancelled so each
-    // card's number matches the rows shown when its filter is clicked.
+    // Summary counts use the base filters ONLY — q + date range. They ignore the
+    // payment/status slice AND the supplier chip, so each per-status card always
+    // reflects every supplier's bills; selecting a supplier narrows the table
+    // below, never these totals. (cash/credit/unpaid exclude cancelled.)
+    const summaryWhere = baseConds.length ? `WHERE ${baseConds.join(' AND ')}` : ``
     const NOT_CANCELLED = `COALESCE(pr.status,'completed') != 'cancelled'`
     const summary = (db.prepare(`
       SELECT
@@ -346,30 +357,35 @@ export function registerPurchaseHandlers() {
         COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'credit' AND pr.is_paid = 1 THEN pr.invoice_no END) as paid_count,
         COUNT(DISTINCT CASE WHEN ${NOT_CANCELLED} AND pr.payment_type = 'credit' AND pr.is_paid = 0 AND pr.due_date IS NOT NULL AND date(pr.due_date) < date('now','localtime') THEN pr.invoice_no END) as overdue_count
       FROM purchase_receipts pr
-      ${baseWhere}
-    `).get(...params) as any)
+      ${summaryWhere}
+    `).get(...baseParams) as any)
 
-    const rowConditions = [...conditions]
-    const rowParams = [...params]
+    // Payment / status / VAT slice — narrows the rows AND the supplier dropdown,
+    // so the dropdown lists only sources present in the currently filtered view
+    // (e.g. filter "เกินกำหนด" → just the suppliers that have overdue bills).
+    // Built once here, reused by both queries below. The summary cards stay on
+    // the base q/date/supplier set (not this slice) so each card keeps its count.
+    const sliceConds: string[] = []
+    const sliceParams: any[] = []
     if (payment_type === 'unpaid') {
-      rowConditions.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, NOT_CANCELLED)
+      sliceConds.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, NOT_CANCELLED)
     } else if (payment_type === 'paid') {
-      rowConditions.push(`pr.payment_type = 'credit'`, `pr.is_paid = 1`, NOT_CANCELLED)
+      sliceConds.push(`pr.payment_type = 'credit'`, `pr.is_paid = 1`, NOT_CANCELLED)
     } else if (payment_type === 'duenow') {
-      rowConditions.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, `(pr.due_date IS NULL OR date(pr.due_date) >= date('now','localtime'))`, NOT_CANCELLED)
+      sliceConds.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, `(pr.due_date IS NULL OR date(pr.due_date) >= date('now','localtime'))`, NOT_CANCELLED)
     } else if (payment_type === 'overdue') {
-      rowConditions.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, `pr.due_date IS NOT NULL`, `date(pr.due_date) < date('now','localtime')`, NOT_CANCELLED)
+      sliceConds.push(`pr.payment_type = 'credit'`, `pr.is_paid = 0`, `pr.due_date IS NOT NULL`, `date(pr.due_date) < date('now','localtime')`, NOT_CANCELLED)
     } else if (payment_type === 'cash' || payment_type === 'credit') {
-      rowConditions.push(`pr.payment_type = ?`, NOT_CANCELLED); rowParams.push(payment_type)
+      sliceConds.push(`pr.payment_type = ?`, NOT_CANCELLED); sliceParams.push(payment_type)
     }
-    if (status === 'completed') { rowConditions.push(`COALESCE(pr.status,'completed') = 'completed'`) }
-    else if (status === 'cancelled') { rowConditions.push(`pr.status = 'cancelled'`) }
-    // VAT slice is orthogonal to payment/status — a purchase carries input VAT
-    // when vat_mode = 'inclusive' (the flag purchase:save writes). Narrows rows
-    // only; the summary cards stay on the base q/date set like the other chips.
-    if (vat_filter === 'vat') { rowConditions.push(`COALESCE(pr.vat_mode,'none') = 'inclusive'`) }
-    else if (vat_filter === 'novat') { rowConditions.push(`COALESCE(pr.vat_mode,'none') != 'inclusive'`) }
+    if (status === 'completed') { sliceConds.push(`COALESCE(pr.status,'completed') = 'completed'`) }
+    else if (status === 'cancelled') { sliceConds.push(`pr.status = 'cancelled'`) }
+    if (vat_filter === 'vat') { sliceConds.push(`COALESCE(pr.vat_mode,'none') = 'inclusive'`) }
+    else if (vat_filter === 'novat') { sliceConds.push(`COALESCE(pr.vat_mode,'none') != 'inclusive'`) }
 
+    // Rows: base + supplier chip + slice.
+    const rowConditions = [...conditions, ...sliceConds]
+    const rowParams = [...params, ...sliceParams]
     const rowWhere = rowConditions.length ? `WHERE ${rowConditions.join(' AND ')}` : ``
 
     const limitClause = limit ? `LIMIT ? OFFSET ?` : ''
@@ -397,8 +413,23 @@ export function registerPurchaseHandlers() {
       ${rowWhere}
     `).get(...rowParams) as any).c
 
+    // Supplier dropdown source — distinct suppliers in the current filtered view
+    // (base + slice, WITHOUT the supplier chip). Cascades off the status/date
+    // filters so the list stays short and relevant instead of every supplier in
+    // the system. Not paginated — spans the whole filtered set, not one page.
+    const supFilterConds = [...baseConds, ...sliceConds]
+    const supFilterParams = [...baseParams, ...sliceParams]
+    const supWhere = supFilterConds.length ? `WHERE ${supFilterConds.join(' AND ')}` : ``
+    const suppliers = db.prepare(`
+      SELECT DISTINCT s.id, s.code, s.name
+      FROM purchase_receipts pr
+      JOIN suppliers s ON s.id = pr.supplier_id
+      ${supWhere}
+      ORDER BY ${orderByBucket('s.name')}
+    `).all(...supFilterParams)
+
     return {
-      rows, total, page, limit: limit ?? total,
+      rows, total, page, limit: limit ?? total, suppliers,
       summary: {
         count: summary.count,
         cash_count: summary.cash_count,
