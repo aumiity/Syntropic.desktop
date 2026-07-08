@@ -155,8 +155,8 @@ export default function App() {
                   <Route path="khor-yor-9" element={<ReportsKhorYor9 />} />
                   <Route path="khor-yor-10" element={<ReportsKhorYor10 />} />
                   <Route path="khor-yor-11" element={<ReportsKhorYor11 />} />
-                  <Route path="environment" element={<ReportsEnvLog />} />
                 </Route>
+                <Route path="environment" element={<ReportsEnvLog />} />
                 <Route path="vat" element={<ReportsVat />} />
                 <Route path="export" element={<ReportsExport />} />
               </Route>

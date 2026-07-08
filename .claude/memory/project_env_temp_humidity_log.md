@@ -1,11 +1,22 @@
 ---
 name: project_env_temp_humidity_log
-description: บันทึกอุณหภูมิ–ความชื้น (GPP environmental log) — แทป 4 ใต้รายงาน อย. route /reports/fda/environment
+description: บันทึกอุณหภูมิ–ความชื้น (GPP environmental log) — แท็บหลักของรายงาน route /reports/environment (ย้ายออกจากใต้ อย. 2026-07-08)
 metadata:
   type: project
 ---
 
 **DONE 2026-06-19 (tsc PASS; in-app click-test pending — 32-item checklist from hunter).** SSOT แผน = `docs/plans/Env_Temp_Humidity_Log.html` (Section B). ต่อยอดจาก [[project_fda_registers_redesign]] (ใช้ ReportPrintDialog + A4Sheet/a4.tsx ร่วม).
+
+## REDESIGN 2 (2026-07-08) — table → DASHBOARD (กราฟ + ปฏิทิน heatmap) (tsc PASS renderer+node; in-app/visual pending)
+
+เจ้าของยังไม่ถูกใจตาราง (iteration 3) → เปลี่ยนหน้าจอหลักเป็น **dashboard** (ตารางบนจอถูกถอดทั้งหมด; modal day-editor + IPC saveDay จาก REDESIGN 1 ยังใช้อยู่):
+- **MetricStrip** 4-5 KPI: อุณหภูมิ/ความชื้น/ตู้เย็นเฉลี่ย (ตู้เย็นเฉพาะ fridgeOn) · บันทึกแล้ว X/Y วัน · หลุดเกณฑ์ N ครั้ง
+- **กราฟเส้น 2-3 อัน** (`EnvTrendChart` ใหม่ `src/components/ui/charts/env-trend-chart.tsx`): อุณหภูมิ / ความชื้น / ตู้เย็น (แยกสเกล = ไม่ dual-axis). ComposedChart: Area เส้นค่าเฉลี่ย/วัน + `ReferenceLine` เกณฑ์แดง (temp 30 / humid 75) หรือ `ReferenceArea` แถบเขียว 2-8 (ตู้เย็น) + **จุดหลุดเกณฑ์สีแดง** (Line stroke=transparent, breach point = max หรือค่าไกลจาก mid 5 ตู้เย็น)
+- **ปฏิทิน heatmap** (inline ใน EnvLog, SectionCard): 7 คอลัมน์ อา-ส, สีตามสถานะ (เขียว=ปกติ/แดง=หลุด/เทา=ยังไม่บันทึก), **คลิกวัน → openDayEditor** (ทางเข้าแก้ไขแทนตาราง); firstWeekday = `new Date(year,month-1,1).getDay()`
+- สี categorical (validate ผ่าน dataviz CVD 75.7): ร้าน=`--primary`(teal), สำรอง=`--violet`, ตู้เย็น=`--info`; เกณฑ์/หลุด=`--destructive`, แถบ=`--success` — semantic token ล้วน (chroma-floor teal เตือนแต่ยึด brand ตาม trend-chart.tsx)
+- ทุกอย่างคำนวณ client-side จาก rowMap ใน memo `dash` (ไม่เพิ่ม backend read); **print A4/measure/blank/generate/toggle ไม่แตะเลย**
+- recharts เข้าผ่าน component (ไม่ import recharts ตรงใน EnvLog) — สอดคล้องกฎ [[project_dashboard_rebuild]]
+- **PROMOTED เป็นแท็บหลัก 2026-07-08**: ย้ายออกจาก sub-tab อย. (dashboard คนละพวกกับเอกสารพิมพ์ ข.ย.9/10/11) → route `/reports/environment` (เดิม `/reports/fda/environment`); เพิ่มแท็บใน `Reports/index.tsx` TABS (หลัง fda ก่อน export) + resolveTab; ถอดออกจาก `FdaReports.tsx` FORMS/resolveForm; EnvLog เปลี่ยน context `FdaOutletContext`→`ReportsOutletContext` (`setActions`→`setToolbar`); content wrapper ใน Reports layout ให้ environment = `pt-3 flex-1 min-h-0 flex flex-col` (scroll ภายในเหมือน fda)
 
 ## REDESIGN 2026-07-07 — inline grid → read-only table + modal day-editor (tsc PASS renderer+node; in-app pending)
 

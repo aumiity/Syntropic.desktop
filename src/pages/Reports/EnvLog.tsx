@@ -9,18 +9,19 @@ import { ChoiceCard } from '@/components/ui/choice-card'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '@/components/ui/dialog'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { MetricStrip, SectionCard, type MetricStripItem } from '@/components/ui/card'
+import { EnvTrendChart, type EnvSeries, type EnvTrendDatum } from '@/components/ui/charts/env-trend-chart'
 import { TintIcon } from '@/components/ui/tint-icon'
 import { MultiDatePicker, type MultiDateMode, rangeForMultiMode } from '@/components/ui/multi-date-picker'
 import { useToast } from '@/components/ui/toast'
-import { cn, formatDate } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { printDomSheets } from '@/lib/print/printDomSheets'
 import { GPP_THRESHOLDS, isOutOfRange, type ThreshKind } from '@/lib/env/thresholds'
 import type { Setting, EnvLogRow, EnvSettings } from '@/types'
-import type { FdaOutletContext } from './FdaReports'
+import type { ReportsOutletContext } from './index'
 import { A4Sheet, A4_CONTENT_W, A4_CONTENT_H, FOOTER_H, PACK_SAFETY } from './a4'
 import ReportPrintDialog from './ReportPrintDialog'
-import { FileText, Printer, Thermometer, Settings2, Wand2, Info, Pencil, CalendarDays } from 'lucide-react'
+import { FileText, Printer, Thermometer, Settings2, Wand2, Info, CalendarDays, Droplets, Snowflake, CalendarCheck2, AlertTriangle } from 'lucide-react'
 
 // ─── Static config ──────────────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ interface PageSlice { start: number; end: number; filler: number }
 
 export default function EnvLogPage() {
   const { toast } = useToast()
-  const { setSummary, setActions } = useOutletContext<FdaOutletContext>()
+  const { setSummary, setToolbar } = useOutletContext<ReportsOutletContext>()
 
   // เดือนเดียวเท่านั้น (ล็อกโหมด month เหมือน ข.ย.)
   const [dateMode, setDateMode] = useState<MultiDateMode>('month')
@@ -123,9 +124,9 @@ export default function EnvLogPage() {
 
   useEffect(() => { setSummary(null) }, [setSummary])
 
-  // Mount this report's print actions on the FDA sub-tab line (h-10).
+  // Mount this report's print actions on the Reports main tab strip toolbar.
   useEffect(() => {
-    setActions(
+    setToolbar(
       <>
         <Button size="lg" variant="elevated" className="h-10" disabled={loading} onClick={() => setBlankRender(true)}>
           <FileText className="size-4" /> ฟอร์มเปล่า
@@ -135,8 +136,8 @@ export default function EnvLogPage() {
         </Button>
       </>
     )
-    return () => setActions(null)
-  }, [loading, setActions])
+    return () => setToolbar(null)
+  }, [loading, setToolbar])
 
   useEffect(() => {
     (window.api.settings as any).getShop().then((data: Setting | null) => {
@@ -195,6 +196,135 @@ export default function EnvLogPage() {
 
   const getRow = (day: number, period: number): EnvLogRow | undefined =>
     rowMap.get(`${dateKey(year, month, day)}|${period}`)
+
+  // ─── Dashboard data — KPIs, per-day chart series, and calendar statuses, all
+  // derived from the month's rows in one memo (no new backend read). ──────────
+  const dash = useMemo(() => {
+    const at = (day: number, period: number) => rowMap.get(`${dateKey(year, month, day)}|${period}`)
+    const mean = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length
+    // The breach marker sits at the reading that actually broke the band — the
+    // max for upper limits (temp/humidity), the value furthest from the fridge
+    // mid-point (5°C) for the two-sided fridge band.
+    const breachExtreme = (kind: ThreshKind, vals: number[]) =>
+      kind === 'fridge'
+        ? vals.reduce((a, b) => (Math.abs(b - 5) > Math.abs(a - 5) ? b : a))
+        : Math.max(...vals)
+
+    const buildData = (fields: { field: EnvField; kind: ThreshKind }[]): EnvTrendDatum[] =>
+      Array.from({ length: numDays }, (_, i) => {
+        const day = i + 1
+        const rows = PERIODS.map(p => at(day, p.value))
+        const point: EnvTrendDatum = { day }
+        for (const f of fields) {
+          const vals = rows
+            .map(r => r?.[f.field] as number | null)
+            .filter((v): v is number => v != null && !isNaN(v))
+          point[`${f.field}_avg`] = vals.length ? Math.round(mean(vals) * 10) / 10 : null
+          const bad = vals.filter(v => isOutOfRange(f.kind, v))
+          point[`${f.field}_breach`] = bad.length ? breachExtreme(f.kind, bad) : null
+        }
+        return point
+      })
+
+    const domainFor = (data: EnvTrendDatum[], keys: string[], extra: number[]): [number, number] => {
+      const all = [...extra]
+      for (const d of data) for (const k of keys) { const v = d[k]; if (v != null) all.push(v) }
+      if (!all.length) return [0, 10]
+      return [Math.floor(Math.min(...all)) - 1, Math.ceil(Math.max(...all)) + 1]
+    }
+
+    const tempFields = [
+      { field: 'store_temp' as EnvField, kind: 'store_temp' as ThreshKind },
+      ...(reserveOn ? [{ field: 'reserve_temp' as EnvField, kind: 'reserve_temp' as ThreshKind }] : []),
+    ]
+    const humidFields = [
+      { field: 'store_humidity' as EnvField, kind: 'store_humidity' as ThreshKind },
+      ...(reserveOn ? [{ field: 'reserve_humidity' as EnvField, kind: 'reserve_humidity' as ThreshKind }] : []),
+    ]
+    const fridgeFields = [{ field: 'fridge_temp' as EnvField, kind: 'fridge' as ThreshKind }]
+
+    const tempData = buildData(tempFields)
+    const humidData = buildData(humidFields)
+    const fridgeData = fridgeOn ? buildData(fridgeFields) : []
+
+    const STORE = 'hsl(var(--primary))'
+    const RESERVE = 'hsl(var(--violet))'
+    const FRIDGE = 'hsl(var(--info))'
+    const tempSeries: EnvSeries[] = [
+      { avgKey: 'store_temp_avg', breachKey: 'store_temp_breach', name: 'ร้าน', color: STORE },
+      ...(reserveOn ? [{ avgKey: 'reserve_temp_avg', breachKey: 'reserve_temp_breach', name: 'สำรอง', color: RESERVE }] : []),
+    ]
+    const humidSeries: EnvSeries[] = [
+      { avgKey: 'store_humidity_avg', breachKey: 'store_humidity_breach', name: 'ร้าน', color: STORE },
+      ...(reserveOn ? [{ avgKey: 'reserve_humidity_avg', breachKey: 'reserve_humidity_breach', name: 'สำรอง', color: RESERVE }] : []),
+    ]
+    const fridgeSeries: EnvSeries[] = [
+      { avgKey: 'fridge_temp_avg', breachKey: 'fridge_temp_breach', name: 'ตู้เย็น', color: FRIDGE },
+    ]
+
+    const tempDomain = domainFor(tempData, tempSeries.flatMap(s => [s.avgKey, s.breachKey]), [GPP_THRESHOLDS.store_temp_max])
+    const humidDomain = domainFor(humidData, humidSeries.flatMap(s => [s.avgKey, s.breachKey]), [GPP_THRESHOLDS.store_humidity_max])
+    const fridgeDomain = domainFor(fridgeData, ['fridge_temp_avg', 'fridge_temp_breach'], [GPP_THRESHOLDS.fridge_temp_min, GPP_THRESHOLDS.fridge_temp_max])
+
+    // One pass: KPI sums + per-day calendar status (empty / ok / breach).
+    let sumST = 0, nST = 0, sumSH = 0, nSH = 0, sumFR = 0, nFR = 0
+    const calendar: { day: number; status: 'empty' | 'ok' | 'breach' }[] = []
+    for (let day = 1; day <= numDays; day++) {
+      let any = false, breach = false
+      for (const p of PERIODS) {
+        const r = at(day, p.value)
+        if (!r) continue
+        for (const zf of zoneFields) {
+          const v = r[zf.field] as number | null
+          if (v == null || isNaN(v)) continue
+          any = true
+          if (isOutOfRange(zf.kind, v)) breach = true
+        }
+        const st = r.store_temp as number | null; if (st != null) { sumST += st; nST++ }
+        const sh = r.store_humidity as number | null; if (sh != null) { sumSH += sh; nSH++ }
+        const fr = r.fridge_temp as number | null; if (fr != null) { sumFR += fr; nFR++ }
+      }
+      calendar.push({ day, status: !any ? 'empty' : breach ? 'breach' : 'ok' })
+    }
+    const recorded = calendar.filter(c => c.status !== 'empty').length
+
+    const now = new Date()
+    const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month
+    const daysSoFar = isCurrentMonth ? Math.min(numDays, now.getDate()) : numDays
+    const firstWeekday = new Date(year, month - 1, 1).getDay() // 0=อา
+
+    return {
+      tempData, humidData, fridgeData,
+      tempSeries, humidSeries, fridgeSeries,
+      tempDomain, humidDomain, fridgeDomain,
+      avgStoreTemp: nST ? Math.round((sumST / nST) * 10) / 10 : null,
+      avgStoreHumid: nSH ? Math.round(sumSH / nSH) : null,
+      avgFridge: nFR ? Math.round((sumFR / nFR) * 10) / 10 : null,
+      recorded, daysSoFar, firstWeekday, calendar,
+    }
+  }, [rowMap, year, month, numDays, reserveOn, fridgeOn, zoneFields])
+
+  const kpis: MetricStripItem[] = [
+    { label: 'อุณหภูมิเฉลี่ย (ร้าน)', value: dash.avgStoreTemp != null ? `${dash.avgStoreTemp}°C` : '—', icon: Thermometer, tint: 'primary' },
+    { label: 'ความชื้นเฉลี่ย (ร้าน)', value: dash.avgStoreHumid != null ? `${dash.avgStoreHumid}%RH` : '—', icon: Droplets, tint: 'info' },
+    ...(fridgeOn ? [{ label: 'ตู้เย็นเฉลี่ย', value: dash.avgFridge != null ? `${dash.avgFridge}°C` : '—', icon: Snowflake, tint: 'violet' } as MetricStripItem] : []),
+    { label: 'บันทึกแล้ว', value: `${dash.recorded}/${dash.daysSoFar}`, valueSuffix: 'วัน', icon: CalendarCheck2, tint: 'success', note: dash.recorded < dash.daysSoFar ? `ยังไม่บันทึก ${dash.daysSoFar - dash.recorded} วัน` : 'ครบทุกวัน' },
+    { label: 'หลุดเกณฑ์', value: String(outOfRangeCount), valueSuffix: 'ครั้ง', icon: AlertTriangle, tint: outOfRangeCount > 0 ? 'destructive' : 'success', valueClassName: outOfRangeCount > 0 ? 'text-destructive' : undefined },
+  ]
+
+  // Small per-chart legend: series dots (only when >1 series) + the red breach marker.
+  const chartLegend = (series: EnvSeries[]) => (
+    <div className="flex items-center gap-3">
+      {series.length > 1 && series.map(s => (
+        <span key={s.avgKey} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="size-2.5 rounded-full" style={{ backgroundColor: s.color }} />{s.name}
+        </span>
+      ))}
+      <span className="flex items-center gap-1.5 text-xs text-destructive">
+        <span className="size-2.5 rounded-full bg-destructive" />หลุดเกณฑ์
+      </span>
+    </div>
+  )
 
   // Open the day-editor modal — seed the draft from the stored rows. Every
   // enabled zone field for each of the 3 periods becomes a string cell (NULL →
@@ -461,10 +591,10 @@ export default function EnvLogPage() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-1 flex-col min-h-0">
-      <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        {/* Header bar (h-12); controls h-9. */}
-        <div className="no-print px-4 h-12 shrink-0 flex items-center gap-3">
+    <div className="flex flex-1 flex-col min-h-0 gap-3">
+        {/* Control row — unboxed. The KPI strip + section cards below each carry
+            their own frame, so an extra outer card read as one big boxed table. */}
+        <div className="no-print h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Thermometer} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">บันทึกอุณหภูมิ–ความชื้น</h3>
@@ -535,88 +665,85 @@ export default function EnvLogPage() {
           </div>
         </div>
 
-        {/* Spreadsheet grid — table-fixed + w-[%] (data-entry EXCEPTION). */}
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+        {/* Dashboard — KPI strip, GPP trend charts, and a click-to-edit calendar
+            (replaces the old inline spreadsheet; entry now flows through the day
+            modal). Print/A4 is a separate off-screen render, untouched. */}
+        <div className="no-print flex-1 min-h-0 overflow-y-auto scrollbar-thin space-y-4 pb-4">
           {loading ? (
-            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด…</div>
+            <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด…</div>
           ) : (
-            <Table className="table-fixed">
-              <TableHeader>
-                {/* Row1: วันที่ / period (colSpan) / หมายเหตุ / แก้ไข */}
-                <TableRow>
-                  <TableHead rowSpan={3} className="w-[6%] text-center align-middle">วันที่</TableHead>
-                  {PERIODS.map(p => (
-                    <TableHead key={p.value} colSpan={fieldsPerPeriod} className="text-center">{p.label}</TableHead>
-                  ))}
-                  <TableHead rowSpan={3} className="w-[16%] align-middle">หมายเหตุ</TableHead>
-                  <TableHead rowSpan={3} className="w-[7%] text-center align-middle">แก้ไข</TableHead>
-                </TableRow>
-                {/* Row2: zone labels inside each period */}
-                <TableRow>
-                  {PERIODS.map(p => zones.map(z => (
-                    <TableHead key={`${p.value}-${z.key}`} colSpan={z.fields.length} className="text-center text-xs">
-                      {z.key === 'store' ? 'ร้าน' : z.key === 'reserve' ? 'สำรอง' : 'ตู้เย็น'}
-                    </TableHead>
-                  )))}
-                </TableRow>
-                {/* Row3: unit symbols */}
-                <TableRow>
-                  {PERIODS.map(p => zoneFields.map((zf, ci) => (
-                    <TableHead key={`${p.value}-${zf.field}-${ci}`} className="text-center text-xs">
-                      {zf.short}
-                    </TableHead>
-                  )))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Array.from({ length: numDays }).map((_, di) => {
-                  const day = di + 1
-                  const note = getRow(day, 1)?.note ?? ''
-                  return (
-                    <TableRow key={day} className="[&_td]:py-1.5 hover:bg-muted/40">
-                      <TableCell className="text-center font-medium text-foreground-subtle">{day}</TableCell>
-                      {PERIODS.map(p => {
-                        const row = getRow(day, p.value)
-                        return zoneFields.map((zf, ci) => {
-                          const v = (row?.[zf.field] as number | null) ?? null
-                          const bad = isOutOfRange(zf.kind, v)
-                          return (
-                            <TableCell
-                              key={`${p.value}-${zf.field}-${ci}`}
-                              className={cn(
-                                'text-center text-sm',
-                                bad && 'bg-destructive-soft text-destructive font-semibold',
-                              )}
-                            >
-                              {v == null ? <span className="text-muted-foreground/40">–</span> : formatVal(v)}
-                            </TableCell>
-                          )
-                        })
-                      })}
-                      <TableCell className="text-sm text-muted-foreground overflow-x-clip overflow-y-visible whitespace-nowrap">
-                        {note || <span className="text-muted-foreground/40">–</span>}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button size="icon-lg" variant="elevated" tooltip="แก้ไข" onClick={() => openDayEditor(day)}>
-                          <Pencil />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+            <>
+              <MetricStrip items={kpis} />
+
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
+                {/* Trend charts */}
+                <div className="xl:col-span-2 space-y-4 min-w-0">
+                  <SectionCard icon={Thermometer} title="อุณหภูมิพื้นที่เก็บยา" tint="primary" right={chartLegend(dash.tempSeries)}>
+                    <EnvTrendChart
+                      data={dash.tempData}
+                      series={dash.tempSeries}
+                      threshold={{ y: GPP_THRESHOLDS.store_temp_max, label: `เกณฑ์ ${GPP_THRESHOLDS.store_temp_max}°C` }}
+                      yDomain={dash.tempDomain}
+                      unit="°C"
+                    />
+                  </SectionCard>
+                  <SectionCard icon={Droplets} title="ความชื้น" tint="info" right={chartLegend(dash.humidSeries)}>
+                    <EnvTrendChart
+                      data={dash.humidData}
+                      series={dash.humidSeries}
+                      threshold={{ y: GPP_THRESHOLDS.store_humidity_max, label: `เกณฑ์ ${GPP_THRESHOLDS.store_humidity_max}%RH` }}
+                      yDomain={dash.humidDomain}
+                      unit="%RH"
+                    />
+                  </SectionCard>
+                  {fridgeOn && (
+                    <SectionCard icon={Snowflake} title="ตู้เย็น" tint="violet" right={chartLegend(dash.fridgeSeries)}>
+                      <EnvTrendChart
+                        data={dash.fridgeData}
+                        series={dash.fridgeSeries}
+                        band={{ y1: GPP_THRESHOLDS.fridge_temp_min, y2: GPP_THRESHOLDS.fridge_temp_max }}
+                        yDomain={dash.fridgeDomain}
+                        unit="°C"
+                      />
+                    </SectionCard>
+                  )}
+                </div>
+
+                {/* Calendar — status per day + entry point */}
+                <SectionCard icon={CalendarDays} title="ปฏิทินบันทึก" tint="secondary">
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((d, i) => (
+                      <div key={i} className="text-center text-xs font-medium text-muted-foreground pb-1">{d}</div>
+                    ))}
+                    {Array.from({ length: dash.firstWeekday }).map((_, i) => <div key={`pad-${i}`} />)}
+                    {dash.calendar.map(c => (
+                      <button
+                        key={c.day}
+                        type="button"
+                        onClick={() => openDayEditor(c.day)}
+                        title={c.status === 'breach' ? 'มีค่าผิดเกณฑ์' : c.status === 'ok' ? 'บันทึกแล้ว' : 'ยังไม่บันทึก'}
+                        className={cn(
+                          'aspect-square rounded-lg border text-sm flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          c.status === 'empty' && 'border-border bg-card text-muted-foreground hover:bg-muted',
+                          c.status === 'ok' && 'border-success/30 bg-success-soft text-foreground hover:border-success/60',
+                          c.status === 'breach' && 'border-destructive/40 bg-destructive-soft text-destructive font-semibold hover:border-destructive/70',
+                        )}
+                      >
+                        {c.day}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><span className="size-3 rounded border border-success/30 bg-success-soft" />ปกติ</span>
+                    <span className="flex items-center gap-1.5"><span className="size-3 rounded border border-destructive/40 bg-destructive-soft" />หลุดเกณฑ์</span>
+                    <span className="flex items-center gap-1.5"><span className="size-3 rounded border border-border bg-card" />ยังไม่บันทึก</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">คลิกวันเพื่อบันทึก/แก้ไขค่าทั้งวัน</p>
+                </SectionCard>
+              </div>
+            </>
           )}
         </div>
-
-        {/* Status bar — month range + out-of-range summary. */}
-        {!loading && (
-          <div className="no-print px-4 h-12 shrink-0 flex items-center justify-between border-t border-border text-sm text-muted-foreground">
-            <span>{formatDate(dateFrom)} – {formatDate(dateTo)}</span>
-            <span>{outOfRangeCount > 0 ? `มีค่าผิดเกณฑ์ ${outOfRangeCount} ช่อง` : 'ค่าทั้งหมดอยู่ในเกณฑ์'}</span>
-          </div>
-        )}
-      </div>
 
       {/* Generate confirm dialog — mode choice (fill-empty default / overwrite all). */}
       <Dialog open={genOpen} onOpenChange={(v) => { if (!genBusy) setGenOpen(v) }}>

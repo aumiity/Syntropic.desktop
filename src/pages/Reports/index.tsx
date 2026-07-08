@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
-import { ShieldCheck, LayoutDashboard, Landmark, Download } from 'lucide-react'
+import { ShieldCheck, LayoutDashboard, Landmark, Download, Thermometer } from 'lucide-react'
 import { useShopVat } from '@/hooks/useShopVat'
 
 // Reports = แดชบอร์ด (operational + financial overview, the /reports index) +
@@ -23,6 +23,7 @@ const TABS = [
   { value: 'dashboard', to: '/reports',           label: 'แดชบอร์ด',       icon: LayoutDashboard },
   { value: 'vat',       to: '/reports/vat',       label: 'ภาษี (VAT)',     icon: Landmark },
   { value: 'fda',       to: '/reports/fda',       label: 'รายงาน อย.',     icon: ShieldCheck },
+  { value: 'environment', to: '/reports/environment', label: 'อุณหภูมิ–ความชื้น', icon: Thermometer },
   { value: 'export',    to: '/reports/export',    label: 'ส่งออก Excel',    icon: Download },
 ] as const
 
@@ -30,6 +31,7 @@ type TabValue = typeof TABS[number]['value']
 
 function resolveTab(pathname: string): TabValue {
   if (pathname.startsWith('/reports/fda')) return 'fda'
+  if (pathname.startsWith('/reports/environment')) return 'environment'
   if (pathname.startsWith('/reports/vat')) return 'vat'
   if (pathname.startsWith('/reports/export')) return 'export'
   return 'dashboard'
@@ -169,7 +171,15 @@ export default function ReportsLayout() {
           INTERNALLY, so the FDA branch also needs a bounded height — APPEND
           flex-1/min-h-0 to the existing pt-3 wrapper (it sets setSummary(null),
           so it always takes the pt-3 branch). Dashboard/VAT keep page-scroll. */}
-      <div className={`${summary && summary.length > 0 ? '' : 'pt-3'}${current === 'fda' ? ' flex-1 min-h-0 flex flex-col' : ''}`}>
+      <div className={
+        // FDA renders its own h-12 sub-tab line (flush to the TabStrip divider);
+        // the อุณหภูมิ–ความชื้น dashboard scrolls INTERNALLY (its own control row
+        // + scrollable body). Both need bounded height (flex-1 min-h-0), not the
+        // page-scroll pt-3 branch that summary-less flow content uses.
+        current === 'fda' ? 'flex-1 min-h-0 flex flex-col'
+          : current === 'environment' ? 'pt-3 flex-1 min-h-0 flex flex-col'
+          : (summary && summary.length > 0 ? '' : 'pt-3')
+      }>
         <Outlet context={ctx} />
       </div>
     </div>
