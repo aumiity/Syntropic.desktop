@@ -133,6 +133,7 @@ const api = {
   env: {
     getMonth: (p: { year: number; month: number }) => invoke('env:getMonth', p),
     saveCell: (p: { log_date: string; period: number; field: string; value: any }) => invoke('env:saveCell', p),
+    saveDay: (p: { log_date: string; periods?: Record<number, Record<string, any>>; note?: any }) => invoke('env:saveDay', p),
     generateMonth: (p: { year: number; month: number; mode?: 'fill-empty' | 'all' }) => invoke('env:generateMonth', p),
     getSettings: () => invoke('env:getSettings'),
     setZones: (p: { zone_reserve_enabled: number; zone_fridge_enabled: number }) => invoke('env:setZones', p),

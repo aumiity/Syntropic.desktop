@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,7 +20,7 @@ import type { Setting, EnvLogRow, EnvSettings } from '@/types'
 import type { FdaOutletContext } from './FdaReports'
 import { A4Sheet, A4_CONTENT_W, A4_CONTENT_H, FOOTER_H, PACK_SAFETY } from './a4'
 import ReportPrintDialog from './ReportPrintDialog'
-import { FileText, Printer, Thermometer, MapPin, Wand2, Info } from 'lucide-react'
+import { FileText, Printer, Thermometer, Settings2, Wand2, Info, Pencil, CalendarDays } from 'lucide-react'
 
 // ─── Static config ──────────────────────────────────────────────────────────
 
@@ -98,14 +98,6 @@ export default function EnvLogPage() {
   const [loading, setLoading] = useState(true)
   const [shopName, setShopName] = useState('')
 
-  // Per-cell display strings for the CONTROLLED grid inputs, keyed by
-  // `${log_date}|${period}|${field}` (field='note' for the daily note). Seeded
-  // wholesale from server rows on month-load + generateMonth; thereafter only
-  // the edited cell mutates on keystroke, and the same cell reconciles to the
-  // normalized stored value after its own blur-save — a sibling cell's save
-  // never touches it, so typing is never interrupted.
-  const [cellText, setCellText] = useState<Map<string, string>>(new Map())
-
   const [pages, setPages] = useState<PageSlice[]>([])
   const [blankRender, setBlankRender] = useState(false)
   const [printOpen, setPrintOpen] = useState(false)
@@ -115,28 +107,16 @@ export default function EnvLogPage() {
   const [genMode, setGenMode] = useState<'fill-empty' | 'all'>('fill-empty')
   const [genBusy, setGenBusy] = useState(false)
 
+  // Day-editor modal. editDay = the day being edited (null = closed). `draft`
+  // holds per-period display strings + the day's single note, seeded from the
+  // stored rows when the modal opens; the raw strings are forwarded to
+  // env.saveDay, which owns the blank/0 → NULL coercion.
+  const [editDay, setEditDay] = useState<number | null>(null)
+  const [draft, setDraft] = useState<{ periods: Record<number, Record<string, string>>; note: string } | null>(null)
+  const [saving, setSaving] = useState(false)
+
   const { year, month } = useMemo(() => ymOf(dateFrom), [dateFrom])
   const numDays = useMemo(() => daysInMonth(year, month), [year, month])
-
-  // Per-cell controlled-input identity. field='note' for the daily note column.
-  const cellKey = (day: number, period: number, field: EnvField | 'note') =>
-    `${dateKey(year, month, day)}|${period}|${field}`
-
-  // Build the whole display-string map from a fresh set of server rows.
-  // NULL → '' so a stored blank (incl. a typed 0 the handler nullified) shows
-  // an empty cell. Notes live on period 1 only, keyed once per day.
-  const buildCellText = (rows: EnvLogRow[]): Map<string, string> => {
-    const next = new Map<string, string>()
-    for (const r of rows) {
-      for (const z of ALL_ZONES) {
-        for (const zf of z.fields) {
-          next.set(`${r.log_date}|${r.period}|${zf.field}`, formatVal(r[zf.field] as number | null))
-        }
-      }
-      if (r.period === 1) next.set(`${r.log_date}|1|note`, r.note ?? '')
-    }
-    return next
-  }
 
   const measureRef = useRef<HTMLDivElement>(null)
   const metricsRef = useRef({ headerH: 0, theadH: 0, fillerH: 33 })
@@ -177,7 +157,6 @@ export default function EnvLogPage() {
         const map = new Map<string, EnvLogRow>()
         for (const r of data) map.set(`${r.log_date}|${r.period}`, r)
         setRowMap(map)
-        setCellText(buildCellText(data))
         setLoading(false)
       })
       .catch((err: any) => {
@@ -217,37 +196,53 @@ export default function EnvLogPage() {
   const getRow = (day: number, period: number): EnvLogRow | undefined =>
     rowMap.get(`${dateKey(year, month, day)}|${period}`)
 
-  // Persist ONE cell on blur. We forward the raw string; the handler maps blank/0/
-  // NaN → NULL (never coerced here). After resolve we update rowMap (drives the
-  // print/A4 view + out-of-range count) and reconcile THIS cell's display string
-  // to the normalized stored value (NULL → '' → a typed 0/blank now shows blank
-  // immediately, no reload). GUARD: only overwrite if the live cell text still
-  // equals what was submitted on blur — if the user has typed something new
-  // since, leave their text untouched.
-  const saveCell = (day: number, period: number, field: EnvField | 'note', raw: string) => {
-    const log_date = dateKey(year, month, day)
-    const key = `${log_date}|${period}|${field}`
-    window.api.env.saveCell({ log_date, period, field, value: raw })
-      .then((row: EnvLogRow) => {
+  // Open the day-editor modal — seed the draft from the stored rows. Every
+  // enabled zone field for each of the 3 periods becomes a string cell (NULL →
+  // '' → an empty input), plus the day's single note (period 1).
+  const openDayEditor = (day: number) => {
+    const periods: Record<number, Record<string, string>> = { 1: {}, 2: {}, 3: {} }
+    for (const p of PERIODS) {
+      const row = getRow(day, p.value)
+      for (const zf of zoneFields) {
+        periods[p.value][zf.field] = formatVal((row?.[zf.field] as number | null) ?? null)
+      }
+    }
+    setDraft({ periods, note: getRow(day, 1)?.note ?? '' })
+    setEditDay(day)
+  }
+
+  const setDraftCell = (period: number, field: EnvField, value: string) => {
+    setDraft(prev => prev && ({
+      ...prev,
+      periods: { ...prev.periods, [period]: { ...prev.periods[period], [field]: value } },
+    }))
+  }
+
+  // Persist the whole day in one call. We forward raw strings; env.saveDay maps
+  // blank/0/NaN → NULL. On resolve, patch rowMap for every returned period row
+  // (drives the read-only table + print/A4 view + out-of-range count).
+  const saveDay = () => {
+    if (editDay == null || !draft) return
+    const log_date = dateKey(year, month, editDay)
+    setSaving(true)
+    window.api.env.saveDay({ log_date, periods: draft.periods, note: draft.note })
+      .then((rows: EnvLogRow[]) => {
         setRowMap(prev => {
           const next = new Map(prev)
-          next.set(`${log_date}|${period}`, row)
+          // Rows only come back for periods that were written; clear any period
+          // that no longer has a stored row so cleared days empty out too.
+          for (const p of PERIODS) next.delete(`${log_date}|${p.value}`)
+          for (const r of rows) next.set(`${r.log_date}|${r.period}`, r)
           return next
         })
-        const normalized = field === 'note'
-          ? (row.note ?? '')
-          : formatVal(row[field] as number | null)
-        setCellText(prev => {
-          if (prev.get(key) !== raw) return prev
-          if (prev.get(key) === normalized) return prev
-          const next = new Map(prev)
-          next.set(key, normalized)
-          return next
-        })
+        setEditDay(null)
+        setDraft(null)
+        toast({ title: 'บันทึกค่าเรียบร้อยแล้ว', variant: 'success' })
       })
       .catch((err: any) => {
         toast({ title: 'บันทึกค่าไม่สำเร็จ', description: String(err?.message ?? err), variant: 'destructive' })
       })
+      .finally(() => setSaving(false))
   }
 
   const toggleZone = (zone: 'reserve' | 'fridge', on: boolean) => {
@@ -269,7 +264,6 @@ export default function EnvLogPage() {
         const map = new Map<string, EnvLogRow>()
         for (const r of data) map.set(`${r.log_date}|${r.period}`, r)
         setRowMap(map)
-        setCellText(buildCellText(data))
         setGenOpen(false)
         toast({ title: 'เติมค่าเรียบร้อยแล้ว', variant: 'success' })
       })
@@ -497,7 +491,7 @@ export default function EnvLogPage() {
             <Popover>
               <PopoverTrigger asChild>
                 <Button size="lg" variant="elevated" className="h-9 shrink-0">
-                  <MapPin className="size-4" /> จุดวัด
+                  <Settings2 className="size-4" /> ตั้งค่า
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64">
@@ -548,13 +542,14 @@ export default function EnvLogPage() {
           ) : (
             <Table className="table-fixed">
               <TableHeader>
-                {/* Row1: วันที่ / period (colSpan) / หมายเหตุ */}
+                {/* Row1: วันที่ / period (colSpan) / หมายเหตุ / แก้ไข */}
                 <TableRow>
-                  <TableHead rowSpan={3} className="w-[7%] text-center align-middle">วันที่</TableHead>
+                  <TableHead rowSpan={3} className="w-[6%] text-center align-middle">วันที่</TableHead>
                   {PERIODS.map(p => (
                     <TableHead key={p.value} colSpan={fieldsPerPeriod} className="text-center">{p.label}</TableHead>
                   ))}
-                  <TableHead rowSpan={3} className="w-[14%] align-middle">หมายเหตุ</TableHead>
+                  <TableHead rowSpan={3} className="w-[16%] align-middle">หมายเหตุ</TableHead>
+                  <TableHead rowSpan={3} className="w-[7%] text-center align-middle">แก้ไข</TableHead>
                 </TableRow>
                 {/* Row2: zone labels inside each period */}
                 <TableRow>
@@ -567,7 +562,7 @@ export default function EnvLogPage() {
                 {/* Row3: unit symbols */}
                 <TableRow>
                   {PERIODS.map(p => zoneFields.map((zf, ci) => (
-                    <TableHead key={`${p.value}-${zf.field}-${ci}`} style={{ width: `${cellW}%` }} className="text-center text-xs">
+                    <TableHead key={`${p.value}-${zf.field}-${ci}`} className="text-center text-xs">
                       {zf.short}
                     </TableHead>
                   )))}
@@ -576,57 +571,35 @@ export default function EnvLogPage() {
               <TableBody>
                 {Array.from({ length: numDays }).map((_, di) => {
                   const day = di + 1
-                  const noteKey = cellKey(day, 1, 'note')
+                  const note = getRow(day, 1)?.note ?? ''
                   return (
-                    <TableRow key={day}>
-                      <TableCell className="text-center text-foreground-subtle">{day}</TableCell>
+                    <TableRow key={day} className="[&_td]:py-1.5 hover:bg-muted/40">
+                      <TableCell className="text-center font-medium text-foreground-subtle">{day}</TableCell>
                       {PERIODS.map(p => {
+                        const row = getRow(day, p.value)
                         return zoneFields.map((zf, ci) => {
-                          const key = cellKey(day, p.value, zf.field)
-                          const text = cellText.get(key) ?? ''
-                          // Out-of-range is recomputed from the live text — blank/0
-                          // parses to null/0 → never flagged. Invalid = border only.
-                          const parsed = text.trim() === '' ? null : parseFloat(text)
-                          const bad = parsed != null && parsed !== 0 && !isNaN(parsed)
-                            && isOutOfRange(zf.kind, parsed)
+                          const v = (row?.[zf.field] as number | null) ?? null
+                          const bad = isOutOfRange(zf.kind, v)
                           return (
-                            <TableCell key={`${p.value}-${zf.field}-${ci}`} className="p-0.5">
-                              <Input
-                                variant="filled"
-                                value={text}
-                                onChange={e => {
-                                  const v = e.target.value
-                                  setCellText(prev => {
-                                    const next = new Map(prev)
-                                    next.set(key, v)
-                                    return next
-                                  })
-                                }}
-                                onBlur={e => saveCell(day, p.value, zf.field, e.target.value)}
-                                className={cn(
-                                  'h-8 w-full min-w-12 mx-auto text-center px-1',
-                                  bad && 'border border-destructive bg-destructive-soft',
-                                )}
-                              />
+                            <TableCell
+                              key={`${p.value}-${zf.field}-${ci}`}
+                              className={cn(
+                                'text-center text-sm',
+                                bad && 'bg-destructive-soft text-destructive font-semibold',
+                              )}
+                            >
+                              {v == null ? <span className="text-muted-foreground/40">–</span> : formatVal(v)}
                             </TableCell>
                           )
                         })
                       })}
-                      <TableCell className="p-0.5">
-                        <Input
-                          variant="filled"
-                          value={cellText.get(noteKey) ?? ''}
-                          onChange={e => {
-                            const v = e.target.value
-                            setCellText(prev => {
-                              const next = new Map(prev)
-                              next.set(noteKey, v)
-                              return next
-                            })
-                          }}
-                          onBlur={e => saveCell(day, 1, 'note', e.target.value)}
-                          className="h-8 w-full text-sm px-1"
-                        />
+                      <TableCell className="text-sm text-muted-foreground overflow-x-clip overflow-y-visible whitespace-nowrap">
+                        {note || <span className="text-muted-foreground/40">–</span>}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button size="icon-lg" variant="elevated" tooltip="แก้ไข" onClick={() => openDayEditor(day)}>
+                          <Pencil />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   )
@@ -684,6 +657,90 @@ export default function EnvLogPage() {
             <Button variant="default" onClick={runGenerate} disabled={genBusy}>
               <Wand2 className="size-4" /> {genBusy ? 'กำลังเติม...' : 'เติมค่า'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Day-editor modal — edit a whole day (3 periods × enabled fields + the
+          day's single note) in one place, replacing the old inline grid. Raw
+          strings go to env.saveDay, which owns blank/0 → NULL coercion. */}
+      <Dialog open={editDay != null} onOpenChange={(v) => { if (!saving && !v) { setEditDay(null); setDraft(null) } }}>
+        <DialogContent
+          size="2xl"
+          divided
+          className="h-[480px]"
+          onKeyDown={(e) => {
+            const t = e.target as HTMLElement
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing && t.tagName !== 'BUTTON') {
+              e.preventDefault(); saveDay()
+            }
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="size-5 text-muted-foreground" />
+              <span>บันทึกค่า — {editDay} {monthLabelTh}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="overflow-y-auto scrollbar-thin space-y-4">
+            {draft && (() => {
+              // Flat field list carrying its zone label, so each grid column can
+              // be headed "ร้าน °C" / "สำรอง %RH" without spanning group cells.
+              const cols = zones.flatMap(z => z.fields.map(zf => ({
+                ...zf,
+                label: `${z.key === 'store' ? 'ร้าน' : z.key === 'reserve' ? 'สำรอง' : 'ตู้เย็น'} ${zf.short}`,
+              })))
+              return (
+                <>
+                  <div
+                    className="grid gap-x-2 gap-y-1.5 items-center"
+                    style={{ gridTemplateColumns: `4.5rem repeat(${cols.length}, minmax(3.25rem, 1fr))` }}
+                  >
+                    <div />
+                    {cols.map((c, ci) => (
+                      <div key={ci} className="text-xs text-muted-foreground text-center leading-tight">{c.label}</div>
+                    ))}
+                    {PERIODS.map(p => (
+                      <Fragment key={p.value}>
+                        <div className="text-sm font-medium whitespace-nowrap">{p.label}</div>
+                        {cols.map((c, ci) => {
+                          const text = draft.periods[p.value]?.[c.field] ?? ''
+                          const parsed = text.trim() === '' ? null : parseFloat(text)
+                          const bad = parsed != null && parsed !== 0 && !isNaN(parsed) && isOutOfRange(c.kind, parsed)
+                          return (
+                            <Input
+                              key={ci}
+                              inputMode="decimal"
+                              value={text}
+                              onChange={e => setDraftCell(p.value, c.field, e.target.value)}
+                              className={cn('h-9 text-center px-1', bad && 'border-destructive bg-destructive-soft')}
+                            />
+                          )
+                        })}
+                      </Fragment>
+                    ))}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">หมายเหตุ</label>
+                    <Input
+                      value={draft.note}
+                      onChange={e => setDraft(prev => prev && ({ ...prev, note: e.target.value }))}
+                      placeholder="เช่น แอร์เสีย / ไฟดับ (ถ้ามี)"
+                    />
+                  </div>
+
+                  <div className="rounded-lg border bg-muted/50 px-3 py-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+                    <Info className="size-3.5 shrink-0 mt-0.5" />
+                    <span>เว้นว่างหรือใส่ 0 = ยังไม่ได้บันทึก · ค่าที่เกินเกณฑ์ GPP จะขึ้นกรอบแดง</span>
+                  </div>
+                </>
+              )
+            })()}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="elevated" size="xl" onClick={() => { setEditDay(null); setDraft(null) }} disabled={saving}>ยกเลิก</Button>
+            <Button size="xl" onClick={saveDay} disabled={saving}>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

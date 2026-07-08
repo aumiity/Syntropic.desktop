@@ -7,6 +7,13 @@ metadata:
 
 **DONE 2026-06-19 (tsc PASS; in-app click-test pending — 32-item checklist from hunter).** SSOT แผน = `docs/plans/Env_Temp_Humidity_Log.html` (Section B). ต่อยอดจาก [[project_fda_registers_redesign]] (ใช้ ReportPrintDialog + A4Sheet/a4.tsx ร่วม).
 
+## REDESIGN 2026-07-07 — inline grid → read-only table + modal day-editor (tsc PASS renderer+node; in-app pending)
+
+เจ้าของขอเลิกกรอก inline. ตอนนี้ **ตารางหลัก = read-only** (ค่าเต็มทุกช่อง, ผิดเกณฑ์ = `bg-destructive-soft text-destructive`, ว่าง = `–` muted) + คอลัมน์ท้าย **ปุ่มแก้ไข** (`Pencil`, `size="icon-lg" variant="elevated"`) → เปิด **modal แก้ทั้งวัน** (3 ช่วง × จุดวัดที่เปิด + หมายเหตุ 1 ช่อง; grid `gridTemplateColumns: 4.5rem repeat(N,…)`; Enter=บันทึก; h-[480px] divided size=2xl).
+- **ถอดทิ้ง**: `cellText`/`buildCellText`/`cellKey`/`saveCell` (กลไก CONTROLLED-input Map เดิมใน "Rules ที่ bake ไว้" ด้านล่าง — **ตอนนี้ใช้เฉพาะกับ spreadsheet-grid อื่น ไม่ใช่หน้านี้แล้ว**). draft ของ modal seed จาก rowMap ตอนเปิด, ส่ง raw string ให้ backend coerce.
+- **IPC ใหม่ `env:saveDay`** (`electron/ipc/env.ts` + preload): upsert 3 period + note ใน 1 transaction; coercion เดียวกับ saveCell (blank/NaN/0→NULL, note trim→NULL); แตะเฉพาะ field ที่ modal ส่ง (disabled zone ไม่โดนล้าง); period ที่ค่า null หมด = skip เว้นแต่ row มีอยู่แล้ว (ให้ clear ได้); regex guard log_date; ungated (operational เหมือน saveCell). `env:saveCell` เดิมยังอยู่ (ไม่มี caller ในหน้านี้แล้ว แต่คงไว้).
+- คงครบ: print A4/measure/pagination, ฟอร์มเปล่า, generateMonth, toggle จุดวัด, outOfRangeCount, month picker. rowMap คือ SSOT เดียวของ view หลังถอด cellText.
+
 ## What was built
 
 แทปที่ 4 ใต้รายงาน อย. (`FdaReports.tsx`) → route `/reports/fda/environment`. บันทึกอุณหภูมิ–ความชื้น GPP **แบบ manual entry** (ต่างจาก ข.ย.๙/๑๐/๑๑ ที่ derive จาก sales/purchase data). grid เป็น spreadsheet รายวัน × 3 ช่วงเวลา (เช้า/กลางวัน/เย็น) × 2 zone หลัก (เก็บทั่วไป/ห้องเก็บสำรอง) + ตู้เย็น (optional). ตู้เย็น/เก็บสำรองเปิด-ปิดได้ผ่าน Settings → `env_settings`.

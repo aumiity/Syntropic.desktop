@@ -85,6 +85,69 @@ export function registerEnvHandlers() {
     return db.prepare(`SELECT * FROM env_log WHERE log_date = ? AND period = ?`).get(log_date, period)
   })
 
+  // Upsert a WHOLE day (all 3 periods + the day's single note) in ONE
+  // transaction — the modal day-editor's save path. Same coercion as saveCell:
+  // numeric blank/NaN/0 → NULL, note trimmed/empty → NULL. Only the fields the
+  // modal actually sends per period are touched, so a disabled zone's stored
+  // column is never clobbered. recorded_by set on INSERT only. A period whose
+  // submitted values are all NULL is skipped UNLESS a row already exists (so an
+  // existing entry can still be cleared). Ungated (operational, like saveCell).
+  ipcMain.handle('env:saveDay', (e, payload: {
+    log_date: string
+    periods?: Record<number, Record<string, any>>
+    note?: any
+  }) => {
+    const db = getDb()
+    const log_date = String(payload?.log_date ?? '')
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(log_date)) throw new Error(`invalid log_date: ${log_date}`)
+    const uid = getSession(e.sender.id)?.userId ?? null
+
+    const coerceNum = (raw: any): number | null => {
+      if (raw === '' || raw === null || raw === undefined) return null
+      const n = parseFloat(String(raw))
+      return Number.isNaN(n) || n === 0 ? null : n
+    }
+    const coerceNote = (raw: any): string | null => {
+      const t = String(raw ?? '').trim()
+      return t === '' ? null : t
+    }
+
+    db.transaction(() => {
+      for (const period of [1, 2, 3]) {
+        const pv = payload?.periods?.[period] ?? {}
+        const sets: Record<string, number | string | null> = {}
+        for (const [k, v] of Object.entries(pv)) {
+          if (!NUMERIC_FIELDS.has(k)) throw new Error(`invalid env field: ${k}`)
+          sets[k] = coerceNum(v)
+        }
+        // The daily note is single-writer — persisted on period 1 only.
+        if (period === 1) sets.note = coerceNote(payload?.note)
+
+        const cols = Object.keys(sets)
+        if (cols.length === 0) continue
+        // Don't materialize an all-NULL row for a period the user left empty;
+        // but still run the UPDATE if a row exists so values can be cleared.
+        if (cols.every(c => sets[c] == null)) {
+          const exists = db.prepare(`SELECT 1 FROM env_log WHERE log_date = ? AND period = ?`).get(log_date, period)
+          if (!exists) continue
+        }
+
+        const insertCols = ['log_date', 'period', ...cols, 'recorded_by']
+        const insertVals = ['@log_date', '@period', ...cols.map(c => `@${c}`), '@uid']
+        const updateSet = cols.map(c => `${c} = @${c}`).join(', ')
+        db.prepare(`
+          INSERT INTO env_log (${insertCols.join(', ')})
+          VALUES (${insertVals.join(', ')})
+          ON CONFLICT(log_date, period) DO UPDATE SET
+            ${updateSet},
+            updated_at = datetime('now','localtime')
+        `).run({ log_date, period, uid, ...sets })
+      }
+    })()
+
+    return db.prepare(`SELECT * FROM env_log WHERE log_date = ? ORDER BY period`).all(log_date)
+  })
+
   // Bulk auto-fill the whole month in ONE transaction. mode 'fill-empty'
   // (default — only NULL cells, preserves real entries) | 'all' (every cell).
   // Per-zone random-walk inside the configured GPP band so values read natural
