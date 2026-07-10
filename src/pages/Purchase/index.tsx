@@ -4,7 +4,6 @@ import { getCurrentUserId } from '@/stores/userStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { DateInput } from '@/components/ui/date-input'
 import { Badge } from '@/components/ui/badge'
@@ -78,6 +77,11 @@ const IMPORT_FIELD_OPTIONS = [
   { value: 'cost',  label: 'ราคาทุน/หน่วย' },
   { value: 'skip',  label: '— ข้าม —' },
 ] as const
+
+// ลำดับคอลัมน์ตายตัวสำหรับการนำเข้า (วางให้ตรงลำดับนี้เท่านั้น)
+const IMPORT_COLUMNS = ['key', 'qty', 'lot', 'mfg', 'exp', 'total'] as const
+const IMPORT_FIELD_LABEL: Record<string, string> =
+  Object.fromEntries(IMPORT_FIELD_OPTIONS.map(o => [o.value, o.label]))
 
 // ── Main component ─────────────────────────────────────────────────────────
 
@@ -159,7 +163,7 @@ export default function PurchasePage() {
   const [showImport, setShowImport] = useState(false)
   const [importText, setImportText] = useState('')
   const [importing, setImporting] = useState(false)
-  const [importColumns, setImportColumns] = useState<string[]>(['key', 'qty', 'lot', 'mfg', 'exp', 'total'])
+  const importColumns = IMPORT_COLUMNS
 
   // ส่วนลดท้ายบิล modal (ลดอย่างเดียว — reversible) — ใช้ DiscountDialog ร่วม
   const [showBillAdjust, setShowBillAdjust] = useState(false)
@@ -405,12 +409,7 @@ export default function PurchasePage() {
       if (lines.length === 0) { toast('กรุณาวางข้อมูล', 'error'); return }
 
       const colIdx: Record<string, number> = {}
-      importColumns.forEach((f, idx) => { if (f !== 'skip') colIdx[f] = idx })
-
-      if (colIdx.key === undefined) {
-        toast('กรุณาระบุคอลัมน์ "Barcode / ชื่อ" ก่อนนำเข้า', 'error')
-        return
-      }
+      importColumns.forEach((f, idx) => { colIdx[f] = idx })
 
       const dataLines = /barcode|รหัส|ชื่อ/i.test(lines[0]) ? lines.slice(1) : lines
 
@@ -1397,58 +1396,16 @@ export default function PurchasePage() {
             <DialogTitle>นำเข้าข้อมูลจากตาราง (วาง / Paste)</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-3">
-            {/* Column mapper */}
+            {/* Fixed column order (ตายตัว — วางให้ตรงลำดับนี้) */}
             <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="text-sm font-semibold text-muted-foreground">จัดลำดับคอลัมน์ (ตรงกับตารางที่วาง)</div>
-                {!importColumns.includes('key') && (
-                  <div className="flex items-center gap-1 text-sm font-semibold text-destructive bg-destructive-soft rounded px-1.5 py-0.5">
-                    <AlertTriangle className="size-3 shrink-0" /> ต้องมีคอลัมน์ Barcode / ชื่อ
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-wrap items-end gap-2">
+              <div className="text-sm font-semibold text-muted-foreground mb-1.5">ลำดับคอลัมน์ (คงที่ — วางให้ตรงลำดับนี้)</div>
+              <div className="flex flex-wrap items-center gap-1.5">
                 {importColumns.map((col, ci) => (
-                  <div key={ci} className="flex flex-col gap-0.5">
-                    <div className="text-sm text-foreground-subtle text-center">Col {ci + 1}</div>
-                    <Select
-                      value={col}
-                      onValueChange={v => {
-                        const next = [...importColumns]
-                        next[ci] = v
-                        setImportColumns(next)
-                      }}
-                    >
-                      <SelectTrigger variant="elevated" size="sm" className="h-8 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {IMPORT_FIELD_OPTIONS.map(o => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div key={ci} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1 shadow-sm">
+                    <span className="text-xs font-semibold text-foreground-subtle">{ci + 1}</span>
+                    <span className="text-sm text-foreground">{IMPORT_FIELD_LABEL[col]}</span>
                   </div>
                 ))}
-                <div className="flex flex-col gap-0.5">
-                  <div className="text-sm text-transparent select-none">.</div>
-                  <div className="flex gap-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setImportColumns(c => [...c, 'skip'])}
-                      className="size-8 rounded-lg font-bold"
-                    >+</Button>
-                    {importColumns.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="destructive-soft"
-                        onClick={() => setImportColumns(c => c.slice(0, -1))}
-                        className="size-8 rounded-lg font-bold"
-                      >−</Button>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
             <div className="text-sm text-foreground-subtle">
@@ -1465,7 +1422,7 @@ export default function PurchasePage() {
           </DialogBody>
           <DialogFooter>
             <Button variant="elevated" size="xl" disabled={importing} onClick={() => { setShowImport(false); setImportText('') }}>ยกเลิก</Button>
-            <Button size="xl" disabled={importing || !importText.trim() || !importColumns.includes('key')} onClick={handleImport}>
+            <Button size="xl" disabled={importing || !importText.trim()} onClick={handleImport}>
               {importing ? 'กำลังนำเข้า…' : 'นำเข้า'}
             </Button>
           </DialogFooter>
