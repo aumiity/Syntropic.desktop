@@ -50,6 +50,7 @@ const FONT_ROWS: Array<{ label: string; latin?: string; thai?: string; thaiUnsup
   { label: 'SF Thonburi',               latin: "'SF Thonburi'",                    thai: "'SF Thonburi'" },
   { label: 'Bai Jamjuree',              latin: "'Bai Jamjuree'",                   thai: "'Bai Jamjuree'" },
   { label: 'Anuphan',                   latin: "'Anuphan'",                        thai: "'Anuphan'" },
+  { label: 'Sukhumvit Set',             latin: "'Sukhumvit Set Latin'",            thai: "'Sukhumvit Set'" },
 ]
 
 const LATIN_SAMPLE = 'The quick brown fox · 0123456789'

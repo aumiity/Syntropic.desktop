@@ -18,6 +18,11 @@ import ibmPlexThaiBold from '@/assets/fonts/IBMPlexSansThai-Bold.ttf?url'
 import ibmPlexThaiLoopedRegular from '@/assets/fonts/IBMPlexSansThaiLooped-Regular.ttf?url'
 import ibmPlexThaiLoopedBold from '@/assets/fonts/IBMPlexSansThaiLooped-Bold.ttf?url'
 import notoSansThaiVariable from '@/assets/fonts/NotoSansThai-Variable.ttf?url'
+import sukhumvitSetLight from '@/assets/fonts/SukhumvitSet-Light.ttf?url'
+import sukhumvitSetText from '@/assets/fonts/SukhumvitSet-Text.ttf?url'
+import sukhumvitSetMedium from '@/assets/fonts/SukhumvitSet-Medium.ttf?url'
+import sukhumvitSetSemiBold from '@/assets/fonts/SukhumvitSet-SemiBold.ttf?url'
+import sukhumvitSetBold from '@/assets/fonts/SukhumvitSet-Bold.ttf?url'
 // Script-fallback fonts for the label printer — Burmese + Simplified Chinese.
 // The bundled Thai/Latin fonts have NO Myanmar/CJK glyphs, so multilingual
 // labels would print as tofu boxes. These are embedded ON DEMAND (only when the
@@ -44,6 +49,13 @@ export const FONT_REGISTRY: Record<string, FontFile[]> = {
   'IBM Plex Sans Thai':       [{ weight: 400, url: ibmPlexThaiRegular }, { weight: 700, url: ibmPlexThaiBold }],
   'IBM Plex Sans Thai Looped':[{ weight: 400, url: ibmPlexThaiLoopedRegular }, { weight: 700, url: ibmPlexThaiLoopedBold }],
   'Noto Sans Thai':           [{ weight: '100 900', url: notoSansThaiVariable }],
+  'Sukhumvit Set':            [
+    { weight: 300, url: sukhumvitSetLight },
+    { weight: 400, url: sukhumvitSetText },
+    { weight: 500, url: sukhumvitSetMedium },
+    { weight: 600, url: sukhumvitSetSemiBold },
+    { weight: 700, url: sukhumvitSetBold },
+  ],
 }
 
 export const FONTS = Object.keys(FONT_REGISTRY)

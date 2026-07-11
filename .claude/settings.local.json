@@ -173,7 +173,8 @@
       "Bash(zsh -ic 'type claude-studio')",
       "Bash(open \"/Users/CYUT/Documents/GitHub/Syntropic.desktop/docs/shadcn-preset-showcase.html\")",
       "Bash(rm -rf /tmp/shadcn-probe /tmp/probe2)",
-      "Bash(lsof -i :5173 -sTCP:LISTEN)"
+      "Bash(lsof -i :5173 -sTCP:LISTEN)",
+      "WebFetch(domain:thaifaces.com)"
     ],
     "additionalDirectories": [
       "/tmp"

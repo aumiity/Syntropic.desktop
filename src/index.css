@@ -124,7 +124,7 @@
 
     /* ── Fonts (swappable via Theme page) ───────────────────────────────── */
     --font-latin: 'Sarabun Latin';
-    --font-thai:  'Sarabun';
+    --font-thai:  'Sukhumvit Set';
     /* Brand wordmark font — pinned, NOT overridden in .dark and NOT swapped by the
        Theme page, so "Rx Desktop" always renders in the same typeface. */
     --font-brand: 'Inter';
@@ -618,6 +618,75 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   src: url('./assets/fonts/NotoSansThaiLooped-Variable.ttf') format('truetype-variations');
   font-weight: 100 900;
   font-stretch: 62.5% 100%;
+  font-style: normal;
+}
+
+/* Sukhumvit Set — macOS system font (bundled since Yosemite), extracted from
+   SukhumvitSet.ttc so it renders identically on Windows/Mac mini too. */
+@font-face {
+  font-family: 'Sukhumvit Set';
+  src: url('./assets/fonts/SukhumvitSet-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+@font-face {
+  font-family: 'Sukhumvit Set';
+  src: url('./assets/fonts/SukhumvitSet-Text.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+@font-face {
+  font-family: 'Sukhumvit Set';
+  src: url('./assets/fonts/SukhumvitSet-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+@font-face {
+  font-family: 'Sukhumvit Set';
+  src: url('./assets/fonts/SukhumvitSet-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+@font-face {
+  font-family: 'Sukhumvit Set';
+  src: url('./assets/fonts/SukhumvitSet-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+
+@font-face {
+  font-family: 'Sukhumvit Set Latin';
+  src: url('./assets/fonts/SukhumvitSet-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Sukhumvit Set Latin';
+  src: url('./assets/fonts/SukhumvitSet-Text.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Sukhumvit Set Latin';
+  src: url('./assets/fonts/SukhumvitSet-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Sukhumvit Set Latin';
+  src: url('./assets/fonts/SukhumvitSet-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Sukhumvit Set Latin';
+  src: url('./assets/fonts/SukhumvitSet-Bold.ttf') format('truetype');
+  font-weight: 700;
   font-style: normal;
 }
 
