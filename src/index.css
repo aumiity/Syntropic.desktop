@@ -123,8 +123,8 @@
     --selection-bg:  hsl(175 60% 60% / 0.4);
 
     /* ── Fonts (swappable via Theme page) ───────────────────────────────── */
-    --font-latin: 'Plus Jakarta Sans';
-    --font-thai:  'Noto Sans Thai';
+    --font-latin: 'Inter';
+    --font-thai:  'FC Vision';
     /* Brand wordmark font — pinned, NOT overridden in .dark and NOT swapped by the
        Theme page, so "Rx Desktop" always renders in the same typeface. */
     --font-brand: 'Inter';
@@ -516,6 +516,130 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   src: url('./assets/fonts/Prompt-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
+}
+
+/* FC Vision — Fontcraft (fontcraftstudio.com), non-commercial trial build.
+   Single Regular weight only; the free pack has no variable/weight range.
+   font-weight declared as a RANGE (not just 400) so the browser treats this
+   one file as covering every weight the app requests (buttons/headings use
+   500-700) instead of synthesizing a fake-bold — that synthetic bold was
+   why it rendered too thick. Every weight still looks like Regular; a true
+   heavier cut requires buying the full family.
+   NOT cleared for production — commercial license (500 THB) must be
+   purchased before a real build if this stays selected. See
+   .claude/memory/project_prebuild_cleanup.md. */
+@font-face {
+  font-family: 'FC Vision';
+  src: url('./assets/fonts/FCVision-Regular.otf') format('opentype');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+/* FC Iconic — Fontcraft (fontcraftstudio.com), non-commercial trial build.
+   Two real cuts this time (Light + Bold), each declared as a RANGE covering
+   its half of the weight scale so lighter/heavier requests snap to the
+   nearest real cut instead of synthesizing fake-bold.
+   NOT cleared for production — commercial license (500 THB) must be
+   purchased before a real build if this stays selected. See
+   .claude/memory/project_prebuild_cleanup.md. */
+@font-face {
+  font-family: 'FC Iconic';
+  src: url('./assets/fonts/FCIconic-Light.otf') format('opentype');
+  font-weight: 100 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'FC Iconic';
+  src: url('./assets/fonts/FCIconic-Bold.otf') format('opentype');
+  font-weight: 600 900;
+  font-style: normal;
+}
+
+/* FC Iconic Condensed — same Fontcraft superfamily/license as FC Iconic
+   above, just the narrow-proportion cut. Free pack for this width only
+   ships the Bold weight (no Light), so it's a single face for the whole
+   range — every weight renders as this one Bold-Condensed cut. */
+@font-face {
+  font-family: 'FC Iconic Condensed';
+  src: url('./assets/fonts/FCIconicCondensed-Bold.otf') format('opentype');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+/* FC Sara Samkan — Fontcraft (fontcraftstudio.com), non-commercial trial
+   build, separate type family from FC Vision/FC Iconic (its own 500 THB
+   license if it stays). Two real cuts (Regular + Bold), range-declared
+   per half of the weight scale to avoid synthetic fake-bold.
+   NOT cleared for production — see .claude/memory/project_prebuild_cleanup.md. */
+@font-face {
+  font-family: 'FC Sara Samkan';
+  src: url('./assets/fonts/FCSaraSamkan-Regular.otf') format('opentype');
+  font-weight: 100 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'FC Sara Samkan';
+  src: url('./assets/fonts/FCSaraSamkan-Bold.otf') format('opentype');
+  font-weight: 600 900;
+  font-style: normal;
+}
+
+/* FC Paragraph — Fontcraft (fontcraftstudio.com), non-commercial trial
+   build, separate type family (its own 500 THB license if it stays).
+   Three real cuts (Light/Medium/Bold), range-declared across thirds of
+   the weight scale to avoid synthetic fake-bold.
+   NOT cleared for production — see .claude/memory/project_prebuild_cleanup.md. */
+@font-face {
+  font-family: 'FC Paragraph';
+  src: url('./assets/fonts/FCParagraph-Light.otf') format('opentype');
+  font-weight: 100 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'FC Paragraph';
+  src: url('./assets/fonts/FCParagraph-Medium.otf') format('opentype');
+  font-weight: 500 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'FC Paragraph';
+  src: url('./assets/fonts/FCParagraph-Bold.otf') format('opentype');
+  font-weight: 700 900;
+  font-style: normal;
+}
+
+/* MiSans Thai — Xiaomi HyperOS system font, free for personal + commercial
+   use. Thai-glyph-only (no Latin), so it's THAI-ONLY in the picker (no
+   'latin'/Latin-twin entry — there's nothing to offer that slot). Scoped
+   like the other Thai-only faces so digit-only runs fall through to the
+   Latin font in the stack instead of picking this one. */
+@font-face {
+  font-family: 'MiSans Thai';
+  src: url('./assets/fonts/MiSansThai-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+@font-face {
+  font-family: 'MiSans Thai';
+  src: url('./assets/fonts/MiSansThai-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+@font-face {
+  font-family: 'MiSans Thai';
+  src: url('./assets/fonts/MiSansThai-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
+}
+@font-face {
+  font-family: 'MiSans Thai';
+  src: url('./assets/fonts/MiSansThai-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  unicode-range: U+0E00-0E7F;
 }
 
 @font-face {
