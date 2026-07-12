@@ -123,8 +123,8 @@
     --selection-bg:  hsl(175 60% 60% / 0.4);
 
     /* ── Fonts (swappable via Theme page) ───────────────────────────────── */
-    --font-latin: 'Sarabun Latin';
-    --font-thai:  'Sukhumvit Set';
+    --font-latin: 'Plus Jakarta Sans';
+    --font-thai:  'Noto Sans Thai';
     /* Brand wordmark font — pinned, NOT overridden in .dark and NOT swapped by the
        Theme page, so "Rx Desktop" always renders in the same typeface. */
     --font-brand: 'Inter';
@@ -339,6 +339,15 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-style: normal;
 }
 
+/* Plus Jakarta Sans ships as a single variable font covering weights 200–800.
+   Latin/Cyrillic only — no Thai glyphs, so it's a Latin-only pick (like Inter). */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('./assets/fonts/PlusJakartaSans-Regular.ttf') format('truetype-variations');
+  font-weight: 200 800;
+  font-style: normal;
+}
+
 @font-face {
   font-family: 'Google Sans';
   src: url('./assets/fonts/GoogleSans-Regular.ttf') format('truetype');
@@ -456,6 +465,56 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-family: 'Anuphan';
   src: url('./assets/fonts/Anuphan-Regular.ttf') format('truetype-variations');
   font-weight: 100 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Kanit';
+  src: url('./assets/fonts/Kanit-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Kanit';
+  src: url('./assets/fonts/Kanit-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Kanit';
+  src: url('./assets/fonts/Kanit-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Kanit';
+  src: url('./assets/fonts/Kanit-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Prompt';
+  src: url('./assets/fonts/Prompt-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Prompt';
+  src: url('./assets/fonts/Prompt-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Prompt';
+  src: url('./assets/fonts/Prompt-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Prompt';
+  src: url('./assets/fonts/Prompt-Bold.ttf') format('truetype');
+  font-weight: 700;
   font-style: normal;
 }
 

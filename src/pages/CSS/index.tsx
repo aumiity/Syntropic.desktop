@@ -41,6 +41,9 @@ const CSS_PALETTE_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700
 // Thai slot becomes a disabled card with a "no Thai" badge instead of a blank.
 const FONT_ROWS: Array<{ label: string; latin?: string; thai?: string; thaiUnsupported?: boolean }> = [
   { label: 'Inter',                     latin: "'Inter'",                          thaiUnsupported: true },
+  { label: 'Plus Jakarta Sans',         latin: "'Plus Jakarta Sans'",              thaiUnsupported: true },
+  { label: 'Kanit',                     latin: "'Kanit'",                          thai: "'Kanit'" },
+  { label: 'Prompt',                    latin: "'Prompt'",                         thai: "'Prompt'" },
   { label: 'Google Sans',               latin: "'Google Sans'",                    thai: "'Google Sans'" },
   { label: 'Sarabun',                   latin: "'Sarabun Latin'",                  thai: "'Sarabun'" },
   { label: 'IBM Plex Sans Thai',        latin: "'IBM Plex Sans Thai Latin'",       thai: "'IBM Plex Sans Thai'" },

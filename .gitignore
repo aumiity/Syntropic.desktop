@@ -53,3 +53,6 @@ Thumbs.db
 
 # e2e screenshot artifacts
 tests/e2e/_shots/
+
+# Brainstorming visual companion session files
+.superpowers/
