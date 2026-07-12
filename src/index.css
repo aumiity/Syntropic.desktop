@@ -123,8 +123,8 @@
     --selection-bg:  hsl(175 60% 60% / 0.4);
 
     /* ── Fonts (swappable via Theme page) ───────────────────────────────── */
-    --font-latin: 'Inter';
-    --font-thai:  'FC Vision';
+    --font-latin: 'FC Sara Samkan';
+    --font-thai:  'FC Sara Samkan';
     /* Brand wordmark font — pinned, NOT overridden in .dark and NOT swapped by the
        Theme page, so "Rx Desktop" always renders in the same typeface. */
     --font-brand: 'Inter';
