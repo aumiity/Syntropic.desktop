@@ -186,7 +186,7 @@ const api = {
     allDrugTypes: () => invoke('settings:allDrugTypes'),
     allDosageForms: () => invoke('settings:allDosageForms'),
     getThemeColors: () => invoke('settings:getThemeColors'),
-    saveThemeColors: (payload: Array<{ token: string; light: string; dark: string }>) =>
+    saveThemeColors: (payload: Array<{ token: string; light: string; dark: string; scope?: 'app' | 'lab' }>) =>
       invoke('settings:saveThemeColors', payload),
     getThemeFontSize: () => invoke('settings:getThemeFontSize'),
     saveThemeFontSize: (fontSize: string) => invoke('settings:saveThemeFontSize', fontSize),

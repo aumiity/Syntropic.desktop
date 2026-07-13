@@ -13,6 +13,7 @@ type ThemeColorPayload = {
   token: string
   light: string
   dark: string
+  scope?: 'app' | 'lab'
 }
 
 function resolveThemeCssPath() {
@@ -48,8 +49,21 @@ function upsertVar(block: string, token: string, value: string) {
   return `${trimmed}\n    ${token}: ${value};`
 }
 
-function updateSelectorBlock(content: string, selector: ':root' | '.dark', updates: Record<string, string>) {
-  const selectorRe = selector === ':root' ? /(:root\s*\{)([\s\S]*?)(\n\s*\})/m : /(\.dark\s*\{)([\s\S]*?)(\n\s*\})/m
+function buildSelectorRegex(selector: string) {
+  const escaped = selector
+    .trim()
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\s+/g, '\\s+')
+  return new RegExp(`(${escaped}\\s*\\{)([\\s\\S]*?)(\\n\\s*\\})`, 'm')
+}
+
+function matchSelectorBlock(css: string, selector: string) {
+  const match = css.match(buildSelectorRegex(selector))
+  return match ? match[2] : null
+}
+
+function updateSelectorBlock(content: string, selector: string, updates: Record<string, string>) {
+  const selectorRe = buildSelectorRegex(selector)
   const match = content.match(selectorRe)
   if (!match) {
     throw new Error(`ไม่พบบล็อก ${selector} ในไฟล์ index.css`)
@@ -778,10 +792,15 @@ export function registerSettingsHandlers() {
       throw new Error('ไม่พบบล็อก :root หรือ .dark ในไฟล์ index.css')
     }
 
+    const labRootBlock = matchSelectorBlock(css, '.theme-lab')
+    const labDarkBlock = matchSelectorBlock(css, '.dark .theme-lab')
+
     return {
       path: cssPath,
       root: parseVars(rootMatch[1]),
       dark: parseVars(darkMatch[1]),
+      labRoot: labRootBlock ? parseVars(labRootBlock) : {},
+      labDark: labDarkBlock ? parseVars(labDarkBlock) : {},
     }
   })
 
@@ -792,10 +811,14 @@ export function registerSettingsHandlers() {
 
     const rootUpdates: Record<string, string> = {}
     const darkUpdates: Record<string, string> = {}
+    const labRootUpdates: Record<string, string> = {}
+    const labDarkUpdates: Record<string, string> = {}
     for (const row of payload ?? []) {
       if (!row?.token || !/^--[a-z0-9-]+$/i.test(row.token)) continue
-      if (typeof row.light === 'string' && row.light.trim()) rootUpdates[row.token] = row.light.trim()
-      if (typeof row.dark === 'string' && row.dark.trim()) darkUpdates[row.token] = row.dark.trim()
+      const targetLight = row.scope === 'lab' ? labRootUpdates : rootUpdates
+      const targetDark = row.scope === 'lab' ? labDarkUpdates : darkUpdates
+      if (typeof row.light === 'string' && row.light.trim()) targetLight[row.token] = row.light.trim()
+      if (typeof row.dark === 'string' && row.dark.trim()) targetDark[row.token] = row.dark.trim()
     }
 
     let updated = css
@@ -804,6 +827,12 @@ export function registerSettingsHandlers() {
     }
     if (Object.keys(darkUpdates).length) {
       updated = updateSelectorBlock(updated, '.dark', darkUpdates)
+    }
+    if (Object.keys(labRootUpdates).length) {
+      updated = updateSelectorBlock(updated, '.theme-lab', labRootUpdates)
+    }
+    if (Object.keys(labDarkUpdates).length) {
+      updated = updateSelectorBlock(updated, '.dark .theme-lab', labDarkUpdates)
     }
 
     fs.writeFileSync(cssPath, updated, 'utf8')

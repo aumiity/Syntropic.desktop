@@ -4,7 +4,7 @@ Repo-tracked project memory. Travels with git → available on every machine (Ma
 
 One line per memory. Detail lives in the linked file (read on demand).
 
-- [Theme Lab reference gallery](project_theme_lab.md) — **DONE 2026-07-13** — `/theme-lab` sidebar page, components extracted from an "Offer" CRM reference design, fully isolated via `.theme-lab`-scoped tokens; **serif font pick still PENDING — ask before wiring one in**
+- [Theme Lab reference gallery](project_theme_lab.md) — **DONE 2026-07-13, font pick DONE (Source Serif 4)** — `/theme-lab` sidebar page, components extracted from an "Offer" CRM reference design, fully isolated via `.theme-lab`-scoped tokens
 
 - [Blank-label settings split](project_blank_label_split.md) — **DONE 2026-07-05 (tsc PASS; e2e 17/17; พิมพ์จริง pending)** — `label_settings.profile` 'drug'|'blank' (blank lazy-copy จาก drug); designer ใช้ร่วม `src/components/label/LabelDesigner.tsx` (LabelSettingsTab=wrapper drug, PrintTab ฉลากเปล่า=profile blank ซ่อน expiry/barcode, POS LabelPrintDialog ใช้ blankSettings); preview toggle เปล่า/ตัวอย่าง ถอดทิ้ง; สติ๊กเกอร์ยังใช้ drug settings อย่าลบ `label` ใน PrintTab
 - [E2E readiness pass 2026-07-05](project_e2e_readiness_2026-07-05.md) — **14 suite / 270 checks PASS กับแอปจริง (MacBook)** — เทสต์ใหม่ `verify-sale-cycle.mjs` (GR→FEFO ขาย→void) + `verify-vat-flow.mjs` 31/31 (VAT ทั้งวง: upgrade/downgrade/snapshot/ภ.พ.30); **purchases-dashboard (26/26) + finance-panel (12/12) เขียนใหม่แล้ว** ตรง Dashboard Phase B (กับดัก: Sales = index route `#/manage`); แก้เทสต์เก่ายกชุด (owner-role, NEEDS_OVERRIDE, cross-platform path, locator); **FIX tsconfig.node.json (target ES2022 + include src 3 ไฟล์) — production build เคยล้มแน่ก่อนแก้**; เหลือ: พิมพ์จริง + VAT dialog click-test + ใบลดหนี้

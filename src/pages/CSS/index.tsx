@@ -176,6 +176,8 @@ export default function CSSPage() {
 
   const [colorRows, setColorRows] = useState<ColorTokenRow[]>([])
   const [isSavingColors, setIsSavingColors] = useState(false)
+  const [labColorRows, setLabColorRows] = useState<ColorTokenRow[]>([])
+  const [isSavingLabColors, setIsSavingLabColors] = useState(false)
   const [fontSize, setFontSize] = useState('18px')
   const [isSavingFontSize, setIsSavingFontSize] = useState(false)
   const [selectedPaletteColor, setSelectedPaletteColor] = useState<SelectedPaletteColor | null>(null)
@@ -207,6 +209,21 @@ export default function CSSPage() {
             dark: res?.dark?.[token] ?? res?.root?.[token] ?? '',
           })),
         )
+
+        const labRootEntries = Object.entries(res?.labRoot ?? {}) as Array<[string, string]>
+        const labDarkEntries = Object.entries(res?.labDark ?? {}) as Array<[string, string]>
+        const labSeen = new Set<string>()
+        const labOrderedTokens: string[] = []
+        for (const [token] of labRootEntries) { labSeen.add(token); labOrderedTokens.push(token) }
+        for (const [token] of labDarkEntries) { if (!labSeen.has(token)) labOrderedTokens.push(token) }
+
+        setLabColorRows(
+          labOrderedTokens.map(token => ({
+            token,
+            light: res?.labRoot?.[token] ?? '',
+            dark: res?.labDark?.[token] ?? '',
+          })),
+        )
         if (typeof currentFontSize === 'string' && currentFontSize.trim()) {
           setFontSize(currentFontSize.trim())
         }
@@ -233,6 +250,26 @@ export default function CSSPage() {
       toast('บันทึกสีไม่สำเร็จ', 'error')
     } finally {
       setIsSavingColors(false)
+    }
+  }
+
+  const updateLabColorValue = (token: string, mode: 'light' | 'dark', value: string) => {
+    setLabColorRows(prev => prev.map(row => (
+      row.token === token ? { ...row, [mode]: value } : row
+    )))
+  }
+
+  const saveLabColorTokens = async () => {
+    try {
+      setIsSavingLabColors(true)
+      await window.api.settings.saveThemeColors(
+        labColorRows.map(({ token, light, dark }) => ({ token, light: light.trim(), dark: dark.trim(), scope: 'lab' as const })),
+      )
+      toast('บันทึกสี Theme Lab ลงไฟล์แล้ว', 'success')
+    } catch {
+      toast('บันทึกสี Theme Lab ไม่สำเร็จ', 'error')
+    } finally {
+      setIsSavingLabColors(false)
     }
   }
 
@@ -469,6 +506,68 @@ export default function CSSPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          </Section>
+
+          {/* ── COLOR TOKENS — THEME LAB ── */}
+          <Section title="Color Tokens — Theme Lab" path=".theme-lab / .dark .theme-lab" full>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-foreground">
+                โทเค็นสีของหน้า <code>/theme-lab</code> เท่านั้น (ไม่กระทบสี/ธีมของแอปจริง) แก้ค่า HSL แล้วกดบันทึกเพื่อเขียนลงไฟล์ <code>src/index.css</code>
+              </p>
+              <Button size="sm" onClick={saveLabColorTokens} disabled={isSavingLabColors}>
+                {isSavingLabColors ? 'กำลังบันทึก...' : 'บันทึกสีลงไฟล์'}
+              </Button>
+            </div>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <div className="grid grid-cols-[190px_1fr_1fr] bg-muted/40 border-b border-border">
+                <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Token</div>
+                <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Light (.theme-lab)</div>
+                <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Dark (.dark .theme-lab)</div>
+              </div>
+              {labColorRows.map(({ token, light, dark }) => {
+                const lightPreview = toCssColor(light)
+                const darkPreview = toCssColor(dark)
+                return (
+                  <div key={token} className="grid grid-cols-[190px_1fr_1fr] border-b border-border last:border-b-0 bg-card">
+                    <div className="px-3 py-2 flex items-center">
+                      <p className="text-[11px] text-foreground">{token}</p>
+                    </div>
+                    <div className="px-3 py-2">
+                      <div
+                        className="h-7 rounded-md px-2 flex items-center justify-between"
+                        style={{
+                          backgroundColor: lightPreview ?? 'hsl(var(--muted))',
+                          border: lightPreview ? undefined : '1px dashed hsl(var(--border))',
+                        }}
+                      >
+                        <span className="text-[10px] font-semibold text-foreground">Aa</span>
+                        <Input
+                          className="h-6 w-40 border-border/70 bg-background/85 text-[10px] text-foreground placeholder:text-muted-foreground"
+                          value={light}
+                          onChange={e => updateLabColorValue(token, 'light', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="px-3 py-2">
+                      <div
+                        className="h-7 rounded-md px-2 flex items-center justify-between"
+                        style={{
+                          backgroundColor: darkPreview ?? 'hsl(var(--muted))',
+                          border: darkPreview ? undefined : '1px dashed hsl(var(--border))',
+                        }}
+                      >
+                        <span className="text-[10px] leading-none text-foreground">Aa</span>
+                        <Input
+                          className="h-6 w-40 border-border/70 bg-background/85 text-[10px] text-foreground placeholder:text-muted-foreground"
+                          value={dark}
+                          onChange={e => updateLabColorValue(token, 'dark', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </Section>
         </div>

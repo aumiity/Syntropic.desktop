@@ -11,6 +11,6 @@ metadata:
 
 **Isolation mechanism:** all new tokens scoped under `.theme-lab` class in `src/index.css` (`--lab-bg`, `--lab-card`, `--lab-sidebar*`, `--lab-forest*`, `--lab-amber*`, `--lab-font-serif`) + `.dark .theme-lab` overrides — registered in `tailwind.config.js` under `lab-*` color/fontFamily keys. Zero risk to the real app's `--primary`/`--sidebar`/etc. tokens.
 
-**Font decision — PENDING.** 4 self-hosted serif candidates downloaded to `src/assets/fonts/` (variable woff2, single file per family serves the whole weight range — Chromium interpolates): Source Serif 4 (recommended, marked in-page), Lora, Newsreader, Fraunces. `--lab-font-serif` currently points at Source Serif 4. Operator asked to compare visually before deciding — **ask which one before wiring a pick anywhere else.**
+**Font decision — DONE 2026-07-13.** Operator picked **Source Serif 4** (the recommended default `--lab-font-serif` already pointed at). 4 self-hosted serif candidates remain downloaded at `src/assets/fonts/` (variable woff2) — Source Serif 4, Lora, Newsreader, Fraunces — comparison section in `/theme-lab` kept as-is (reference gallery, not deleted) even though only Source Serif 4 was chosen.
 
 **Not done yet / explicitly out of scope:** nothing from this page has been applied to the real app's `/theme` or any live page — it's reference-only, "หยิบไปใช้ต่อได้เมื่อพร้อม" (pull pieces in later once decided).

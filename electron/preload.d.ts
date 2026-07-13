@@ -203,6 +203,7 @@ declare const api: {
             token: string;
             light: string;
             dark: string;
+            scope?: 'app' | 'lab';
         }>) => Promise<any>;
         getThemeFontSize: () => Promise<any>;
         saveThemeFontSize: (fontSize: string) => Promise<any>;
