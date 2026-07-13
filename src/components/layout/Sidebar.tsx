@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import {
   ShoppingCart, Pill, PackagePlus, Users, ClipboardList, Settings,
   Palette, Sun, Moon, Braces, ChevronLeft, ChevronRight, ScanLine, LineChart,
+  FlaskConical,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
@@ -35,6 +36,9 @@ const bottomNavItems = [
   // { to: '/purchase-intake', label: 'จับคู่ใบส่งของ', icon: ScanLine },
   { to: '/css', label: 'CSS', icon: Braces },
   { to: '/theme', label: 'Appearance', icon: Palette },
+  // Separate reference gallery — components extracted from an external design
+  // reference, kept isolated from the real /theme showcase (see CLAUDE.md).
+  { to: '/theme-lab', label: 'Theme Lab', icon: FlaskConical },
 ]
 
 type NavItemProps = {

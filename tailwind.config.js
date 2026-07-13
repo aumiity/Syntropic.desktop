@@ -123,6 +123,28 @@ export default {
           accent: 'hsl(var(--sidebar-accent))',
           'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
         },
+        // Theme Lab only — scoped under .theme-lab in index.css, never affects
+        // the real app's tokens. See src/pages/ThemeLab.
+        'lab-bg': 'hsl(var(--lab-bg))',
+        'lab-card': 'hsl(var(--lab-card))',
+        'lab-sidebar': {
+          DEFAULT: 'hsl(var(--lab-sidebar))',
+          foreground: 'hsl(var(--lab-sidebar-foreground))',
+          border: 'hsl(var(--lab-sidebar-border))',
+        },
+        'lab-forest': {
+          DEFAULT: 'hsl(var(--lab-forest))',
+          hover: 'hsl(var(--lab-forest-hover))',
+          foreground: 'hsl(var(--lab-forest-foreground))',
+          soft: 'hsl(var(--lab-forest-soft))',
+          'soft-foreground': 'hsl(var(--lab-forest-soft-foreground))',
+        },
+        'lab-amber': {
+          DEFAULT: 'hsl(var(--lab-amber))',
+          foreground: 'hsl(var(--lab-amber-foreground))',
+          soft: 'hsl(var(--lab-amber-soft))',
+          'soft-foreground': 'hsl(var(--lab-amber-soft-foreground))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -134,6 +156,13 @@ export default {
       fontFamily: {
         sans: ['var(--font-latin)', 'var(--font-thai)', 'sans-serif'],
         brand: ['var(--font-brand)', 'sans-serif'],
+        // Theme Lab only — serif comparison candidates + the picked-winner var.
+        // Not used anywhere outside src/pages/ThemeLab.
+        'lab-serif': ['var(--lab-font-serif)', 'serif'],
+        'lab-serif-source': ['Source Serif 4', 'serif'],
+        'lab-serif-lora': ['Lora', 'serif'],
+        'lab-serif-newsreader': ['Newsreader', 'serif'],
+        'lab-serif-fraunces': ['Fraunces', 'serif'],
       },
       boxShadow: {
         card: 'var(--shadow-card)',

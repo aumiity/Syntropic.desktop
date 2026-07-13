@@ -42,6 +42,7 @@ const ReportsVat = lazy(() => import('./pages/Reports/VatReport'))
 const ReportsExport = lazy(() => import('./pages/Reports/ExportHub'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Theme = lazy(() => import('./pages/Theme'))
+const ThemeLab = lazy(() => import('./pages/ThemeLab'))
 const CSSPage = lazy(() => import('./pages/CSS'))
 
 function PageLoader() {
@@ -162,6 +163,7 @@ export default function App() {
               </Route>
               <Route path="settings" element={<Settings />} />
               <Route path="theme" element={<Theme />} />
+              <Route path="theme-lab" element={<ThemeLab />} />
               <Route path="css" element={<CSSPage />} />
             </Route>
           </Routes>
