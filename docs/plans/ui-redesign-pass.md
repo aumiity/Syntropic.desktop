@@ -28,6 +28,9 @@
 
 ## ลำดับงาน
 
+### Wave 0 — App shell (ทุกหน้าเห็นตลอด — เจาะก่อนหน้าอื่นเพราะกระทบทุก wave)
+- [~] **0. Sidebar** — `src/components/layout/Sidebar.tsx` + `Layout.tsx` — **90% (2026-07-14, เจ้าของ dev-tool "โน้ตรีวิว UI" + สด):** active/hover pill inset+rounded-lg, gap ปุ่มแน่นขึ้น, sidebar corner rounded-xl, width w-64, ชิดขอบบน/ซ้าย/ล่างเท่ากัน (pt-2/pl-2/pb-2 แยกจาก main's pt-12). ค้าง: จุดเล็ก ๆ ที่เจ้าของอาจเจอเพิ่มตอนใช้งานจริง
+
 ### Wave 1 — ประตูทางเข้า (เล็ก, เจอครั้งแรก, วอร์มภาษาดีไซน์ใหม่)
 - [x] **1. Setup Wizard** — `src/pages/Setup/SetupWizard.tsx` — **DONE (เจ้าของเคาะ 2026-06-06):** Split brand panel + rebrand "Rx Desktop" + base Card border default + required asterisks (ชื่อ/ที่อยู่/เบอร์) + เบอร์โทรตัวเลขเท่านั้น + บล็อก VAT registration (Phase 2/3 ยังไม่พร้อม)
 - [x] **2. Login Screen** — `src/pages/Auth/LoginScreen.tsx` — **DONE (เจ้าของเคาะ 2026-06-06):** 2-pane BrandPanel + Apple-style user list (avatar lg, ชื่อ+email, ติ๊กถูกตอนเลือก, ไม่มีกรอบนอก), โลโก้ใบไม้จริง + "เข้าสู่ระบบ" ใหญ่, admin-first, ปุ่มลืมรหัส elevated, ชื่อร้านจริง. พ่วง: username UPPERCASE+charset (people.ts/seed), avatar size lg, **โลโก้ Syntropic จริง** (logo-mark.tsx) ใช้ทั้ง Setup/Login/Sidebar
@@ -101,7 +104,20 @@
   - tsc app config EXIT 0.
   - **PIVOT (เจ้าของดูจริงแล้วบอก iframe ใบจริง "ทางการไป"):** เปลี่ยนจาก iframe+`buildSlipHtml` → **receipt JSX ออกแบบเองเข้าธีมแอป** (กระดาษ `bg-card` 300px, หัวร้าน, chip "ใบเสร็จรับเงิน", เส้นประ, บาร์โค้ดปลอม `repeating-linear-gradient(hsl(var(--foreground)))`, รอยฉีกซิกแซกล่าง `clip-path polygon`, ขอบคุณท้ายบิล). ดึงข้อมูลจาก `previewSale` (useMemo เดิม คงไว้ใช้เป็น data source) → track live. **ถอด** `receiptPreviewHtml` state + build-effect + `buildSlipHtml` import. **คง** re-fetch settings effect (ยังดีต่อ print จริง). **หมายเหตุ: นี่ไม่ใช่ WYSIWYG ของสลิปจริงแล้ว** — เป็น mockup เข้าธีม; การพิมพ์จริงยังผ่าน `buildSlipHtml` เหมือนเดิม. **ถัดไป: เจ้าของดู look ผ่าน hot-reload + เก็บโซน POS ที่เหลือ (adjust/return, search modals)**
 
+- **2026-07-14** — **#0 Sidebar 90%** (ปัดฝุ่นรอบนี้ขึ้นมาใหม่หลังห่างไปกว่าเดือน — เริ่มจากโน้ตรีวิว UI ใน dev overlay ที่ `/css`)
+  - Active/hover nav pill: จาก full-bleed `inset-0 rounded-xl` (เต็มแถว) → `inset-y-0.5 inset-x-2.5 rounded-lg` (เว้นขอบ, มุมเล็กลงให้สมส่วน); hover เปลี่ยนจาก `hover:bg-*` เต็มแถวบน `NavLink` เป็น `span` ซ้อนแยกที่ inset เท่ากับ active pill (ผ่าน `group`+`group-hover:`) — กันปัญหา hover ใหญ่กว่า active pill ที่เพิ่งย่อ
+  - ระยะห่างปุ่ม nav: `gap-1` → `gap-0.5` (ทั้ง main+bottom nav)
+  - กรอบนอก Sidebar: ลอง `rounded-control`(0.5rem) ก่อน แต่เจ้าของทดสอบแล้วสรุปว่า **`rounded-xl` สวยกว่าทั้งกรอบนอกและมุมบนหัวโลโก้** (`rounded-t-xl`) — ไม่ใช้ `rounded-card`(1rem, token คนละ semantic กับ panel การ์ดทั่วไป) อีกต่อไปสำหรับ sidebar โดยเฉพาะ
+  - Width `w-48` → `w-64`
+  - **Layout.tsx แยก Sidebar ออกจาก `main`'s `pt-12` wrapper** — เดิม sidebar+main ใช้ padding `pt-12`/`px-3`/`pb-3` ร่วมกันทำให้ sidebar เว้นช่องว่างบนเยอะใต้ TitleBar; ตอนนี้ sidebar เป็น flex item แยก มี `pt-2 pl-2 pb-2` (เท่ากันทั้ง 3 ด้าน อิง `pl-2`) ชิดขอบบน/ซ้าย/ล่างของหน้าต่างเกือบเต็มที่ — TitleBar's drag-region (โปร่งใส, ไม่มีปุ่มกดทับ) คลุมมุมบนซ้ายของ sidebar ได้โดยไม่กระทบ; `main` ยังคง `pt-12` เดิม (เนื้อหาหน้าต้องเว้น ไม่งั้นมุดใต้แถบลาก)
+  - **ปฏิเสธแล้ว: มุมโค้งของ `BrowserWindow` เอง** (ไม่ใช่แค่ sidebar) — เจ้าของถามแต่พอเห็น trade-off (ต้องเปิด `transparent:true`, เสีย native drop-shadow, มุมแปลกตอน maximize, ย้อนกลับยาก) ตัดสินใจไม่ทำ ใช้ native `roundedCorners` default ของ Windows 11 ต่อไป
+  - commit `620552c` (pushed main)
+  - **ถัดไป (พรุ่งนี้ต่อ):** เจ้าของประกาศจะรื้อ **UI ใหม่ทั้งระบบทีละหน้า** (ไม่ใช่แค่ journey wave เดิม — คราวนี้เจาะ "CSS Component ต่าง ๆ" ไปทีละหน้าเหมือนเดิมแต่เริ่มจาก Sidebar ก่อน) เช็ค Wave list ด้านบนว่ายังตรงกับที่เจ้าของอยากทำต่อไหม ก่อนเจาะหน้าใหม่
+
 ## โน้ตต่อหน้า (เก็บ decision/ของที่เจอระหว่างทำ)
+- **Sidebar nav pill/hover** — ใช้ inset (`inset-y-0.5 inset-x-2.5`) + `rounded-lg` ทั้ง active (`motion.div` layoutId) และ hover (`span` + `group-hover:`) ให้ขนาดตรงกันเป๊ะ อย่าแยกให้ hover เต็มแถวอีก (เคยเป็นบั๊กที่เจ้าของจับได้)
+- **Sidebar กรอบนอก = `rounded-xl` เจาะจง ไม่ใช่ `rounded-card`/`rounded-control`** — เจ้าของทดสอบเทียบแล้วเลือกเอง (2026-07-14); ต่างจาก panel การ์ดทั่วไปที่ยังใช้ `rounded-card` ตามกฎเดิม
+- **อย่าเปิด `transparent:true` บน BrowserWindow เพื่อมุมโค้ง custom** — เจ้าของตัดสินใจไม่ทำแล้ว (เหตุผล: เสีย shadow + maximize เพี้ยน + ย้อนกลับยาก) ใช้ native OS rounding พอ
 - **Payment ฝั่งซ้าย = receipt JSX ออกแบบเองเข้าธีม** (ไม่ใช่ iframe สลิปจริง — เจ้าของว่า "ทางการไป"). ดึง `previewSale` (mirror snapshot ของ handleCompleteSale). **ไม่ใช่ WYSIWYG** — print จริงยังผ่าน `buildSlipHtml`. อย่ากลับไปทำ list สรุปรายการเปล่า ๆ (ซ้ำ cart). settings re-fetch ตอนเปิด dialog (ดีต่อ print)
 - **Avatar = `InitialAvatar` primitive ที่เดียว** (`src/components/ui/avatar.tsx`) — ตินต์ soft จาก hash ของชื่อ (ชื่อเดียว = สีเดิมทั้งแอป), icon-only User. อย่าปั้น `<span>`+`<User>` เองอีก. sizes: xs/sm/default/lg/xl (xl=size-24 สำหรับ hero)
 - **โลโก้ Syntropic:** ยังไม่มี asset จริง → ใช้ SVG logomark ใน `brand.tsx` (3 แท่งไล่ระดับ = growth/syntropy + จุด accent เหลือง). เปลี่ยนเป็นโลโก้จริงได้ที่ `LogoGlyph` ใน `brand.tsx` ที่เดียว
