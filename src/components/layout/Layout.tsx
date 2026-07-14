@@ -48,12 +48,17 @@ export function Layout() {
   return (
     <div className="relative flex flex-col h-screen overflow-hidden bg-background">
       <TitleBar />
-      {/* pt-12 clears the absolutely-positioned TitleBar (h-9) plus a floating
-          gap that matches the px-3/pb-3 sides, so the Sidebar card reads as
-          inset on all four edges instead of flush against the window. */}
-      <div className="flex flex-1 overflow-hidden gap-3 px-3 pb-3 pt-12">
-        <Sidebar />
-        <main className="flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden gap-3">
+        {/* Sidebar inset matches on all three open edges (top/left/bottom = pl-2's
+            0.5rem) — near-flush against the window, not centered under the
+            TitleBar's h-9 drag strip. The strip overlays transparently and has
+            no interactive elements over the sidebar, so this reads fine. */}
+        <div className="shrink-0 pl-2 pt-2 pb-2">
+          <Sidebar />
+        </div>
+        {/* pt-12 clears the absolutely-positioned TitleBar (h-9) plus a floating
+            gap, so page content isn't tucked under the transparent drag strip. */}
+        <main className="flex-1 overflow-hidden pt-12 pr-3 pb-3">
           <AnimatePresence mode="wait">
             <motion.div
               key={sectionKey}

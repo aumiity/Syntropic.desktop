@@ -58,20 +58,25 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, countBadge }: NavIte
   const isActive = !!useMatch({ path: resolved.pathname, end: !!exact })
 
   const className = cn(
-    'relative flex items-center h-11 w-full px-6 gap-3 rounded-xl transition-colors',
+    'group relative flex items-center h-11 w-full px-6 gap-3 rounded-lg transition-colors',
     isActive
       ? 'text-sidebar-accent-foreground'
-      : 'text-sidebar-primary-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground'
+      : 'text-sidebar-primary-foreground hover:text-sidebar-accent-foreground'
   )
 
   const link = (
     <NavLink to={to} end={exact} className={className}>
-      {isActive && (
+      {isActive ? (
         <motion.div
           layoutId="sidebar-active"
           aria-hidden
-          className="absolute inset-0 rounded-xl bg-sidebar-accent"
-          transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
+          className="absolute inset-y-0.5 inset-x-2.5 rounded-lg bg-sidebar-accent"
+          transition={{ type: 'spring', bounce: 0.28, duration: 0.45 }}
+        />
+      ) : (
+        <span
+          aria-hidden
+          className="absolute inset-y-0.5 inset-x-2.5 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
         />
       )}
       <span className="relative z-10 shrink-0 inline-flex">
@@ -83,7 +88,7 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, countBadge }: NavIte
         )}
       </span>
       {!collapsed && (
-        <span className="relative z-10 text-sm font-bold leading-none whitespace-nowrap">{label}</span>
+        <span className="relative z-10 text-sm leading-none whitespace-nowrap">{label}</span>
       )}
     </NavLink>
   )
@@ -133,7 +138,7 @@ export function Sidebar() {
   const tagDraftCount = useTagDraftStore(s => s.priceItems.filter(Boolean).length)
 
   const btnClass = cn(
-    'flex items-center justify-center h-11 w-full rounded-xl transition-colors',
+    'flex items-center justify-center h-11 w-full rounded-lg transition-colors',
     'text-sidebar-primary-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground'
   )
 
@@ -146,9 +151,9 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'no-print relative z-10 flex flex-col h-full bg-sidebar shrink-0 rounded-card border border-sidebar-border shadow-card',
-        'transition-[width] duration-200',
-        collapsed ? 'w-20' : 'w-48'
+        'no-print relative z-10 flex flex-col h-full bg-sidebar shrink-0 rounded-xl border border-sidebar-border shadow-card',
+        'transition-[width] duration-400',
+        collapsed ? 'w-20' : 'w-64'
       )}
     >
       {/* Collapse toggle — floats on the sidebar's right border seam */}
@@ -172,7 +177,7 @@ export function Sidebar() {
       </Tooltip>
 
       {/* Logo */}
-      <div className="flex items-center gap-2 h-20 bg-sidebar justify-center overflow-hidden px-2 rounded-t-card">
+      <div className="flex items-center gap-2 h-20 bg-sidebar justify-center overflow-hidden px-2 rounded-t-xl">
         <LogoMark className="size-10 shrink-0 text-sidebar-accent-foreground" />
         {!collapsed && (
           <div className="font-brand text-sidebar-accent-foreground text-2xl font-bold leading-none tracking-tight">
@@ -182,7 +187,7 @@ export function Sidebar() {
       </div>
 
       {/* Main Nav */}
-      <nav className="flex-1 flex flex-col py-3 px-1.5 gap-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
+      <nav className="flex-1 flex flex-col py-3 px-1.5 gap-0.5 overflow-y-auto overflow-x-hidden scrollbar-thin">
         {visibleNavItems.map(({ adminOnly: _adminOnly, ...item }) => (
           <NavItem
             key={item.to}
@@ -199,7 +204,7 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom Nav */}
-      <nav className="flex flex-col mb-4 px-1.5 gap-1">
+      <nav className="flex flex-col mb-4 px-1.5 gap-0.5">
         {bottomNavItems.map((item) => (
           <NavItem key={item.to} {...item} collapsed={collapsed} />
         ))}
