@@ -42,24 +42,14 @@ const CSS_PALETTE_SHADES = ['50', '100', '200', '300', '400', '500', '600', '700
 const FONT_ROWS: Array<{ label: string; latin?: string; thai?: string; thaiUnsupported?: boolean }> = [
   { label: 'Inter',                     latin: "'Inter'",                          thaiUnsupported: true },
   { label: 'Plus Jakarta Sans',         latin: "'Plus Jakarta Sans'",              thaiUnsupported: true },
-  { label: 'Kanit',                     latin: "'Kanit'",                          thai: "'Kanit'" },
-  { label: 'Prompt',                    latin: "'Prompt'",                         thai: "'Prompt'" },
-  { label: 'FC Vision',                 latin: "'FC Vision'",                      thai: "'FC Vision'" },
-  { label: 'FC Iconic',                 latin: "'FC Iconic'",                      thai: "'FC Iconic'" },
-  { label: 'FC Iconic Condensed',       latin: "'FC Iconic Condensed'",            thai: "'FC Iconic Condensed'" },
   { label: 'FC Sara Samkan',            latin: "'FC Sara Samkan'",                 thai: "'FC Sara Samkan'" },
-  { label: 'FC Paragraph',              latin: "'FC Paragraph'",                   thai: "'FC Paragraph'" },
-  { label: 'MiSans Thai',               thai: "'MiSans Thai'" },
+  { label: 'FC Mission',                latin: "'FC Mission'",                     thai: "'FC Mission'" },
   { label: 'Google Sans',               latin: "'Google Sans'",                    thai: "'Google Sans'" },
   { label: 'Sarabun',                   latin: "'Sarabun Latin'",                  thai: "'Sarabun'" },
   { label: 'IBM Plex Sans Thai',        latin: "'IBM Plex Sans Thai Latin'",       thai: "'IBM Plex Sans Thai'" },
-  { label: 'IBM Plex Sans Thai Looped', latin: "'IBM Plex Sans Thai Looped Latin'", thai: "'IBM Plex Sans Thai Looped'" },
   { label: 'Noto Sans Thai',            latin: "'Noto Sans Thai Latin'",           thai: "'Noto Sans Thai'" },
   { label: 'Noto Sans Thai Looped',     latin: "'Noto Sans Thai Looped Latin'",    thai: "'Noto Sans Thai Looped'" },
-  { label: 'SF Thonburi',               latin: "'SF Thonburi'",                    thai: "'SF Thonburi'" },
-  { label: 'Bai Jamjuree',              latin: "'Bai Jamjuree'",                   thai: "'Bai Jamjuree'" },
   { label: 'Anuphan',                   latin: "'Anuphan'",                        thai: "'Anuphan'" },
-  { label: 'Sukhumvit Set',             latin: "'Sukhumvit Set Latin'",            thai: "'Sukhumvit Set'" },
 ]
 
 const LATIN_SAMPLE = 'The quick brown fox · 0123456789'

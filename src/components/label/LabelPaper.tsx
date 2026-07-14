@@ -35,7 +35,7 @@ export function LabelPaper({ settings, content, date }: Props) {
   // element so it sits flush at the padding edge (matches the print HTML
   // `div:first-child` rule).
 
-  // The configured family. Multi-word names (e.g. "Bai Jamjuree") MUST be
+  // The configured family. Multi-word names (e.g. "FC Sara Samkan") MUST be
   // quoted in CSS. We re-apply this on EVERY text element below — not just the
   // root — because the global `* { font-family }` rule in index.css sets the
   // family directly on each child, overriding inheritance from the root div.

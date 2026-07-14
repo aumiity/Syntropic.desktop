@@ -109,14 +109,14 @@
     --sand-strong:     28 30% 38%;      /* warm brown text on soft */
 
     /* ── Sidebar (left navigation) ──────────────────────────────────────── */
-    --sidebar:                    152 39% 27%;
-    --sidebar-foreground:         155 15% 78%;
+    --sidebar:                    0 0% 99%;
+    --sidebar-foreground:         0 0% 32%;
     --sidebar-border:             0 0% 90%;
-    --sidebar-ring:               0 0% 100%;
+    --sidebar-ring:               179 91% 22%;
     --sidebar-primary:            240 5% 96%;
-    --sidebar-primary-foreground: 155 15% 78%;
-    --sidebar-accent:             0 0% 100%;
-    --sidebar-accent-foreground:  0 0% 11%;
+    --sidebar-primary-foreground: 0 0% 40%;
+    --sidebar-accent:             43 100% 64%;
+    --sidebar-accent-foreground:  179 91% 22%;
 
     /* ── Effects ────────────────────────────────────────────────────────── */
     --shadow-card:   0 1px 0 rgba(20, 32, 29, 0.04), 0 8px 24px -16px rgba(20, 32, 29, 0.10);
@@ -458,19 +458,6 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
   font-family: 'FC Sara Samkan';
   src: url('./assets/fonts/FCSaraSamkan-Bold.otf') format('opentype');
   font-weight: 600 900;
-  font-style: normal;
-}
-
-/* FC Mission — Fontcraft (fontcraftstudio.com), non-commercial trial build,
-   separate type family (its own 500 THB license if it stays). The free trial
-   ships one real cut (Medium), declared as a RANGE covering the whole weight
-   scale so lighter/heavier requests snap to this cut instead of synthesizing
-   a fake bold.
-   NOT cleared for production — see .claude/memory/project_prebuild_cleanup.md. */
-@font-face {
-  font-family: 'FC Mission';
-  src: url('./assets/fonts/FCMission-Medium.otf') format('opentype');
-  font-weight: 100 900;
   font-style: normal;
 }
 

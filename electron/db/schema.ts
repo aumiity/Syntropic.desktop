@@ -1182,6 +1182,29 @@ export function initializeSchema(db: Database.Database) {
   // hard-crash boot — keep the file's swallow convention).
   try { db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)`) } catch {}
 
+  // Migration (user_version 3): font-picker cleanup — several experimental /
+  // unlicensed fonts (Sukhumvit Set, Bai Jamjuree, SF Thonburi, IBM Plex Sans
+  // Thai Looped, MiSans Thai, FC Paragraph, FC Iconic, FC Iconic Condensed,
+  // FC Vision, Prompt, Kanit) were removed from FONT_REGISTRY
+  // (src/lib/print/fonts.ts) and the /css picker. A settings row still
+  // pointing at one of them would silently lose print output
+  // (buildPrintFontFaceCss returns '' for an unknown family) — fall back to
+  // Sarabun, the house default.
+  try {
+    const ver = db.pragma('user_version', { simple: true }) as number
+    if (!ver || ver < 3) {
+      const removed = [
+        'Sukhumvit Set', 'Bai Jamjuree', 'SF Thonburi', 'IBM Plex Sans Thai Looped',
+        'MiSans Thai', 'FC Paragraph', 'FC Iconic', 'FC Iconic Condensed', 'FC Vision',
+        'Prompt', 'Kanit',
+      ]
+      const placeholders = removed.map(() => '?').join(', ')
+      db.prepare(`UPDATE receipt_settings SET font_family = 'Sarabun' WHERE font_family IN (${placeholders})`).run(...removed)
+      db.prepare(`UPDATE label_settings SET font_family = 'Sarabun' WHERE font_family IN (${placeholders})`).run(...removed)
+      db.pragma('user_version = 3')
+    }
+  } catch {}
+
   // Role-permissions rollout: the owner role is now 'owner' (was 'admin'). Flip
   // the email-pinned owner account on existing databases so it keeps full
   // authority after the rename. Idempotent + self-limiting (only matches the

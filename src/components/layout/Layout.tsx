@@ -48,7 +48,10 @@ export function Layout() {
   return (
     <div className="relative flex flex-col h-screen overflow-hidden bg-background">
       <TitleBar />
-      <div className="flex flex-1 overflow-hidden">
+      {/* pt-12 clears the absolutely-positioned TitleBar (h-9) plus a floating
+          gap that matches the px-3/pb-3 sides, so the Sidebar card reads as
+          inset on all four edges instead of flush against the window. */}
+      <div className="flex flex-1 overflow-hidden gap-3 px-3 pb-3 pt-12">
         <Sidebar />
         <main className="flex-1 overflow-hidden">
           <AnimatePresence mode="wait">

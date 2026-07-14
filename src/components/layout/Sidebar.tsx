@@ -146,7 +146,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'no-print relative z-10 flex flex-col h-screen bg-sidebar shrink-0 border-r border-sidebar-border',
+        'no-print relative z-10 flex flex-col h-full bg-sidebar shrink-0 rounded-card border border-sidebar-border shadow-card',
         'transition-[width] duration-200',
         collapsed ? 'w-20' : 'w-48'
       )}
@@ -172,7 +172,7 @@ export function Sidebar() {
       </Tooltip>
 
       {/* Logo */}
-      <div className="flex items-center gap-2 mt-4 h-20 bg-sidebar justify-center overflow-hidden px-2">
+      <div className="flex items-center gap-2 h-20 bg-sidebar justify-center overflow-hidden px-2 rounded-t-card">
         <LogoMark className="size-10 shrink-0 text-sidebar-accent-foreground" />
         {!collapsed && (
           <div className="font-brand text-sidebar-accent-foreground text-2xl font-bold leading-none tracking-tight">
