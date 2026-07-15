@@ -30,10 +30,10 @@
     --ring:          175 35% 75%;
 
     /* ── Primary — brand teal ───────────────────────────────────────────── */
-    --primary:              179 91% 22%; /* #0F5D56 */
+    --primary:              152 39% 27%; /* #0F5D56 */
     --primary-foreground:   0 0% 99%;
-    --primary-hover:        175 72% 17%;
-    --primary-strong:       179 91% 12%;
+    --primary-hover:        152 39% 20%;
+    --primary-strong:       152 29% 20%;
     --primary-soft:         180 20% 90%; /* #E3EDEB */
     --primary-soft-hover:   168 22% 87%;
     --primary-soft-border:  175 35% 70%;
@@ -116,7 +116,7 @@
     --sidebar-primary:            240 5% 96%;
     --sidebar-primary-foreground: 155 15% 78%;
     --sidebar-accent:             0 0% 100%;
-    --sidebar-accent-foreground:  0 0% 11%;
+    --sidebar-accent-foreground:  0 0% 12%;
 
     /* ── Effects ────────────────────────────────────────────────────────── */
     --shadow-card:   0 1px 0 rgba(20, 32, 29, 0.04), 0 8px 24px -16px rgba(20, 32, 29, 0.10);
@@ -241,7 +241,7 @@
     --sidebar-ring:               173 58% 40%;
     --sidebar-primary:            179 91% 22%;
     --sidebar-primary-foreground: 214 32% 91%;
-    --sidebar-accent:             43 100% 64%;
+    --sidebar-accent:             0 0% 100%;
     --sidebar-accent-foreground:  44 100% 8%;
 
     /* ── Effects ────────────────────────────────────────────────────────── */

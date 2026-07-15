@@ -4,6 +4,7 @@ Repo-tracked project memory. Travels with git → available on every machine (Ma
 
 One line per memory. Detail lives in the linked file (read on demand).
 
+- [Icon library: Tabler added for solid icons](feedback_icon_library_tabler.md) — **2026-07-15** — lucide-react stays default (outline); `@tabler/icons-react` opt-in — import `Icon<Name>Filled` directly; user picked Tabler's style over Phosphor/Solar/Remix/FA/Heroicons despite inconsistent filled coverage (pick closest filled icon per gap, see file for the swaps)
 - [Font picker cleanup + FC Mission](project_font_picker_cleanup.md) — **2026-07-14** — removed 11 unused fonts (incl. Sukhumvit Set — soft/blurry at fractional Windows DPI scaling, not fixable via CSS); added FC Mission (Fontcraft trial, 500 THB license if kept)
 - [Theme Lab reference gallery](project_theme_lab.md) — **DONE 2026-07-13, font pick DONE (Source Serif 4)** — `/theme-lab` sidebar page, components extracted from an "Offer" CRM reference design, fully isolated via `.theme-lab`-scoped tokens
 
