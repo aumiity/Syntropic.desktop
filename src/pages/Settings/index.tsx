@@ -32,7 +32,7 @@ export default function SettingsPage() {
   // Full-bleed like Manage: the page runs full width so the form scrollers' bars
   // sit at the window edge. CAP re-centers each region (header, tab strip, form
   // body, table tabs) at max-w-7xl so content + tables look unchanged.
-  const CAP = 'w-full max-w-7xl mx-auto px-8'
+  const CAP = 'w-full max-w-7xl mx-auto px-4'
   // Form tabs (natural height) own a full-bleed scroll wrapper; the inner CAP keeps
   // the form centered while the scrollbar hugs the window edge.
   const formScroll = 'flex-1 min-h-0 overflow-y-auto scrollbar-thin pb-8 [scrollbar-gutter:stable]'

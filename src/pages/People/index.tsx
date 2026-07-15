@@ -1023,7 +1023,7 @@ export default function PeoplePage() {
   useEffect(() => { if (!isAdmin && tab === 'staff') setTab('customers') }, [isAdmin, tab])
 
   return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
+    <div className="flex flex-col h-full px-4 pt-4 gap-2">
       <PageHeader title="บุคคล" />
 
       {/* Tabs + Add button (mirrors ProductsLayout: tabs left, add right). */}

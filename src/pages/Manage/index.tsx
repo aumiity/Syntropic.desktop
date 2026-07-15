@@ -82,7 +82,7 @@ const COLS_BY_COUNT: Record<number, string> = {
 // edge, empty side margins still scrollable) while every content row sits in this
 // capped, centered column — so tables stay 1280px wide, not stretched. On staff
 // the parent layout already caps the page at max-w-7xl, so this is a no-op there.
-const CAP = 'w-full max-w-7xl mx-auto px-8'
+const CAP = 'w-full max-w-7xl mx-auto px-4'
 
 export default function ManageLayout() {
   const navigate = useNavigate()
@@ -133,7 +133,7 @@ export default function ManageLayout() {
   const subTabActions = subTabActionsState?.tab === current ? subTabActionsState.node : null
 
   return (
-    <div className="flex flex-col h-full pt-4 pb-4 gap-2">
+    <div className="flex flex-col h-full pt-4 gap-2">
       <div className={CAP}>
         <PageHeader title="การจัดการ" />
       </div>

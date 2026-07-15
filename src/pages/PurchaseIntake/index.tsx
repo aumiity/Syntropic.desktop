@@ -300,7 +300,7 @@ export default function PurchaseIntake() {
   const matchedCount = rows.filter((r) => r.productId != null && r.barcode).length
 
   return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
+    <div className="flex flex-col h-full px-4 pt-4 gap-2">
       <PageHeader title="จับคู่ใบส่งของ" />
 
       <div className="flex flex-1 min-h-0 gap-3">

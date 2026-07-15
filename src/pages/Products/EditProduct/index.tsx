@@ -368,7 +368,7 @@ export default function EditProductPage() {
   // Full-bleed like Manage: page runs full width so the form scrollbar sits at the
   // window edge; CAP re-centers each region (header, tabs, metric cards, form body,
   // table tabs) at max-w-7xl so content + tables look unchanged.
-  const CAP = 'w-full max-w-7xl mx-auto px-8'
+  const CAP = 'w-full max-w-7xl mx-auto px-4'
 
   return (
     <div className="flex flex-col h-full pt-4 pb-4 gap-2">
