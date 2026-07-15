@@ -76,11 +76,11 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, countBadge }: NavIte
   const isActive = !!useMatch({ path: resolved.pathname, end: !!exact })
 
   const className = cn(
-    'group relative flex items-center h-11 w-full rounded-lg transition-colors',
-    collapsed ? 'justify-center' : 'px-6 gap-3',
+    'group relative flex items-center h-10 w-full rounded-lg transition-colors font-semibold',
+    collapsed ? 'justify-center' : 'px-3.5 gap-3',
     isActive
       ? 'text-sidebar-accent-foreground'
-      : 'text-sidebar-primary-foreground hover:text-sidebar-accent-foreground'
+      : 'text-sidebar-foreground hover:text-sidebar-accent-foreground'
   )
 
   const link = (
@@ -89,13 +89,13 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, countBadge }: NavIte
         <motion.div
           layoutId="sidebar-active"
           aria-hidden
-          className="absolute inset-y-0.5 inset-x-2.5 rounded-lg bg-sidebar-accent"
+          className="absolute inset-0 rounded-lg bg-sidebar-accent"
           transition={{ type: 'spring', bounce: 0.28, duration: 0.45 }}
         />
       ) : (
         <span
           aria-hidden
-          className="absolute inset-y-0.5 inset-x-2.5 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
+          className="absolute inset-0 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
         />
       )}
       <span className="relative z-10 shrink-0 inline-flex">
@@ -111,7 +111,7 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, countBadge }: NavIte
         <span className="relative z-10 flex-1 flex items-center justify-between gap-2 min-w-0">
           <span className="text-sm leading-none whitespace-nowrap">{label}</span>
           {!!countBadge && countBadge > 0 && (
-            <Badge variant="accent" className="h-5 min-w-5 px-1.5 justify-center rounded-sm leading-none">
+            <Badge variant="accent" className="h-5 min-w-5 px-1.5 justify-center font-semibold rounded-sm leading-none">
               {countBadge > 99 ? '99+' : countBadge}
             </Badge>
           )}
@@ -168,15 +168,15 @@ export function Sidebar() {
   const tagDraftCount = useTagDraftStore(s => s.priceItems.filter(Boolean).length)
 
   const btnClass = cn(
-    'group relative flex items-center justify-center h-11 w-full rounded-lg transition-colors',
-    'text-sidebar-primary-foreground hover:text-sidebar-accent-foreground'
+    'group relative flex items-center justify-center h-10 w-full rounded-lg transition-colors',
+    'text-sidebar-foreground hover:text-sidebar-accent-foreground'
   )
 
   const themeBtn = (
     <button onClick={toggleTheme} className={btnClass}>
       <span
         aria-hidden
-        className="absolute inset-y-0.5 inset-x-2.5 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
+        className="absolute inset-0 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
       />
       {isDark
         ? <Sun className="relative z-10 h-5 w-5 shrink-0" />
@@ -187,7 +187,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'no-print relative z-10 flex flex-col h-full bg-sidebar shrink-0 rounded-xl border border-sidebar-border shadow-card',
+        'no-print relative z-10 flex flex-col h-full bg-sidebar shrink-0 rounded-xl border border-sidebar-foreground shadow-card',
         'transition-[width] duration-400',
         collapsed ? 'w-20' : 'w-60'
       )}
@@ -202,8 +202,8 @@ export function Sidebar() {
             disabled={isNarrow}
             className={cn(
               'absolute -right-3 top-1/2 -translate-y-1/2 z-20 grid place-items-center',
-              'size-6 rounded-full border border-sidebar-border bg-sidebar shadow-sm',
-              'text-sidebar-primary-foreground transition-colors',
+              'size-6 rounded-full border border-sidebar-foreground bg-sidebar shadow-sm',
+              'text-sidebar-foreground transition-colors',
               isNarrow
                 ? 'opacity-50 pointer-events-none'
                 : 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -230,7 +230,7 @@ export function Sidebar() {
       </div>
 
       {/* Main Nav */}
-      <nav className="flex-1 flex flex-col py-3 px-1.5 gap-0.5 overflow-y-auto overflow-x-hidden scrollbar-thin">
+      <nav className="flex-1 flex flex-col py-3 px-4 gap-1.5 overflow-y-auto overflow-x-hidden scrollbar-thin">
         {visibleNavItems.map(({ adminOnly: _adminOnly, ...item }) => (
           <NavItem
             key={item.to}
@@ -247,7 +247,7 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom Nav */}
-      <nav className="flex flex-col mb-4 px-1.5 gap-0.5">
+      <nav className="flex flex-col mb-2.5 px-4 gap-1.5">
         {bottomNavItems.map((item) => (
           <NavItem key={item.to} {...item} collapsed={collapsed} />
         ))}
@@ -259,7 +259,7 @@ export function Sidebar() {
           </Tooltip>
         ) : themeBtn}
 
-        <div className="mt-1 pt-1 border-t border-sidebar-border">
+        <div className="mt-1 pt-2.5 border-t border-sidebar-foreground">
           <SidebarUser collapsed={collapsed} />
         </div>
       </nav>

@@ -304,69 +304,6 @@ export default function CSSPage() {
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         <div className="grid grid-cols-2 gap-4 px-8 max-w-7xl mx-auto">
-          {/* ── FONTS ── */}
-          <Section title="Fonts" path="--font-latin / --font-thai" full>
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-foreground">
-                เลือกฟอนต์ Latin และ Thai แยกกัน คลิกเพื่อเปลี่ยนทันที (auto-save ลง <code>src/index.css</code>)
-              </p>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">ขนาดฐาน</span>
-                <Input
-                  className="h-8 w-24 text-xs"
-                  value={fontSize}
-                  onChange={e => setFontSize(e.target.value)}
-                  placeholder="18px"
-                />
-                <Button size="sm" variant="outline" onClick={saveFontSize} disabled={isSavingFontSize}>
-                  {isSavingFontSize ? 'กำลังบันทึก...' : 'บันทึกขนาดฟอนต์'}
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-4">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Latin / ตัวเลข</p>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Thai / ภาษาไทย</p>
-              </div>
-              {FONT_ROWS.map(row => (
-                <div key={row.label} className="grid grid-cols-2 gap-4">
-                  {row.latin ? (
-                    <FontCard
-                      label={row.label}
-                      sample={LATIN_SAMPLE}
-                      fontFamily={`${row.latin}, sans-serif`}
-                      isActive={latinFont === row.latin}
-                      onClick={() => applyFont('latin', row.latin!)}
-                    />
-                  ) : (
-                    <div aria-hidden="true" />
-                  )}
-                  {row.thai ? (
-                    <FontCard
-                      label={row.label}
-                      sample={THAI_SAMPLE}
-                      fontFamily={`${row.thai}, sans-serif`}
-                      isActive={thaiFont === row.thai}
-                      onClick={() => applyFont('thai', row.thai!)}
-                    />
-                  ) : row.thaiUnsupported ? (
-                    <FontCard
-                      label={row.label}
-                      sample={THAI_SAMPLE}
-                      fontFamily=""
-                      isActive={false}
-                      onClick={() => {}}
-                      disabled
-                      badge={<Badge variant="secondary">ไม่รองรับภาษาไทย</Badge>}
-                    />
-                  ) : (
-                    <div aria-hidden="true" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </Section>
-
           {/* ── COLOR TOKENS ── */}
           <Section title="Color Tokens (from index.css)" path="src/index.css" full>
             <div className="flex items-center justify-between gap-3">
@@ -558,6 +495,69 @@ export default function CSSPage() {
                   </div>
                 )
               })}
+            </div>
+          </Section>
+
+          {/* ── FONTS ── */}
+          <Section title="Fonts" path="--font-latin / --font-thai" full>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-foreground">
+                เลือกฟอนต์ Latin และ Thai แยกกัน คลิกเพื่อเปลี่ยนทันที (auto-save ลง <code>src/index.css</code>)
+              </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">ขนาดฐาน</span>
+                <Input
+                  className="h-8 w-24 text-xs"
+                  value={fontSize}
+                  onChange={e => setFontSize(e.target.value)}
+                  placeholder="18px"
+                />
+                <Button size="sm" variant="outline" onClick={saveFontSize} disabled={isSavingFontSize}>
+                  {isSavingFontSize ? 'กำลังบันทึก...' : 'บันทึกขนาดฟอนต์'}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-4">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Latin / ตัวเลข</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Thai / ภาษาไทย</p>
+              </div>
+              {FONT_ROWS.map(row => (
+                <div key={row.label} className="grid grid-cols-2 gap-4">
+                  {row.latin ? (
+                    <FontCard
+                      label={row.label}
+                      sample={LATIN_SAMPLE}
+                      fontFamily={`${row.latin}, sans-serif`}
+                      isActive={latinFont === row.latin}
+                      onClick={() => applyFont('latin', row.latin!)}
+                    />
+                  ) : (
+                    <div aria-hidden="true" />
+                  )}
+                  {row.thai ? (
+                    <FontCard
+                      label={row.label}
+                      sample={THAI_SAMPLE}
+                      fontFamily={`${row.thai}, sans-serif`}
+                      isActive={thaiFont === row.thai}
+                      onClick={() => applyFont('thai', row.thai!)}
+                    />
+                  ) : row.thaiUnsupported ? (
+                    <FontCard
+                      label={row.label}
+                      sample={THAI_SAMPLE}
+                      fontFamily=""
+                      isActive={false}
+                      onClick={() => {}}
+                      disabled
+                      badge={<Badge variant="secondary">ไม่รองรับภาษาไทย</Badge>}
+                    />
+                  ) : (
+                    <div aria-hidden="true" />
+                  )}
+                </div>
+              ))}
             </div>
           </Section>
         </div>

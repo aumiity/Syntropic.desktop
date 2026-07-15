@@ -39,7 +39,7 @@ function ProfileRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 px-3 py-2.5">
       <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-      <span className="text-sm font-medium text-foreground truncate">{value}</span>
+      <span className="text-sm font-medium text-muted-foreground truncate">{value}</span>
     </div>
   )
 }
@@ -61,27 +61,27 @@ export function SidebarUser({ collapsed }: { collapsed: boolean }) {
   const trigger = collapsed ? (
     <button
       type="button"
-      className="group relative flex items-center justify-center h-11 w-full rounded-lg transition-colors text-sidebar-primary-foreground hover:text-sidebar-accent-foreground"
+      className="group relative flex items-center justify-center h-14 w-full rounded-lg transition-colors text-sidebar-foreground hover:text-sidebar-accent-foreground"
     >
       <span
         aria-hidden
-        className="absolute inset-y-0.5 inset-x-2.5 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
+        className="absolute inset-0 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
       />
-      <span className="relative z-10"><InitialAvatar name={current.name} size="sm" /></span>
+      <span className="relative z-10"><InitialAvatar name={current.name} size="default" /></span>
     </button>
   ) : (
     <button
       type="button"
-      className="group relative flex items-center gap-2 h-11 w-full px-5 rounded-lg transition-colors text-sidebar-primary-foreground hover:text-sidebar-accent-foreground"
+      className="group relative flex items-center gap-2 h-14 w-full px-2.5 rounded-lg transition-colors text-sidebar-foreground hover:text-sidebar-accent-foreground"
     >
       <span
         aria-hidden
-        className="absolute inset-y-0.5 inset-x-2.5 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
+        className="absolute inset-0 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
       />
-      <span className="relative z-10 shrink-0"><InitialAvatar name={current.name} size="sm" /></span>
+      <span className="relative z-10 shrink-0"><InitialAvatar name={current.name} size="default" /></span>
       <span className="relative z-10 flex-1 min-w-0 text-left">
         <span className="block text-sm font-bold leading-tight truncate">{current.name}</span>
-        <span className="block text-xs leading-tight truncate text-sidebar-primary-foreground/70">
+        <span className="block text-xs leading-tight truncate text-sidebar-foreground/70">
           {roleLabel}
         </span>
       </span>

@@ -3,8 +3,7 @@ export const ACCENT_VAR_NAMES = [
   '--primary', '--primary-foreground', '--primary-hover',
   '--primary-soft', '--primary-soft-hover', '--primary-soft-border', '--primary-strong',
   '--accent', '--accent-foreground', '--ring',
-  '--sidebar', '--sidebar-border', '--sidebar-accent', '--sidebar-accent-foreground',
-  '--sidebar-ring', '--sidebar-primary', '--sidebar-primary-foreground',
+  '--sidebar', '--sidebar-accent', '--sidebar-accent-foreground',
   '--selection-bg',
 ] as const
 
@@ -55,7 +54,6 @@ function buildVars(h: number, s: number, isDark: boolean, baseL = 49): Record<st
       '--accent-foreground':         `${h} ${s}% ${l(46)}%`,
       '--ring':                      `${h} ${s}% ${l(30)}%`,
       '--sidebar-accent-foreground': `${h} ${s}% ${baseL}%`,
-      '--sidebar-ring':              `${h} ${s}% ${baseL}%`,
     }
   }
   return {
@@ -70,7 +68,6 @@ function buildVars(h: number, s: number, isDark: boolean, baseL = 49): Record<st
     '--accent-foreground':         `${h} ${s}% ${baseL}%`,
     '--ring':                      `${h} ${s}% ${l(30)}%`,
     '--sidebar-accent-foreground': `${h} ${s}% ${baseL}%`,
-    '--sidebar-ring':              `${h} ${s}% ${l(-7)}%`,
   }
 }
 

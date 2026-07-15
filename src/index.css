@@ -109,12 +109,13 @@
     --sand-strong:     28 30% 38%;      /* warm brown text on soft */
 
     /* ── Sidebar (left navigation) ──────────────────────────────────────── */
+    /* Minimal 4-token palette. --sidebar-foreground doubles as text AND border;
+       --sidebar-accent doubles as active-pill bg AND (formerly) ring. Removed
+       --sidebar-border/-primary/-primary-foreground/-ring (2026-07-15).
+       NOTE: dark-mode values below are provisional — tuned for light first;
+       revisit .dark sidebar colors later. */
     --sidebar:                    152 39% 27%;
     --sidebar-foreground:         155 15% 78%;
-    --sidebar-border:             0 0% 90%;
-    --sidebar-ring:               0 0% 100%;
-    --sidebar-primary:            240 5% 96%;
-    --sidebar-primary-foreground: 155 15% 78%;
     --sidebar-accent:             0 0% 100%;
     --sidebar-accent-foreground:  0 0% 12%;
 
@@ -235,12 +236,10 @@
     --sand-strong:     34 40% 78%;      /* pale sand text */
 
     /* ── Sidebar ────────────────────────────────────────────────────────── */
+    /* Provisional — see NOTE in :root. --sidebar-foreground now also drives the
+       sidebar border (was --sidebar-border 0 0% 10%); revisit for dark. */
     --sidebar:                    0 0% 20%;
     --sidebar-foreground:         0 0% 100%;
-    --sidebar-border:             0 0% 10%;
-    --sidebar-ring:               173 58% 40%;
-    --sidebar-primary:            179 91% 22%;
-    --sidebar-primary-foreground: 214 32% 91%;
     --sidebar-accent:             0 0% 100%;
     --sidebar-accent-foreground:  44 100% 8%;
 
@@ -268,7 +267,7 @@
   /* Thin (7px) is the ONE scrollbar size across the whole app — global default
      matches the .scrollbar-thin utility. Never define a different width anywhere. */
   ::-webkit-scrollbar {
-    @apply w-[7px] h-[7px];
+    @apply w-[10px] h-[10px];
   }
   ::-webkit-scrollbar-track { 
     @apply bg-transparent; 
@@ -356,7 +355,7 @@
 }
 
 @layer utilities {
-  .scrollbar-thin::-webkit-scrollbar { width: 7px; height: 7px; }
+  .scrollbar-thin::-webkit-scrollbar { width: 10px; height: 10px; }
   .scrollbar-thin::-webkit-scrollbar-track { @apply bg-transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-muted-foreground/30 rounded-full; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/50; }
