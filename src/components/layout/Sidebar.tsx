@@ -3,11 +3,11 @@ import { NavLink, useResolvedPath, useMatch } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
-  IconShoppingCartFilled, IconPillFilled, IconTruckFilled, IconUserFilled,
-  IconClipboardListFilled, IconSettingsFilled, IconChartAreaLineFilled,
-  IconPaletteFilled, IconSunFilled, IconMoonFilled, IconCodeCircleFilled,
-  IconCaretLeftFilled, IconCaretRightFilled, IconScan, IconFlaskFilled,
-} from '@tabler/icons-react'
+  ShoppingBag, Pill, PackagePlus, User,
+  FileText, Settings, ChartArea,
+  Palette, Sun, Moon, CodeXml,
+  ChevronLeft, ChevronRight, Scan, FlaskConical,
+} from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useGRDraftStore } from '@/stores/grDraftStore'
@@ -23,24 +23,24 @@ import { SidebarUser } from './SidebarUser'
 // entirely admin-gated IPC; settings is all writes). This is UX — the IPC layer
 // enforces the same boundary regardless (R1/R2).
 const mainNavItems = [
-  { to: '/', label: 'การขาย', icon: IconShoppingCartFilled, exact: true },
-  { to: '/purchase', label: 'การรับสินค้า', icon: IconTruckFilled },
-  { to: '/products', label: 'สินค้า', icon: IconPillFilled },
-  { to: '/manage', label: 'การจัดการ', icon: IconClipboardListFilled },
-  { to: '/reports', label: 'รายงาน', icon: IconChartAreaLineFilled, adminOnly: true },
-  { to: '/people', label: 'บุคคล', icon: IconUserFilled },
-  { to: '/settings', label: 'ตั้งค่า', icon: IconSettingsFilled, adminOnly: true },
+  { to: '/', label: 'การขาย', icon: ShoppingBag, exact: true },
+  { to: '/purchase', label: 'การรับสินค้า', icon: PackagePlus },
+  { to: '/products', label: 'สินค้า', icon: Pill },
+  { to: '/manage', label: 'การจัดการ', icon: FileText },
+  { to: '/reports', label: 'รายงาน', icon: ChartArea, adminOnly: true },
+  { to: '/people', label: 'บุคคล', icon: User },
+  { to: '/settings', label: 'ตั้งค่า', icon: Settings, adminOnly: true },
 ]
 
 const bottomNavItems = [
   // จับคู่ใบส่งของ — HIDDEN from nav 2026-06-05, ยังไม่ได้ใช้. Page/code kept (route
   // still live in App.tsx, reachable by URL). Re-enable by uncommenting this line.
-  // { to: '/purchase-intake', label: 'จับคู่ใบส่งของ', icon: IconScan },
-  { to: '/css', label: 'CSS', icon: IconCodeCircleFilled },
-  { to: '/theme', label: 'Appearance', icon: IconPaletteFilled },
+  // { to: '/purchase-intake', label: 'จับคู่ใบส่งของ', icon: Scan },
+  { to: '/css', label: 'CSS', icon: CodeXml },
+  { to: '/theme', label: 'Appearance', icon: Palette },
   // Separate reference gallery — components extracted from an external design
   // reference, kept isolated from the real /theme showcase (see CLAUDE.md).
-  { to: '/theme-lab', label: 'Theme Lab', icon: IconFlaskFilled },
+  { to: '/theme-lab', label: 'Theme Lab', icon: FlaskConical },
 ]
 
 // Below this window width the sidebar auto-collapses (independent of the
@@ -179,8 +179,8 @@ export function Sidebar() {
         className="absolute inset-y-0.5 inset-x-2.5 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
       />
       {isDark
-        ? <IconSunFilled className="relative z-10 h-5 w-5 shrink-0" />
-        : <IconMoonFilled className="relative z-10 h-5 w-5 shrink-0" />}
+        ? <Sun className="relative z-10 h-5 w-5 shrink-0" />
+        : <Moon className="relative z-10 h-5 w-5 shrink-0" />}
     </button>
   )
 
@@ -210,8 +210,8 @@ export function Sidebar() {
             )}
           >
             {collapsed
-              ? <IconCaretRightFilled className="size-4 shrink-0" />
-              : <IconCaretLeftFilled className="size-4 shrink-0" />}
+              ? <ChevronRight className="size-4 shrink-0" />
+              : <ChevronLeft className="size-4 shrink-0" />}
           </button>
         </TooltipTrigger>
         <TooltipContent side="right">
