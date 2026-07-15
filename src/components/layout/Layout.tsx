@@ -48,7 +48,7 @@ export function Layout() {
   return (
     <div className="relative flex flex-col h-screen overflow-hidden bg-background">
       <TitleBar />
-      <div className="flex flex-1 overflow-hidden gap-3">
+      <div className="flex flex-1 overflow-hidden">
         {/* Sidebar inset matches on all three open edges (top/left/bottom = pl-2's
             0.5rem) — near-flush against the window, not centered under the
             TitleBar's h-9 drag strip. The strip overlays transparently and has
@@ -56,9 +56,13 @@ export function Layout() {
         <div className="shrink-0 pl-2 pt-2 pb-2">
           <Sidebar />
         </div>
-        {/* pt-12 clears the absolutely-positioned TitleBar (h-9) plus a floating
-            gap, so page content isn't tucked under the transparent drag strip. */}
-        <main className="flex-1 overflow-hidden pt-12 pr-3 pb-3">
+        {/* Content is flush against the sidebar and the right/top window edges (no
+            gap, no top padding — confirmed via the realtime padding tuner). Bottom
+            keeps the sidebar's 0.5rem inset so the two bottom edges line up. NOTE:
+            with pt-0, the top ~h-9 of every page now sits under the
+            absolutely-positioned TitleBar drag strip (TitleBar.tsx), so that strip
+            visually covers/blocks the top of page content. */}
+        <main className="flex-1 overflow-hidden pb-2">
           <AnimatePresence mode="wait">
             <motion.div
               key={sectionKey}

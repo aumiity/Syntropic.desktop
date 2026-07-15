@@ -1060,7 +1060,7 @@ export default function POSPage() {
   }
 
   return (
-    <div className="flex flex-col h-full px-8 pt-4 pb-4 gap-2">
+    <div className="flex flex-col h-full px-4 pt-4 gap-2">
 
       <PageHeader title="หน้าจอการขายสินค้า" />
 
