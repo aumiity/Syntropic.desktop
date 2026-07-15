@@ -168,13 +168,19 @@ export function Sidebar() {
   const tagDraftCount = useTagDraftStore(s => s.priceItems.filter(Boolean).length)
 
   const btnClass = cn(
-    'flex items-center justify-center h-11 w-full rounded-lg transition-colors',
-    'text-sidebar-primary-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground'
+    'group relative flex items-center justify-center h-11 w-full rounded-lg transition-colors',
+    'text-sidebar-primary-foreground hover:text-sidebar-accent-foreground'
   )
 
   const themeBtn = (
     <button onClick={toggleTheme} className={btnClass}>
-      {isDark ? <IconSunFilled className="h-5 w-5 shrink-0" /> : <IconMoonFilled className="h-5 w-5 shrink-0" />}
+      <span
+        aria-hidden
+        className="absolute inset-y-0.5 inset-x-2.5 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
+      />
+      {isDark
+        ? <IconSunFilled className="relative z-10 h-5 w-5 shrink-0" />
+        : <IconMoonFilled className="relative z-10 h-5 w-5 shrink-0" />}
     </button>
   )
 

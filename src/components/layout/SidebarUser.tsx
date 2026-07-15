@@ -61,23 +61,31 @@ export function SidebarUser({ collapsed }: { collapsed: boolean }) {
   const trigger = collapsed ? (
     <button
       type="button"
-      className="flex items-center justify-center h-12 w-full rounded-xl transition-colors text-sidebar-primary-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground"
+      className="group relative flex items-center justify-center h-11 w-full rounded-lg transition-colors text-sidebar-primary-foreground hover:text-sidebar-accent-foreground"
     >
-      <InitialAvatar name={current.name} size="sm" />
+      <span
+        aria-hidden
+        className="absolute inset-y-0.5 inset-x-2.5 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
+      />
+      <span className="relative z-10"><InitialAvatar name={current.name} size="sm" /></span>
     </button>
   ) : (
     <button
       type="button"
-      className="flex items-center gap-2.5 w-full h-12 px-2 rounded-xl transition-colors text-sidebar-primary-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground"
+      className="group relative flex items-center gap-2 w-full min-h-11 py-2 px-5 rounded-lg transition-colors text-sidebar-primary-foreground hover:text-sidebar-accent-foreground"
     >
-      <InitialAvatar name={current.name} size="sm" />
-      <span className="flex-1 min-w-0 text-left">
+      <span
+        aria-hidden
+        className="absolute inset-y-0.5 inset-x-2.5 rounded-lg transition-colors group-hover:bg-sidebar-accent/40"
+      />
+      <span className="relative z-10 shrink-0"><InitialAvatar name={current.name} size="sm" /></span>
+      <span className="relative z-10 flex-1 min-w-0 text-left">
         <span className="block text-sm font-bold leading-tight truncate">{current.name}</span>
         <span className="block text-xs leading-tight truncate text-sidebar-primary-foreground/70">
           {roleLabel}
         </span>
       </span>
-      <ChevronsUpDown className="size-4 shrink-0 opacity-70" />
+      <ChevronsUpDown className="relative z-10 size-4 shrink-0 opacity-70" />
     </button>
   )
 
