@@ -103,7 +103,7 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, countBadge }: NavIte
         {collapsed && !!countBadge && countBadge > 0 && (
           <span
             aria-hidden
-            className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-destructive border-2 border-sidebar-accent"
+            className="absolute -top-1.5 -right-2 size-2.5 rounded-full bg-accent"
           />
         )}
       </span>
@@ -111,7 +111,7 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, countBadge }: NavIte
         <span className="relative z-10 flex-1 flex items-center justify-between gap-2 min-w-0">
           <span className="text-sm leading-none whitespace-nowrap">{label}</span>
           {!!countBadge && countBadge > 0 && (
-            <Badge variant="destructive" className="h-5 min-w-5 px-1.5 justify-center border-2 border-sidebar-accent rounded-full leading-none">
+            <Badge variant="accent" className="h-5 min-w-5 px-1.5 justify-center rounded-sm leading-none">
               {countBadge > 99 ? '99+' : countBadge}
             </Badge>
           )}
