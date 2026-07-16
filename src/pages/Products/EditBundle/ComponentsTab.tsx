@@ -161,7 +161,7 @@ export function ComponentsTab({ productId, controlledItems, onControlledItemsCha
             Save lives in the parent TabStrip (commits product + items together). */}
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={Boxes} tint="neutral" size="sm" />
+            <TintIcon icon={Boxes} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการ</h3>
             <Badge variant="neutral">{items.length}</Badge>
           </div>

@@ -619,7 +619,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
       >
         {/* ── Header ── */}
         <DialogHeader className="flex-row items-center gap-3 px-5 py-3 border-b border-border">
-          <TintIcon icon={Plus} tint="primary" size="md" bordered />
+          <TintIcon icon={Plus} tint="primary-soft" size="md" bordered />
           <div className="min-w-0">
             <DialogTitle className="text-lg">{editing ? 'แก้ไขรายการรับสินค้า' : 'เพิ่มสินค้า'}</DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">

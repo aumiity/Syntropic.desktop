@@ -139,7 +139,7 @@ export default function ManageExpensesPage() {
         {/* Filter strip */}
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={ReceiptText} tint="neutral" size="sm" />
+            <TintIcon icon={ReceiptText} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการค่าใช้จ่าย</h3>
             <Badge variant="neutral">{filtered.length.toLocaleString()}</Badge>
           </div>

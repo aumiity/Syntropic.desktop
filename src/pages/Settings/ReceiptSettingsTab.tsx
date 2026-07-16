@@ -236,7 +236,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
         <SectionCard
           className="min-w-0 sticky top-0 self-start"
           title="ตัวอย่างใบเสร็จ"
-          tint="success"
+          tint="success-soft"
           right={previewActions}
         >
           {/* No flex `justify-center` here: when the zoomed slip is wider than
@@ -268,7 +268,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
 
             <div className="pr-1">
               <TabsContent value="paper" className="space-y-3 mt-0">
-                <SectionCard icon={Printer} title="ตั้งค่า" tint="primary">
+                <SectionCard icon={Printer} title="ตั้งค่า" tint="primary-soft">
                   <div className="space-y-3">
               <FormField label="เครื่องพิมพ์">
                 <Select value={form.printer_name || '__default__'} onValueChange={v => setF('printer_name', v === '__default__' ? '' : v)}>
@@ -367,7 +367,7 @@ export function ReceiptSettingsTab({ onActions }: { onActions?: (node: ReactNode
               </TabsContent>
 
               <TabsContent value="format" className="space-y-3 mt-0">
-                <SectionCard icon={FileText} title="รูปแบบใบเสร็จ" tint="amber">
+                <SectionCard icon={FileText} title="รูปแบบใบเสร็จ" tint="amber-soft">
                   <div className="flex items-end gap-3">
                     <div className="flex-1 min-w-0">
                       <FormField label="ฟอนต์">

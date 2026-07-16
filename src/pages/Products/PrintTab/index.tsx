@@ -300,7 +300,7 @@ export default function PrintTab() {
           <SectionCard
             title="ตั้งค่า"
             icon={FileText}
-            tint="primary"
+            tint="primary-soft"
             right={
               // Price tags restore defaults via the "รูปแบบ" presets → no reset button.
               // Stickers have no presets, so they keep the reset.
@@ -541,7 +541,7 @@ export default function PrintTab() {
           <SectionCard
             title="ตัวอย่าง"
             icon={FileText}
-            tint="amber"
+            tint="amber-soft"
             fill={mode !== 'pricetag'}
             className={mode === 'pricetag' ? undefined : 'h-full'}
             right={

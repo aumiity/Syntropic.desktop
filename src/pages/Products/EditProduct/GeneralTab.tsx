@@ -130,7 +130,7 @@ export function GeneralTab({
       {/* LEFT COLUMN */}
       <div className="flex flex-col gap-4">
 
-        <SectionCard icon={Package} title="ข้อมูลพื้นฐาน" tint="primary">
+        <SectionCard icon={Package} title="ข้อมูลพื้นฐาน" tint="primary-soft">
           <div className="grid grid-cols-2 gap-3">
             {/* Row 1: รหัสสินค้า | คีย์เวิร์ดค้นหา */}
             <Field label="รหัสสินค้า">
@@ -210,7 +210,7 @@ export function GeneralTab({
         <SectionCard
           icon={PackageOpen}
           title="สต็อกและการแจ้งเตือน"
-          tint="amber"
+          tint="amber-soft"
           right={
             <Button
               size="lg"
@@ -256,7 +256,7 @@ export function GeneralTab({
       {/* RIGHT COLUMN */}
       <div className="flex flex-col gap-4">
 
-        <SectionCard icon={Settings} title="การตั้งค่า" tint="secondary">
+        <SectionCard icon={Settings} title="การตั้งค่า" tint="neutral">
           <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
             <SettingRow
               framed={false}
@@ -279,7 +279,7 @@ export function GeneralTab({
         <SectionCard
           icon={ScanBarcode}
           title="บาร์โค้ด"
-          tint="secondary"
+          tint="neutral"
           right={
             <Button
               size="lg"
@@ -327,7 +327,7 @@ export function GeneralTab({
         <SectionCard
           icon={Pill}
           title="ข้อมูลยา"
-          tint="teal"
+          tint="teal-soft"
         >
           <SettingRow
             control="switch"

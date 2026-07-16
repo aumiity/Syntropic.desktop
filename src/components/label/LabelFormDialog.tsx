@@ -209,7 +209,7 @@ export function LabelFormDialog({
 
             {/* LEFT — ข้อมูลทั่วไป + รายละเอียดยา */}
             <div className="space-y-3">
-              <SectionCard icon={Info} title="ข้อมูลทั่วไป" tint="primary">
+              <SectionCard icon={Info} title="ข้อมูลทั่วไป" tint="primary-soft">
                 <Field label="ชื่อฉลาก">
                   <Input variant="elevated" value={labelForm.label_name ?? ''} onChange={e => setLF('label_name', e.target.value)} placeholder="เช่น วิธีรับประทานมาตรฐาน" disabled={restricted} />
                   {/* Preset chips — one click fills the 5 usage fields + name.
@@ -292,7 +292,7 @@ export function LabelFormDialog({
                 )}
               </div>
 
-              <SectionCard icon={Languages} title="สรรพคุณ" tint="success">
+              <SectionCard icon={Languages} title="สรรพคุณ" tint="success-soft">
                 <Field label="สรรพคุณ (ไทย)">
                   <Input variant="elevated" disabled={restricted} value={labelForm.indication_th ?? ''} onChange={e => setLF('indication_th', e.target.value)} />
                 </Field>

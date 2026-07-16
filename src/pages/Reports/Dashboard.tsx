@@ -301,9 +301,9 @@ export default function DashboardPage() {
     const tPur = trendOf(delta(fin.purchase_total, fin.previous?.purchase_total, { invert: true }))
     const tExp = trendOf(delta(fin.expense_total, fin.previous?.expense_total, { invert: true }))
     return [
-      { label: 'ยอดขาย', value: baht(fin.sales_net), icon: Coins, tint: 'primary', ...tSales, compare: tSales.delta ? compareLabel : undefined },
-      { label: 'ต้นทุน', value: baht(fin.sales_cost), icon: Coins, tint: 'amber', ...tCost, compare: tCost.delta ? compareLabel : undefined },
-      { label: 'กำไร', value: baht(fin.sales_profit), icon: TrendingUp, tint: 'success', valueClassName: fin.sales_profit >= 0 ? undefined : 'text-destructive', valueSuffix: fin.sales_net > 0 ? `${margin.toFixed(1)}%` : undefined, valueSuffixClassName: fin.sales_profit >= 0 ? 'text-success' : 'text-destructive', ...tProfit, compare: tProfit.delta ? compareLabel : undefined },
+      { label: 'ยอดขาย', value: baht(fin.sales_net), icon: Coins, tint: 'primary-soft', ...tSales, compare: tSales.delta ? compareLabel : undefined },
+      { label: 'ต้นทุน', value: baht(fin.sales_cost), icon: Coins, tint: 'amber-soft', ...tCost, compare: tCost.delta ? compareLabel : undefined },
+      { label: 'กำไร', value: baht(fin.sales_profit), icon: TrendingUp, tint: 'success-soft', valueClassName: fin.sales_profit >= 0 ? undefined : 'text-destructive', valueSuffix: fin.sales_net > 0 ? `${margin.toFixed(1)}%` : undefined, valueSuffixClassName: fin.sales_profit >= 0 ? 'text-success' : 'text-destructive', ...tProfit, compare: tProfit.delta ? compareLabel : undefined },
       { label: 'ยอดซื้อ', value: baht(fin.purchase_total), icon: Truck, tint: 'info-soft', ...tPur, compare: tPur.delta ? compareLabel : undefined },
     ]
   }, [fin, margin, compareLabel])
@@ -418,7 +418,7 @@ export default function DashboardPage() {
         <SectionCard
           icon={LineChartIcon}
           title="แนวโน้ม"
-          tint="neutral"
+          tint="elevated"
           className="flex flex-col"
           right={
             <Tabs value={chartMode} onValueChange={(v) => setChartMode(v as DivergingMode)}>
@@ -445,9 +445,9 @@ export default function DashboardPage() {
         </SectionCard>
 
         {loading
-          ? <SectionCard icon={ShoppingCart} title="การขาย" tint="primary"><div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div></SectionCard>
+          ? <SectionCard icon={ShoppingCart} title="การขาย" tint="primary-soft"><div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div></SectionCard>
           : statusBreakdownCard({
-              icon: ShoppingCart, title: 'การขาย', subtitle: `${c.all.toLocaleString()} บิล`, tint: 'primary',
+              icon: ShoppingCart, title: 'การขาย', subtitle: `${c.all.toLocaleString()} บิล`, tint: 'primary-soft',
               segments: salesSegments, rows: salesRows, hovered: hoveredStatus, onHover: setHoveredStatus,
             })}
       </div>
@@ -455,7 +455,7 @@ export default function DashboardPage() {
       {/* 3 — Top products + purchase status */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <SectionCard
-          icon={Trophy} title="สินค้าขายดี" tint="primary"
+          icon={Trophy} title="สินค้าขายดี" tint="primary-soft"
           right={
             <Button size="lg" variant="elevated" className="h-9 w-9 p-0" onClick={() => setTopSortBy(m => m === 'revenue' ? 'qty' : 'revenue')} title={`สลับเกณฑ์เรียง (${TOP_SORT_LABEL[topSortBy]})`}>
               <ArrowLeftRight />
@@ -468,7 +468,7 @@ export default function DashboardPage() {
         </SectionCard>
 
         <SectionCard
-          icon={TrendingUp} title="กำไรสูงสุด" tint="success"
+          icon={TrendingUp} title="กำไรสูงสุด" tint="success-soft"
           right={
             <Button size="lg" variant="elevated" className="h-9 w-9 p-0" onClick={() => setProfitMode(m => m === 'baht' ? 'pct' : 'baht')} title={`สลับการแสดงกำไร (${profitMode === 'baht' ? 'บาท' : '%'})`}>
               <ArrowLeftRight />
@@ -497,14 +497,14 @@ export default function DashboardPage() {
             : <TopListCard items={supplierItems} maxHeight={0} emptyText="ยังไม่มีการรับสินค้าในช่วงนี้" />}
         </SectionCard>
 
-        <SectionCard icon={UserCircle} title="พนักงานขาย" tint="violet">
+        <SectionCard icon={UserCircle} title="พนักงานขาย" tint="violet-soft">
           {loading
             ? <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
             : <TopListCard items={staffItems} maxHeight={0} emptyText="ยังไม่มีบิลในช่วงนี้" />}
         </SectionCard>
 
         <SectionCard
-          icon={Wallet} title="ค่าใช้จ่ายอื่นๆ" tint="amber"
+          icon={Wallet} title="ค่าใช้จ่ายอื่นๆ" tint="amber-soft"
           right={
             <Select value={expenseMode} onValueChange={(v) => setExpenseMode(v as ExpenseMode)}>
               <SelectTrigger variant="elevated" className="h-9 w-32"><SelectValue /></SelectTrigger>
@@ -562,7 +562,7 @@ export default function DashboardPage() {
       {/* 5 — Alert tiles + standard detail table */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_2.4fr] gap-4 items-stretch">
         <SectionCard
-          icon={BellRing} title="แจ้งเตือน" tint="destructive"
+          icon={BellRing} title="แจ้งเตือน" tint="destructive-soft"
           right={loading ? null : <Badge variant="neutral">{alertTotal > 0 ? `${alertTotal.toLocaleString()} รายการ` : 'ปกติ'}</Badge>}
         >
           {loading ? (
@@ -598,7 +598,7 @@ export default function DashboardPage() {
         {/* Standard table-card — header + detail table + pagination footer */}
         <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex flex-col">
           <div className="h-12 px-4 flex items-center gap-3 shrink-0">
-            <TintIcon icon={meta.icon} tint="neutral" size="sm" bordered />
+            <TintIcon icon={meta.icon} tint="elevated" size="sm" bordered />
             <h3 className="text-base font-semibold text-foreground">{meta.title}</h3>
             <Badge variant="neutral">{alertTotalRows.toLocaleString()} รายการ</Badge>
             <div className="ml-auto">

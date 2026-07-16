@@ -66,7 +66,7 @@ export function UnitsTab() {
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={Ruler} tint="neutral" size="sm" />
+            <TintIcon icon={Ruler} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">หน่วยนับ</h3>
             <Badge variant="neutral">{filtered.length.toLocaleString()}</Badge>
           </div>

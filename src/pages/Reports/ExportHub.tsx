@@ -43,12 +43,12 @@ const GROUPS: { key: GroupKey; label: string; adminOnly: boolean }[] = [
 ]
 
 const CARDS: ReportCard[] = [
-  { key: 'sales',     group: 'sales',     label: 'บิลขาย',        desc: 'หัวบิล + รายการสินค้า (2 ชีต)',          icon: ReceiptText,   tint: 'primary' },
+  { key: 'sales',     group: 'sales',     label: 'บิลขาย',        desc: 'หัวบิล + รายการสินค้า (2 ชีต)',          icon: ReceiptText,   tint: 'primary-soft' },
   { key: 'purchases', group: 'purchases', label: 'บิลซื้อ',        desc: 'หัวบิล + รายการรับเข้า (2 ชีต)',         icon: ShoppingCart,  tint: 'info' },
-  { key: 'expenses',  group: 'finance',   label: 'ค่าใช้จ่าย',     desc: 'รายการค่าใช้จ่ายทั้งหมดในช่วง (1 ชีต)',   icon: Wallet,        tint: 'violet' },
-  { key: 'vat',       group: 'finance',   label: 'ภาษี (VAT)',    desc: 'ภาษีขาย / ภาษีซื้อ / ค่าใช้จ่าย (3 ชีต)', icon: Landmark,      tint: 'success' },
-  { key: 'expiry',    group: 'stock',     label: 'วันหมดอายุ',     desc: 'ล็อตที่ยังมีของ พร้อมวันหมดอายุ',         icon: CalendarClock, tint: 'warning', noDate: true },
-  { key: 'lowStock',  group: 'stock',     label: 'สต็อกเหลือน้อย', desc: 'สินค้าต่ำกว่าจุดสั่งซื้อ + จำนวนที่ควรซื้อเพิ่ม', icon: PackageX,  tint: 'destructive', noDate: true },
+  { key: 'expenses',  group: 'finance',   label: 'ค่าใช้จ่าย',     desc: 'รายการค่าใช้จ่ายทั้งหมดในช่วง (1 ชีต)',   icon: Wallet,        tint: 'violet-soft' },
+  { key: 'vat',       group: 'finance',   label: 'ภาษี (VAT)',    desc: 'ภาษีขาย / ภาษีซื้อ / ค่าใช้จ่าย (3 ชีต)', icon: Landmark,      tint: 'success-soft' },
+  { key: 'expiry',    group: 'stock',     label: 'วันหมดอายุ',     desc: 'ล็อตที่ยังมีของ พร้อมวันหมดอายุ',         icon: CalendarClock, tint: 'warning-soft', noDate: true },
+  { key: 'lowStock',  group: 'stock',     label: 'สต็อกเหลือน้อย', desc: 'สินค้าต่ำกว่าจุดสั่งซื้อ + จำนวนที่ควรซื้อเพิ่ม', icon: PackageX,  tint: 'destructive-soft', noDate: true },
 ]
 
 // Headline value + sub line per card. While the backing data is still null

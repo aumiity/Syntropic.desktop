@@ -305,11 +305,11 @@ export default function EnvLogPage() {
   }, [rowMap, year, month, numDays, reserveOn, fridgeOn, zoneFields])
 
   const kpis: MetricStripItem[] = [
-    { label: 'อุณหภูมิเฉลี่ย (ร้าน)', value: dash.avgStoreTemp != null ? `${dash.avgStoreTemp}°C` : '—', icon: Thermometer, tint: 'primary' },
+    { label: 'อุณหภูมิเฉลี่ย (ร้าน)', value: dash.avgStoreTemp != null ? `${dash.avgStoreTemp}°C` : '—', icon: Thermometer, tint: 'primary-soft' },
     { label: 'ความชื้นเฉลี่ย (ร้าน)', value: dash.avgStoreHumid != null ? `${dash.avgStoreHumid}%RH` : '—', icon: Droplets, tint: 'info' },
-    ...(fridgeOn ? [{ label: 'ตู้เย็นเฉลี่ย', value: dash.avgFridge != null ? `${dash.avgFridge}°C` : '—', icon: Snowflake, tint: 'violet' } as MetricStripItem] : []),
-    { label: 'บันทึกแล้ว', value: `${dash.recorded}/${dash.daysSoFar}`, valueSuffix: 'วัน', icon: CalendarCheck2, tint: 'success', note: dash.recorded < dash.daysSoFar ? `ยังไม่บันทึก ${dash.daysSoFar - dash.recorded} วัน` : 'ครบทุกวัน' },
-    { label: 'หลุดเกณฑ์', value: String(outOfRangeCount), valueSuffix: 'ครั้ง', icon: AlertTriangle, tint: outOfRangeCount > 0 ? 'destructive' : 'success', valueClassName: outOfRangeCount > 0 ? 'text-destructive' : undefined },
+    ...(fridgeOn ? [{ label: 'ตู้เย็นเฉลี่ย', value: dash.avgFridge != null ? `${dash.avgFridge}°C` : '—', icon: Snowflake, tint: 'violet-soft' } as MetricStripItem] : []),
+    { label: 'บันทึกแล้ว', value: `${dash.recorded}/${dash.daysSoFar}`, valueSuffix: 'วัน', icon: CalendarCheck2, tint: 'success-soft', note: dash.recorded < dash.daysSoFar ? `ยังไม่บันทึก ${dash.daysSoFar - dash.recorded} วัน` : 'ครบทุกวัน' },
+    { label: 'หลุดเกณฑ์', value: String(outOfRangeCount), valueSuffix: 'ครั้ง', icon: AlertTriangle, tint: outOfRangeCount > 0 ? 'destructive-soft' : 'success-soft', valueClassName: outOfRangeCount > 0 ? 'text-destructive' : undefined },
   ]
 
   // Small per-chart legend: series dots (only when >1 series) + the red breach marker.
@@ -596,7 +596,7 @@ export default function EnvLogPage() {
             their own frame, so an extra outer card read as one big boxed table. */}
         <div className="no-print h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={Thermometer} tint="neutral" size="sm" />
+            <TintIcon icon={Thermometer} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">บันทึกอุณหภูมิ–ความชื้น</h3>
             {outOfRangeCount > 0 && (
               <Badge variant="destructive-outline">ผิดเกณฑ์ {outOfRangeCount} ช่อง</Badge>
@@ -678,7 +678,7 @@ export default function EnvLogPage() {
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
                 {/* Trend charts */}
                 <div className="xl:col-span-2 space-y-4 min-w-0">
-                  <SectionCard icon={Thermometer} title="อุณหภูมิพื้นที่เก็บยา" tint="primary" right={chartLegend(dash.tempSeries)}>
+                  <SectionCard icon={Thermometer} title="อุณหภูมิพื้นที่เก็บยา" tint="primary-soft" right={chartLegend(dash.tempSeries)}>
                     <EnvTrendChart
                       data={dash.tempData}
                       series={dash.tempSeries}
@@ -697,7 +697,7 @@ export default function EnvLogPage() {
                     />
                   </SectionCard>
                   {fridgeOn && (
-                    <SectionCard icon={Snowflake} title="ตู้เย็น" tint="violet" right={chartLegend(dash.fridgeSeries)}>
+                    <SectionCard icon={Snowflake} title="ตู้เย็น" tint="violet-soft" right={chartLegend(dash.fridgeSeries)}>
                       <EnvTrendChart
                         data={dash.fridgeData}
                         series={dash.fridgeSeries}
@@ -710,7 +710,7 @@ export default function EnvLogPage() {
                 </div>
 
                 {/* Calendar — status per day + entry point */}
-                <SectionCard icon={CalendarDays} title="ปฏิทินบันทึก" tint="secondary">
+                <SectionCard icon={CalendarDays} title="ปฏิทินบันทึก" tint="neutral">
                   <div className="grid grid-cols-7 gap-1.5">
                     {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((d, i) => (
                       <div key={i} className="text-center text-xs font-medium text-muted-foreground pb-1">{d}</div>

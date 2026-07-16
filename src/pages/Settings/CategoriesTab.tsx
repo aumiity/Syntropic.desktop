@@ -133,7 +133,7 @@ export function CategoriesTab() {
           ) : (
             <>
               <div className="flex items-center gap-3 shrink-0">
-                <TintIcon icon={Tag} tint="neutral" size="sm" />
+                <TintIcon icon={Tag} tint="elevated" size="sm" />
                 <h3 className="text-lg font-semibold text-foreground">หมวดหมู่สินค้า</h3>
                 <Badge variant="neutral">{filtered.length.toLocaleString()}</Badge>
               </div>

@@ -106,11 +106,11 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-type MetricTint = "primary" | "success" | "warning" | "destructive" | "secondary" | "amber" | "info-soft" | "info" | "violet"
+type MetricTint = "primary-soft" | "success-soft" | "warning-soft" | "destructive-soft" | "neutral" | "amber-soft" | "info-soft" | "info" | "violet-soft"
 type SectionTint = MetricTint
 
 function SectionCard({
-  icon: Icon, title, tint = 'primary', right, children, className, fill = false,
+  icon: Icon, title, tint = 'primary-soft', right, children, className, fill = false,
 }: {
   icon?: React.ComponentType<{ className?: string }>
   /** Optional — omit (with no icon/right) for a headerless card: the header row
@@ -148,7 +148,7 @@ function MetricCard({
   subIcon: SubIcon,
   badge,
   icon: Icon,
-  tint = "primary",
+  tint = "primary-soft",
   size = "default",
   sparkline,
   sparklineColor,
@@ -186,30 +186,30 @@ function MetricCard({
   subClassName?: string
 }) {
   const valColor =
-    tint === "success"     ? "text-success"
-    : tint === "warning"     ? "text-warning-soft-foreground"
-    : tint === "destructive" ? "text-destructive"
+    tint === "success-soft"     ? "text-success"
+    : tint === "warning-soft"     ? "text-warning-soft-foreground"
+    : tint === "destructive-soft" ? "text-destructive"
     : "text-foreground"
   const accentColor =
-    tint === "success"     ? "text-success"
-    : tint === "warning"     ? "text-warning-soft-foreground"
-    : tint === "destructive" ? "text-destructive"
-    : tint === "secondary"   ? "text-muted-foreground"
-    : tint === "amber"        ? "text-amber-strong"
+    tint === "success-soft"     ? "text-success"
+    : tint === "warning-soft"     ? "text-warning-soft-foreground"
+    : tint === "destructive-soft" ? "text-destructive"
+    : tint === "neutral"   ? "text-muted-foreground"
+    : tint === "amber-soft"        ? "text-amber-strong"
     : tint === "info-soft"   ? "text-info-soft-foreground"
     : tint === "info"        ? "text-info-soft-foreground"
-    : tint === "violet"      ? "text-violet-strong"
+    : tint === "violet-soft"      ? "text-violet-strong"
     : "text-primary"
   // Active-selection ring — only meaningful on the clickable (button) variant.
   // Ring color tracks the card tint so the highlight matches its accent.
   const activeRing =
     !isActive ? ""
-    : tint === "success"     ? "ring-2 ring-success"
-    : tint === "warning"     ? "ring-2 ring-warning"
-    : tint === "destructive" ? "ring-2 ring-destructive"
-    : tint === "secondary"   ? "ring-2 ring-border-strong"
-    : tint === "amber"       ? "ring-2 ring-amber-strong"
-    : tint === "violet"      ? "ring-2 ring-violet-strong"
+    : tint === "success-soft"     ? "ring-2 ring-success"
+    : tint === "warning-soft"     ? "ring-2 ring-warning"
+    : tint === "destructive-soft" ? "ring-2 ring-destructive"
+    : tint === "neutral"   ? "ring-2 ring-border-strong"
+    : tint === "amber-soft"       ? "ring-2 ring-amber-strong"
+    : tint === "violet-soft"      ? "ring-2 ring-violet-strong"
     : tint === "info-soft"   ? "ring-2 ring-info-soft-foreground"
     : tint === "info"        ? "ring-2 ring-info-soft-foreground"
     : "ring-2 ring-primary"
@@ -349,7 +349,7 @@ function StatCard({
   label,
   value,
   icon: Icon,
-  tint = "primary",
+  tint = "primary-soft",
   isActive,
   onClick,
   className,
@@ -364,14 +364,14 @@ function StatCard({
 }) {
   // StatCard maps `warning` → warm-styled icon box (amber/gold) so the card
   // stays soft even when warning is the alert-orange in other contexts.
-  const iconTint: TintIconTint = tint === "warning" ? "amber" : tint
+  const iconTint: TintIconTint = tint === "warning-soft" ? "amber-soft" : tint
   const activeRing =
     !isActive ? "ring-0"
-    : tint === "success"     ? "ring-2 ring-success"
-    : tint === "warning"     ? "ring-2 ring-warning"
-    : tint === "destructive" ? "ring-2 ring-destructive"
-    : tint === "secondary"   ? "ring-2 ring-border-strong"
-    : tint === "amber"   ? "ring-2 ring-amber-strong"
+    : tint === "success-soft"     ? "ring-2 ring-success"
+    : tint === "warning-soft"     ? "ring-2 ring-warning"
+    : tint === "destructive-soft" ? "ring-2 ring-destructive"
+    : tint === "neutral"   ? "ring-2 ring-border-strong"
+    : tint === "amber-soft"   ? "ring-2 ring-amber-strong"
     : tint === "info-soft"   ? "ring-2 ring-info-soft-foreground"
     : "ring-2 ring-primary"
   const interactive = onClick
@@ -484,7 +484,7 @@ function MetricStrip({
               )}
               </div>
             </div>
-            <TintIcon icon={Icon} tint={it.tint ?? "primary"} size="lg" bordered />
+            <TintIcon icon={Icon} tint={it.tint ?? "primary-soft"} size="lg" bordered />
           </div>
         )
       })}

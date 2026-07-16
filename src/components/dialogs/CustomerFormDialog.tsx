@@ -114,7 +114,7 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
         <DialogBody className="grid grid-cols-[3fr_2fr] items-start gap-4 overflow-y-auto min-h-0 scrollbar-thin" onKeyDown={submitOnEnter(handleSave)}>
 
           {/* ── LEFT: ข้อมูลส่วนตัว ── */}
-          <SectionCard icon={UserRound} title="ข้อมูลส่วนตัว" tint="primary">
+          <SectionCard icon={UserRound} title="ข้อมูลส่วนตัว" tint="primary-soft">
             <FormField label="ชื่อ-นามสกุล" required>
               <Input value={form.full_name ?? ''} onChange={e => setF('full_name', e.target.value)} autoFocus placeholder="ระบุชื่อ-นามสกุล..." />
             </FormField>
@@ -143,7 +143,7 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
           <div className="flex flex-col gap-4">
 
           {/* ── สุขภาพ & โน้ต ── */}
-          <SectionCard icon={HeartPulse} title="สุขภาพ & โน้ต" tint="teal">
+          <SectionCard icon={HeartPulse} title="สุขภาพ & โน้ต" tint="teal-soft">
             {/* Stored in customers.note — free-form multi-line note. POS renders it
                 with whitespace-pre-line so newlines survive. */}
             <FormField label="โน้ต / หมายเหตุ">
@@ -170,7 +170,7 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
           </SectionCard>
 
           {/* ── การแจ้งเตือน ── */}
-          <SectionCard icon={Bell} title="การแจ้งเตือน" tint="amber">
+          <SectionCard icon={Bell} title="การแจ้งเตือน" tint="amber-soft">
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <Checkbox checked={!!form.is_alert} onCheckedChange={v => setF('is_alert', v ? 1 : 0)} />
               <Label className="cursor-pointer">แสดงข้อความแจ้งเตือนเมื่อขายให้ลูกค้ารายนี้</Label>

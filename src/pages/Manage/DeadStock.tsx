@@ -41,10 +41,10 @@ const EMPTY_COUNTS: InactiveCounts = { m1: 0, m3: 0, m6: 0, m12: 0 }
 // Severity rises with the threshold — the longer a SKU sits unsold, the louder
 // its card. Four distinct tints (teal → blue → cream → red).
 const THRESHOLDS: { months: Months; key: keyof InactiveCounts; tint: MetricTint }[] = [
-  { months: 1,  key: 'm1',  tint: 'primary' },
+  { months: 1,  key: 'm1',  tint: 'primary-soft' },
   { months: 3,  key: 'm3',  tint: 'info-soft' },
-  { months: 6,  key: 'm6',  tint: 'amber' },
-  { months: 12, key: 'm12', tint: 'destructive' },
+  { months: 6,  key: 'm6',  tint: 'amber-soft' },
+  { months: 12, key: 'm12', tint: 'destructive-soft' },
 ]
 
 // Generic value comparator: nulls sort last, strings Thai-aware, numbers numeric.
@@ -149,7 +149,7 @@ export default function ManageDeadStockPage() {
     <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
       <div className="px-4 h-12 shrink-0 flex items-center gap-3">
         <div className="flex items-center gap-3 shrink-0">
-          <TintIcon icon={Box} tint="neutral" size="sm" />
+          <TintIcon icon={Box} tint="elevated" size="sm" />
           <h3 className="text-lg font-semibold text-foreground">สินค้าค้างสต็อก</h3>
           <Badge variant="neutral">{filteredRows.length.toLocaleString()}</Badge>
         </div>

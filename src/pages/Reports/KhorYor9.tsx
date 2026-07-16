@@ -321,7 +321,7 @@ export default function KhorYor9Page() {
         {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px] inset. */}
         <div className="no-print px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={FileText} tint="neutral" size="sm" />
+            <TintIcon icon={FileText} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ข.ย.9 บัญชีการซื้อยา</h3>
             <Badge variant="neutral">{includedRows.length}/{total}</Badge>
           </div>

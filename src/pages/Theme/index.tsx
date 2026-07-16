@@ -579,13 +579,11 @@ export default function Theme() {
 
               {/* ── TINT ICON BOX ── */}
               <Section title="TintIcon — tinted icon-box primitive" path="src/components/ui/tint-icon.tsx" full>
-                <DemoRow label="Status — soft / strong pairs (size=md)">
+                <DemoRow label="Solid — filled role color (bare name, matches Button/Badge)">
                   <div className="flex flex-wrap gap-3">
                     {([
-                      'primary', 'primary-strong',
-                      'success', 'success-strong',
-                      'warning', 'warning-strong',
-                      'destructive', 'destructive-strong',
+                      'primary', 'success', 'warning', 'destructive',
+                      'info', 'accent', 'violet', 'teal', 'amber',
                     ] as TintIconTint[]).map(t => (
                       <div key={t} className="flex flex-col items-center gap-1.5">
                         <TintIcon icon={Package} tint={t} size="md" />
@@ -594,14 +592,11 @@ export default function Theme() {
                     ))}
                   </div>
                 </DemoRow>
-                <DemoRow label="Info / decorative (size=md)">
+                <DemoRow label="Soft — pale tinted surface (-soft suffix, matches Button/Badge)">
                   <div className="flex flex-wrap gap-3">
                     {([
-                      'info-soft', 'info',
-                      'accent-soft', 'accent',
-                      'violet', 'violet-strong',
-                      'teal', 'teal-strong',
-                      'amber', 'amber-strong',
+                      'primary-soft', 'success-soft', 'warning-soft', 'destructive-soft',
+                      'info-soft', 'accent-soft', 'violet-soft', 'teal-soft', 'amber-soft',
                     ] as TintIconTint[]).map(t => (
                       <div key={t} className="flex flex-col items-center gap-1.5">
                         <TintIcon icon={Package} tint={t} size="md" />
@@ -610,9 +605,9 @@ export default function Theme() {
                     ))}
                   </div>
                 </DemoRow>
-                <DemoRow label="Neutral (size=md)">
+                <DemoRow label="Neutral — flat gray (neutral) / raised white with shadow (elevated)">
                   <div className="flex flex-wrap gap-3">
-                    {(['secondary', 'neutral'] as TintIconTint[]).map(t => (
+                    {(['neutral', 'elevated'] as TintIconTint[]).map(t => (
                       <div key={t} className="flex flex-col items-center gap-1.5">
                         <TintIcon icon={Package} tint={t} size="md" />
                         <span className="text-xs text-muted-foreground">{t}</span>
@@ -620,11 +615,11 @@ export default function Theme() {
                     ))}
                   </div>
                 </DemoRow>
-                <DemoRow label="All sizes (tint=primary)">
+                <DemoRow label="All sizes (tint=primary-soft)">
                   <div className="flex items-end gap-3">
                     {(['sm', 'md', 'lg', 'xl'] as TintIconSize[]).map(s => (
                       <div key={s} className="flex flex-col items-center gap-1.5">
-                        <TintIcon icon={Package} tint="primary" size={s} />
+                        <TintIcon icon={Package} tint="primary-soft" size={s} />
                         <span className="text-xs text-muted-foreground">{s}</span>
                       </div>
                     ))}
@@ -633,7 +628,7 @@ export default function Theme() {
                 <DemoRow label="bordered prop — tinted box with matching colored border (used inside SectionCard)">
                   <div className="flex flex-wrap gap-3">
                     {([
-                      'primary', 'success', 'warning', 'destructive', 'info', 'secondary', 'accent-soft', 'violet', 'teal', 'amber',
+                      'primary-soft', 'success-soft', 'warning-soft', 'destructive-soft', 'info-soft', 'accent-soft', 'violet-soft', 'teal-soft', 'amber-soft', 'neutral',
                     ] as TintIconTint[]).map(t => (
                       <TintIcon key={t} icon={Package} tint={t} size="sm" bordered />
                     ))}
@@ -645,11 +640,12 @@ export default function Theme() {
               <Section title="Avatar" path="src/components/ui/avatar.tsx">
                 <DemoRow label="Sizes — icon-only, soft tint hashed from the name (same name → same color everywhere)">
                   <div className="flex items-end gap-4">
-                    <InitialAvatar name="สมชาย ใจดี" size="xs" />
-                    <InitialAvatar name="สมชาย ใจดี" size="sm" />
-                    <InitialAvatar name="สมชาย ใจดี" size="default" />
-                    <InitialAvatar name="สมชาย ใจดี" size="lg" />
-                    <InitialAvatar name="สมชาย ใจดี" size="xl" />
+                    {(['xs', 'sm', 'default', 'lg', 'xl'] as const).map(s => (
+                      <div key={s} className="flex flex-col items-center gap-1.5">
+                        <InitialAvatar name="สมชาย ใจดี" size={s} />
+                        <span className="text-xs text-muted-foreground">{s}</span>
+                      </div>
+                    ))}
                   </div>
                 </DemoRow>
                 <DemoRow label="Stable color per name">
@@ -1418,14 +1414,14 @@ export default function Theme() {
                     <SectionCard
                       icon={Package}
                       title="ข้อมูลสินค้า"
-                      tint="primary"
+                      tint="primary-soft"
                       right={<Button size="sm" variant="accent-soft"><Edit /> แก้ไข</Button>}
                     >
                       <p className="text-sm text-muted-foreground">
                         ใช้จัดกลุ่มฟอร์มในหน้า EditProduct / Settings — มี icon, title, slot ขวา
                       </p>
                     </SectionCard>
-                    <SectionCard icon={AlertTriangle} title="แจ้งเตือนสต็อก" tint="warning">
+                    <SectionCard icon={AlertTriangle} title="แจ้งเตือนสต็อก" tint="warning-soft">
                       <p className="text-sm text-muted-foreground">tint=&quot;warning&quot;</p>
                     </SectionCard>
                   </div>
@@ -1444,8 +1440,8 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="MetricCard (read-only KPI · `unit` inline · sub auto-tints to icon color)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <MetricCard label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="amber" />
-                    <MetricCard label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success" />
+                    <MetricCard label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="amber-soft" />
+                    <MetricCard label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success-soft" />
                     <MetricCard
                       label="คงเหลือ"
                       value="48"
@@ -1459,33 +1455,33 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="MetricCard with subIcon (trend indicator — TrendingUp/Down before sub text)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <MetricCard label="ยอดขาย" value="฿42,500" sub="12.3%" subIcon={TrendingUp} icon={Wallet} tint="success" />
-                    <MetricCard label="ค่าใช้จ่าย" value="฿18,200" sub="5.8%" subIcon={TrendingDown} icon={Coins} tint="destructive" />
-                    <MetricCard label="กำไรสุทธิ" value="฿24,300" sub="ใหม่ในช่วงนี้" icon={TrendingUp} tint="primary" />
+                    <MetricCard label="ยอดขาย" value="฿42,500" sub="12.3%" subIcon={TrendingUp} icon={Wallet} tint="success-soft" />
+                    <MetricCard label="ค่าใช้จ่าย" value="฿18,200" sub="5.8%" subIcon={TrendingDown} icon={Coins} tint="destructive-soft" />
+                    <MetricCard label="กำไรสุทธิ" value="฿24,300" sub="ใหม่ในช่วงนี้" icon={TrendingUp} tint="primary-soft" />
                   </div>
                 </DemoRow>
                 <DemoRow label="MetricCard with subIcon · tall (h-[9rem] ≈ 153px @ 18px root — rem so it scales with font)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <MetricCard className="h-[9rem]" label="ยอดขาย" value="฿42,500" sub="12.3%" subIcon={TrendingUp} subTitle="เทียบช่วงก่อนหน้า" icon={Wallet} tint="success" />
-                    <MetricCard className="h-[9rem]" label="ค่าใช้จ่าย" value="฿18,200" sub="5.8%" subIcon={TrendingDown} subTitle="เทียบช่วงก่อนหน้า" icon={Coins} tint="destructive" />
-                    <MetricCard className="h-[9rem]" label="กำไรสุทธิ" value="฿24,300" sub="ใหม่ในช่วงนี้" subIcon={TrendingUp} icon={TrendingUp} tint="primary" />
+                    <MetricCard className="h-[9rem]" label="ยอดขาย" value="฿42,500" sub="12.3%" subIcon={TrendingUp} subTitle="เทียบช่วงก่อนหน้า" icon={Wallet} tint="success-soft" />
+                    <MetricCard className="h-[9rem]" label="ค่าใช้จ่าย" value="฿18,200" sub="5.8%" subIcon={TrendingDown} subTitle="เทียบช่วงก่อนหน้า" icon={Coins} tint="destructive-soft" />
+                    <MetricCard className="h-[9rem]" label="กำไรสุทธิ" value="฿24,300" sub="ใหม่ในช่วงนี้" subIcon={TrendingUp} icon={TrendingUp} tint="primary-soft" />
                   </div>
                 </DemoRow>
                 <DemoRow label="MetricStrip (joined KPI band — value / trend line (whole line colored + up-down icon) / muted supplementary line)">
                   <MetricStrip
                     className="w-full h-[11rem]"
                     items={[
-                      { label: 'รายได้เดือนนี้', value: '฿12,345,678.90', icon: Wallet,    tint: 'primary',     delta: '+27.9%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '8.68/บิล · 6,318/วัน' },
+                      { label: 'รายได้เดือนนี้', value: '฿12,345,678.90', icon: Wallet,    tint: 'primary-soft',     delta: '+27.9%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '8.68/บิล · 6,318/วัน' },
                       { label: 'จำนวนบิล',       value: '21,847',     icon: ClipboardList, tint: 'info-soft',   delta: '+18.4%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '728/วัน' },
-                      { label: 'ลูกค้าใหม่',      value: '4,975',      icon: Users,         tint: 'violet',      valueSuffix: '39.7%', valueSuffixClassName: 'text-success', delta: '+20.8%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '166/วัน' },
-                      { label: 'ยอดคืนเงิน',      value: '8,473.00',   icon: CreditCard,    tint: 'destructive', delta: '-13.7%', deltaClassName: 'text-destructive', deltaIcon: TrendingDown, compare: 'vs เดือนก่อน', note: '12 รายการ' },
+                      { label: 'ลูกค้าใหม่',      value: '4,975',      icon: Users,         tint: 'violet-soft',      valueSuffix: '39.7%', valueSuffixClassName: 'text-success', delta: '+20.8%', deltaClassName: 'text-success',     deltaIcon: TrendingUp,   compare: 'vs เดือนก่อน', note: '166/วัน' },
+                      { label: 'ยอดคืนเงิน',      value: '8,473.00',   icon: CreditCard,    tint: 'destructive-soft', delta: '-13.7%', deltaClassName: 'text-destructive', deltaIcon: TrendingDown, compare: 'vs เดือนก่อน', note: '12 รายการ' },
                     ]}
                   />
                 </DemoRow>
                 <DemoRow label="MetricCard size='sm' (compact — icon-right · 3 stacked lines: label / value+unit / sub)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <MetricCard size="sm" label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="amber" />
-                    <MetricCard size="sm" label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success" />
+                    <MetricCard size="sm" label="ราคาทุน" value="฿8.50" unit="/ ชิ้น" sub="เฉลี่ย ฿8.20" icon={Coins} tint="amber-soft" />
+                    <MetricCard size="sm" label="ราคาขาย" value="฿15.00" unit="/ ชิ้น" sub="กำไร +6.50 (+76%)" icon={TrendingUp} tint="success-soft" />
                     <MetricCard
                       size="sm"
                       label="คงเหลือ"
@@ -1499,11 +1495,11 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="StatCard (clickable filter — active = ring)">
                   <div className="grid grid-cols-3 gap-4 w-full">
-                    <StatCard label="ทั้งหมด" value="1,284" icon={Boxes} tint="primary"
+                    <StatCard label="ทั้งหมด" value="1,284" icon={Boxes} tint="primary-soft"
                       isActive={statFilter === 'all'} onClick={() => setStatFilter('all')} />
-                    <StatCard label="ใกล้หมด" value="7" icon={AlertTriangle} tint="warning"
+                    <StatCard label="ใกล้หมด" value="7" icon={AlertTriangle} tint="warning-soft"
                       isActive={statFilter === 'low'} onClick={() => setStatFilter('low')} />
-                    <StatCard label="หมดสต็อก" value="3" icon={AlertCircle} tint="destructive"
+                    <StatCard label="หมดสต็อก" value="3" icon={AlertCircle} tint="destructive-soft"
                       isActive={statFilter === 'out'} onClick={() => setStatFilter('out')} />
                   </div>
                 </DemoRow>
@@ -1535,7 +1531,7 @@ export default function Theme() {
                         Filter strip controls cluster on the right via ml-auto
                         on the first control. */}
                     <div className="flex items-center gap-3 shrink-0">
-                      <TintIcon icon={Package} tint="neutral" size="sm" />
+                      <TintIcon icon={Package} tint="elevated" size="sm" />
                       <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
                       <Badge variant="neutral">{PRODUCTS.length * 3}</Badge>
                     </div>

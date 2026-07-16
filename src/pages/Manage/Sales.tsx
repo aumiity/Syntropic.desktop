@@ -238,10 +238,10 @@ export default function ManageSalesPage() {
       setStatusFilter(cur => (cur === s && s !== 'all' ? 'all' : s))
     setSlotSummary([
       { label: 'จำนวนบิล', value: summary.count_all.toLocaleString(),       icon: ReceiptText,  tint: 'info-soft',   sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('all'),       isActive: statusFilter === 'all' },
-      { label: 'ขายปลีก',   value: summary.count_retail.toLocaleString(),    icon: ShoppingCart, tint: 'primary',     sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pick('retail'),    isActive: statusFilter === 'retail' },
-      { label: 'ขายส่ง',    value: summary.count_wholesale.toLocaleString(), icon: ShoppingBag,  tint: 'amber',       sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('wholesale'), isActive: statusFilter === 'wholesale' },
-      { label: 'รับคืน',    value: summary.count_return.toLocaleString(),    icon: RotateCcw,    tint: 'violet',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('return'),    isActive: statusFilter === 'return' },
-      { label: 'ยกเลิก',    value: summary.count_voided.toLocaleString(),    icon: Ban,          tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pick('voided'),    isActive: statusFilter === 'voided' },
+      { label: 'ขายปลีก',   value: summary.count_retail.toLocaleString(),    icon: ShoppingCart, tint: 'primary-soft',     sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pick('retail'),    isActive: statusFilter === 'retail' },
+      { label: 'ขายส่ง',    value: summary.count_wholesale.toLocaleString(), icon: ShoppingBag,  tint: 'amber-soft',       sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('wholesale'), isActive: statusFilter === 'wholesale' },
+      { label: 'รับคืน',    value: summary.count_return.toLocaleString(),    icon: RotateCcw,    tint: 'violet-soft',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('return'),    isActive: statusFilter === 'return' },
+      { label: 'ยกเลิก',    value: summary.count_voided.toLocaleString(),    icon: Ban,          tint: 'destructive-soft', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pick('voided'),    isActive: statusFilter === 'voided' },
     ])
   }, [summary, statusFilter, setSlotSummary])
 
@@ -282,7 +282,7 @@ export default function ManageSalesPage() {
         <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={ReceiptText} tint="neutral" size="sm" />
+            <TintIcon icon={ReceiptText} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติการขาย</h3>
             <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>

@@ -142,7 +142,7 @@ export function UnitsTab({
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={Blocks} tint="neutral" size="sm" />
+            <TintIcon icon={Blocks} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">หน่วยนับ</h3>
             <Badge variant="neutral">{(product.units?.length ?? 0) + 1}</Badge>
           </div>

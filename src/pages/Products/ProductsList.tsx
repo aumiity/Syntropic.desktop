@@ -183,7 +183,7 @@ export default function ProductsList() {
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           {/* Title cluster (left): icon-in-box + heading + count badge */}
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={Package} tint="neutral" size="sm" />
+            <TintIcon icon={Package} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
             <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>

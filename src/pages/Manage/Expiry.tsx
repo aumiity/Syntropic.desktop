@@ -224,10 +224,10 @@ export default function ManageExpiryPage() {
   // exclusive so one is always active (no toggle-off).
   useEffect(() => {
     setSummary([
-      { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: () => setFilter('expired'), isActive: filter === 'expired' },
-      { label: '0–30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'amber',         sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(30),        isActive: filter === 30 },
+      { label: 'หมดอายุแล้ว', value: counts.expired.toLocaleString(), icon: ClockAlert, tint: 'destructive-soft', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: () => setFilter('expired'), isActive: filter === 'expired' },
+      { label: '0–30 วัน',     value: counts.d30.toLocaleString(),     icon: ClockAlert, tint: 'amber-soft',         sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(30),        isActive: filter === 30 },
       { label: '31–90 วัน',    value: counts.d90.toLocaleString(),     icon: ClockAlert, tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(90),        isActive: filter === 90 },
-      { label: '91–180 วัน',   value: counts.d180.toLocaleString(),    icon: ClockAlert, tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(180),       isActive: filter === 180 },
+      { label: '91–180 วัน',   value: counts.d180.toLocaleString(),    icon: ClockAlert, tint: 'primary-soft',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: () => setFilter(180),       isActive: filter === 180 },
     ])
   }, [counts, filter, setSummary])
 
@@ -265,7 +265,7 @@ export default function ManageExpiryPage() {
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={CalendarClock} tint="neutral" size="sm" />
+            <TintIcon icon={CalendarClock} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ใกล้หมดอายุ</h3>
             <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>

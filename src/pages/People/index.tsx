@@ -133,7 +133,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           {/* Title cluster (left): icon-in-box + heading + count badge */}
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={Users} tint="neutral" size="sm" />
+            <TintIcon icon={Users} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อลูกค้า</h3>
             <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>
@@ -391,7 +391,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={Building2} tint="neutral" size="sm" />
+            <TintIcon icon={Building2} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อผู้จำหน่าย</h3>
             <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>
@@ -689,7 +689,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={UserCog} tint="neutral" size="sm" />
+            <TintIcon icon={UserCog} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อพนักงาน</h3>
             <Badge variant="neutral">{filtered.length.toLocaleString()}</Badge>
           </div>
@@ -1013,10 +1013,10 @@ export default function PeoplePage() {
   useEffect(() => { refreshStats() }, [refreshStats])
 
   const summary = useMemo(() => [
-    { label: 'ลูกค้าที่ใช้งาน',     value: stats.customers_active.toLocaleString(),   icon: Users,     tint: 'primary'   as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground' },
-    { label: 'ลูกค้าที่ปิดใช้งาน',  value: stats.customers_disabled.toLocaleString(), icon: Ban,       tint: 'destructive' as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
+    { label: 'ลูกค้าที่ใช้งาน',     value: stats.customers_active.toLocaleString(),   icon: Users,     tint: 'primary-soft'   as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground' },
+    { label: 'ลูกค้าที่ปิดใช้งาน',  value: stats.customers_disabled.toLocaleString(), icon: Ban,       tint: 'destructive-soft' as MetricTint, sub: 'คน',  subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' },
     { label: 'ผู้จัดจำหน่าย',      value: stats.suppliers.toLocaleString(),          icon: Building2, tint: 'info-soft' as MetricTint, sub: 'ราย', subClassName: 'text-base text-foreground' },
-    ...(isAdmin ? [{ label: 'พนักงาน', value: stats.staff.toLocaleString(), icon: UserCog, tint: 'success' as MetricTint, sub: 'คน', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' }] : []),
+    ...(isAdmin ? [{ label: 'พนักงาน', value: stats.staff.toLocaleString(), icon: UserCog, tint: 'success-soft' as MetricTint, sub: 'คน', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground' }] : []),
   ], [stats, isAdmin])
 
   // Staff management is admin-only — kick a staff user off that tab if reached.

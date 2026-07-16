@@ -121,10 +121,10 @@ export default function ProductsLayout() {
     const totalAll = prodStats.total_all + bundleStats.total_all
     const disabledAll = prodStats.disabled + bundleStats.disabled
     return [
-      { label: 'ทั้งหมด',     value: totalAll.toLocaleString(),                   icon: LayoutGrid, tint: 'primary'     as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('all'),        isActive: typeFilter === 'all' },
+      { label: 'ทั้งหมด',     value: totalAll.toLocaleString(),                   icon: LayoutGrid, tint: 'primary-soft'     as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('all'),        isActive: typeFilter === 'all' },
       { label: 'สินค้า',      value: prodStats.total_all.toLocaleString(),        icon: Package,    tint: 'info-soft'   as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('product'),    isActive: typeFilter === 'product' && statusFilter === 'all' },
-      { label: 'ชุดสินค้า',    value: bundleStats.total_all.toLocaleString(),      icon: Boxes,      tint: 'amber'       as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('bundle'),     isActive: typeFilter === 'bundle' && statusFilter === 'all' },
-      { label: 'ปิดการใช้งาน', value: disabledAll.toLocaleString(),                icon: Ban,        tint: 'destructive' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickDisabled, isActive: disabledStage !== 0, badge: disabledStage === 0 ? undefined : (
+      { label: 'ชุดสินค้า',    value: bundleStats.total_all.toLocaleString(),      icon: Boxes,      tint: 'amber-soft'       as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground',                                    onClick: pickType('bundle'),     isActive: typeFilter === 'bundle' && statusFilter === 'all' },
+      { label: 'ปิดการใช้งาน', value: disabledAll.toLocaleString(),                icon: Ban,        tint: 'destructive-soft' as MetricTint, sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pickDisabled, isActive: disabledStage !== 0, badge: disabledStage === 0 ? undefined : (
         disabledStage === 1
           ? <Badge variant="info-outline">สินค้า</Badge>
           : <Badge variant="amber-outline">ชุดสินค้า</Badge>

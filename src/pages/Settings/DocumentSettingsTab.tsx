@@ -195,7 +195,7 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
     <div className="flex flex-col gap-3 h-full min-h-0">
       {/* Body: preview (LEFT) + settings (RIGHT). */}
       <div className="grid grid-cols-[7fr_3fr] grid-rows-1 gap-4 items-stretch flex-1 min-h-0">
-        <SectionCard title="ตัวอย่างเอกสาร" tint="success" className="min-w-0" right={previewActions} fill>
+        <SectionCard title="ตัวอย่างเอกสาร" tint="success-soft" className="min-w-0" right={previewActions} fill>
           <div ref={previewWrapRef} className="h-full bg-muted/30 rounded-lg p-6 overflow-auto">
             {/* The A4Sheet renders at TRUE px size, then a CSS transform scales it
                 to fit the column (mx-auto centers while it fits; left-aligns when
@@ -209,7 +209,7 @@ export function DocumentSettingsTab({ onActions }: { onActions?: (node: ReactNod
         </SectionCard>
 
         <div className="flex flex-col space-y-3 min-w-0">
-          <SectionCard icon={Printer} title="เครื่องพิมพ์ & กระดาษ" tint="primary">
+          <SectionCard icon={Printer} title="เครื่องพิมพ์ & กระดาษ" tint="primary-soft">
             <div className="space-y-3">
               <FormField label="เครื่องพิมพ์ (ใช้ร่วมกันทุกเอกสาร A4)">
                 <Select value={form.printer_name || '__default__'} onValueChange={v => setF('printer_name', v === '__default__' ? '' : v)}>

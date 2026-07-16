@@ -104,7 +104,7 @@ export function PriceSection({
 
   return (
     <>
-      <SectionCard icon={CircleDollarSign} title={titleNode} tint="success" right={historyButton}>
+      <SectionCard icon={CircleDollarSign} title={titleNode} tint="success-soft" right={historyButton}>
         <div className="space-y-4">
           {/* Row 1: ราคาทุน + ราคาปลีก (input on top, detail below within each cell) */}
           <div className="grid grid-cols-2 gap-3">

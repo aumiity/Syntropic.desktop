@@ -253,12 +253,12 @@ export default function ManagePurchasesPage() {
       loadHistory(1, next, undefined, true, 0)
     }
     setSlotSummary([
-      { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('all'),       isActive: histPaymentFilter === 'all' },
+      { label: 'จำนวนบิล', value: histSummary.count.toLocaleString(),           icon: FileText,      tint: 'primary-soft',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('all'),       isActive: histPaymentFilter === 'all' },
       { label: 'เงินสด',    value: histSummary.cash_count.toLocaleString(),      icon: Banknote,      tint: 'info-soft',    sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('cash'),      isActive: histPaymentFilter === 'cash' },
-      { label: 'ชำระแล้ว',  value: histSummary.paid_count.toLocaleString(),      icon: BadgeCheck,    tint: 'success',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('paid'),      isActive: histPaymentFilter === 'paid' },
-      { label: 'ค้างชำระ',  value: staffDuenow.toLocaleString(),                 icon: CreditCard,    tint: 'amber',        sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('duenow'),    isActive: histPaymentFilter === 'duenow' },
-      { label: 'เกินกำหนด', value: histSummary.overdue_count.toLocaleString(),   icon: AlertTriangle, tint: 'violet',       sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('overdue'),   isActive: histPaymentFilter === 'overdue' },
-      { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pick('cancelled'), isActive: histPaymentFilter === 'cancelled' },
+      { label: 'ชำระแล้ว',  value: histSummary.paid_count.toLocaleString(),      icon: BadgeCheck,    tint: 'success-soft',      sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('paid'),      isActive: histPaymentFilter === 'paid' },
+      { label: 'ค้างชำระ',  value: staffDuenow.toLocaleString(),                 icon: CreditCard,    tint: 'amber-soft',        sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('duenow'),    isActive: histPaymentFilter === 'duenow' },
+      { label: 'เกินกำหนด', value: histSummary.overdue_count.toLocaleString(),   icon: AlertTriangle, tint: 'violet-soft',       sub: 'รายการ', subClassName: 'text-base text-foreground',                                     onClick: pick('overdue'),   isActive: histPaymentFilter === 'overdue' },
+      { label: 'ยกเลิก',    value: histSummary.cancelled_count.toLocaleString(), icon: Ban,           tint: 'destructive-soft', sub: 'รายการ', subClassName: 'text-base text-foreground', valueClassName: 'text-foreground', onClick: pick('cancelled'), isActive: histPaymentFilter === 'cancelled' },
     ])
   }, [histSummary, histPaymentFilter, loadHistory, setSlotSummary])
 
@@ -550,7 +550,7 @@ export default function ManagePurchasesPage() {
         {/* Filter strip — title cluster left, search/filters right */}
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={FileText} tint="neutral" size="sm" />
+            <TintIcon icon={FileText} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติการซื้อ</h3>
             <Badge variant="neutral">{histTotal.toLocaleString()}</Badge>
           </div>

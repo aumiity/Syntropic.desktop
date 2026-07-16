@@ -161,7 +161,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={History} tint="neutral" size="sm" />
+            <TintIcon icon={History} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติเคลื่อนไหว</h3>
             <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>

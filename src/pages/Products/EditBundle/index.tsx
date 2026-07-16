@@ -443,7 +443,7 @@ export default function EditBundlePage() {
         <div className="bg-card rounded-card p-4 pt-3 shadow-card border border-border h-32 overflow-hidden relative">
           <TintIcon
             icon={Info}
-            tint="primary"
+            tint="primary-soft"
             size="lg"
             bordered
             className={`absolute top-4 right-4 z-10 ${isNew ? 'opacity-50' : ''}`}
@@ -473,7 +473,7 @@ export default function EditBundlePage() {
           value={formatCurrency(cost)}
           unit={baseUnit !== '—' ? `/ ${baseUnit}` : undefined}
           icon={Coins}
-          tint="amber"
+          tint="amber-soft"
         />
         <MetricCard
           label="ราคาขาย"
@@ -485,7 +485,7 @@ export default function EditBundlePage() {
             : undefined}
           subClassName={profit < 0 ? 'text-destructive' : undefined}
           icon={Tag}
-          tint="success"
+          tint="success-soft"
         />
         <MetricCard
           label="รายการ"
@@ -495,7 +495,7 @@ export default function EditBundlePage() {
           // button (sub turns red automatically via the destructive tint).
           sub={isNew && componentCount < 2 ? 'ต้องมีอย่างน้อย 2 รายการ' : 'คลิกเพื่อไปยังรายการ'}
           icon={Package}
-          tint={componentCount < 2 ? 'destructive' : 'info-soft'}
+          tint={componentCount < 2 ? 'destructive-soft' : 'info-soft'}
           onClick={scrollToComponents}
         />
         </div>

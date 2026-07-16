@@ -22,10 +22,10 @@ interface VariantSpec {
 // `warning` intentionally uses the warm `amber` palette (deep gold) instead of
 // the harsh `--warning` yellow — same name in the public API for clarity.
 const VARIANT_SPEC: Record<ConfirmVariant, VariantSpec> = {
-  default:     { icon: HelpCircle,    tint: 'primary-strong',     confirmVariant: 'default',     cancelVariant: 'elevated' },
-  destructive: { icon: AlertTriangle, tint: 'destructive-strong', confirmVariant: 'destructive', cancelVariant: 'destructive-soft' },
-  warning:     { icon: AlertTriangle, tint: 'amber',              confirmVariant: 'amber',  cancelVariant: 'elevated' },
-  success:     { icon: CheckCircle2,  tint: 'success-strong',     confirmVariant: 'success',     cancelVariant: 'elevated' },
+  default:     { icon: HelpCircle,    tint: 'primary',     confirmVariant: 'default',     cancelVariant: 'elevated' },
+  destructive: { icon: AlertTriangle, tint: 'destructive', confirmVariant: 'destructive', cancelVariant: 'destructive-soft' },
+  warning:     { icon: AlertTriangle, tint: 'amber-soft',  confirmVariant: 'amber',  cancelVariant: 'elevated' },
+  success:     { icon: CheckCircle2,  tint: 'success',     confirmVariant: 'success',     cancelVariant: 'elevated' },
 }
 
 interface ConfirmDialogProps {

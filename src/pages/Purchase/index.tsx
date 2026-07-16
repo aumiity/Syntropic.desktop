@@ -849,7 +849,7 @@ export default function PurchasePage() {
                           so strip controls align with column edges. */}
                       <div className="px-4 h-12 shrink-0 flex items-center gap-3">
                         <div className="flex items-center gap-3 shrink-0">
-                          <TintIcon icon={Package} tint="neutral" size="sm" />
+                          <TintIcon icon={Package} tint="elevated" size="sm" />
                           <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
                           <Badge variant="neutral">{rows.length.toLocaleString()}</Badge>
                         </div>
@@ -903,7 +903,7 @@ export default function PurchasePage() {
                               <TableRow className="border-0 hover:bg-transparent">
                                 <TableCell colSpan={9} className="py-16 text-center">
                                   <div className="flex flex-col items-center gap-3 text-foreground-subtle">
-                                    <TintIcon icon={Package} tint="neutral" size="lg" />
+                                    <TintIcon icon={Package} tint="elevated" size="lg" />
                                     <p className="text-sm leading-relaxed">
                                       ยังไม่มีรายการ<br /> เพิ่มสินค้าทีละรายการผ่านขั้นตอนนำทาง<br />
                                       หรือวางทั้งบิลด้วยปุ่ม “นำเข้าข้อมูล”

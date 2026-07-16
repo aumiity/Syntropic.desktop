@@ -110,7 +110,7 @@ export function SalesTab({ registerSave, saving, setSaving, setDirty }: {
         <SectionCard
           icon={Bell}
           title="การแจ้งเตือนการขาย"
-          tint="amber"
+          tint="amber-soft"
         >
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">
@@ -216,7 +216,7 @@ export function SalesTab({ registerSave, saving, setSaving, setDirty }: {
         <SectionCard
           icon={Printer}
           title="การพิมพ์ใบเสร็จ"
-          tint="primary"
+          tint="primary-soft"
         >
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-card shadow-sm divide-y divide-border overflow-hidden">

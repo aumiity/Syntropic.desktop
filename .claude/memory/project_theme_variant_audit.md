@@ -1,13 +1,19 @@
 ---
 name: project_theme_variant_audit
-description: /theme showcase rebuilt from cva as SSOT — Button/Badge done (2/33); secondary removed; neutral-outline renamed to neutral; every hover is token-based (L 7% away from page bg), no opacity left.
+description: /theme showcase rebuilt from cva as SSOT — Button/Badge done + click-tested (2/33); secondary removed; neutral-outline renamed to neutral; every hover is token-based (L 7% away from page bg), no opacity left.
 metadata:
   type: project
 ---
 
 **ACTIVE 2026-07-16 — รื้อโซนโชว์ variant ในหน้า `/theme` ให้ตรงกับ primitive จริง.**
 
-## ทำไปแล้ว 2/33 sections — Button + Badge
+## ทำไปแล้ว 5/33 sections — กลุ่ม "พื้นฐาน" ครบ + TintIcon rename ใหญ่ (Button + Badge + TintIcon + Avatar + Label)
+
+**อัปเดต 2026-07-16 (รอบ 3) — TintIcon RENAME ให้ตรง Button/Badge (tsc PASS; รอ click-test):** เจ้าของสั่งเปลี่ยนชื่อ tint ให้ตรงคอนแทรกต์ Button/Badge = **bare=solid, `-soft`=soft** (เดิม TintIcon กลับกัน: bare=soft, `-strong`=solid สำหรับ 7 role แต่ info/accent เป็น bare=solid — ขัดกันเอง). แมป **คงหน้าตาเดิม 100%**: `primary→primary-soft` … `teal→teal-soft` (7 role bare→soft), `X-strong→X` (solid), `secondary→neutral` (เทาแบน), `neutral→elevated` (ขาวมีเงา), `info`/`info-soft`/`accent`/`accent-soft`=คงเดิม. **กระทบ ~50 ไฟล์**: `tint-icon.tsx` (type+map+guard `!== "elevated"`), `card.tsx` (`MetricTint` union + เงื่อนไข `valColor`/`accentColor`/`activeRing`/`iconTint` + default `primary-soft`), `confirm-dialog.tsx` (spec `-strong`→bare, warning=`amber-soft`), showcase Theme จัดกลุ่ม SOLID/SOFT/NEUTRAL ใหม่, + 47 call site ผ่านสคริปต์ perl (`tint[=:]` + quoted value เท่านั้น).
+
+**กับดัก tsc-blind-spot (บทเรียนซ้ำ):** sed จับเฉพาะ `tint="X"`/`tint: 'X'` → **ternary ไม่โดน** (`tint: net>=0 ? 'warning':'success'`). tsc จับ VatProfile ได้ (typed MetricTint) แต่ **EnvLog `tint: ... ? 'destructive':'success'` tsc เงียบ** เพราะ `destructive`/`success` = valid ในยูเนียนใหม่ (แต่แปลว่า solid = ผิด). **ต้อง grep ternary `tint[=:].*\?.*'` แยกเสมอ** — เจอ+แก้ 4 จุด (VatReport, EnvLog, EditProduct/index, EditBundle/index) เป็น `-soft`.
+
+**อัปเดต 2026-07-16 (รอบ 2):** ไล่ต่อ 3 ตัวที่เหลือในกลุ่มพื้นฐาน — **TintIcon + Label = compliant อยู่แล้ว ไม่ต้องแก้** (TintIcon โชว์ครบ 20 tint จาก `TintIconTint` ตัวละครั้ง จัดกลุ่ม soft/strong pair; Label ไม่มี variant). **Avatar แก้จุดเดียว**: แถว "Sizes" เดิมโชว์ 5 ขนาดแต่ไม่มี label ใต้แต่ละอัน → ใส่ `.map(['xs','sm','default','lg','xl'])` + label ให้ตรงกับแถว "All sizes" ของ TintIcon. เหลือ 28 sections. บทเรียน: section ที่ไม่มี variant/มี variant ตรงอยู่แล้ว = verify แล้วผ่าน ไม่ต้องรื้อ (ตรงข้ามกับ Button/Badge ที่ label มั่ว).
 
 หน้า `/theme` (`src/pages/Theme/index.tsx`) มี **33 `<Section>`** — จัดไป **Button กับ Badge** (2 ตัวที่ variant เยอะสุด) ที่เหลือ 31 sections ส่วนใหญ่เบากว่ามาก (Avatar/Label/Pagination/Toast แทบไม่มี variant).
 
@@ -73,8 +79,8 @@ Outline (ไม่มี neutral แล้ว) → **Neutral/surface — แบ�
 
 ## ค้างไว้ — เริ่ม session หน้าจากตรงนี้
 
-1. **ยังไม่ได้ click-test ในแอปจริง** — ยืนยันแค่ `tsc` PASS. เจ้าของบอกว่า test รอบก่อน (ปุ่มขาวแบน) ผ่านแล้ว แต่รอบ rename + จัดแถวใหม่ยังไม่ได้ดู.
-2. เหลือ **31 sections** ที่ยังไม่ได้รื้อ.
+1. **click-test ผ่านหมดแล้ว 2026-07-16** — รอบ rename `neutral` + จัดแถวใหม่ + hover โทเคนล้วน เจ้าของยืนยันโอเคทั้งหมดในแอปจริง. Button + Badge ปิดจบสมบูรณ์.
+2. เหลือ **28 sections** ที่ยังไม่ได้รื้อ. กลุ่มถัดไป = "ฟอร์มและอินพุต" (Input/Select/Combobox/Checkbox/Switch มี variant จริง — น่าจะมีของให้แก้ ต่างจากกลุ่มพื้นฐานที่ clean).
 
 ## บทเรียน
 

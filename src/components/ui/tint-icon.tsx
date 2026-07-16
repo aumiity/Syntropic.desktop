@@ -1,32 +1,33 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
+// Naming mirrors Button/Badge: bare `<role>` = SOLID (filled), `<role>-soft` =
+// SOFT (pale tinted surface). Neutrals: `neutral` = flat gray, `elevated` =
+// raised white (border + shadow). Grouped by surface below.
 export type TintIconTint =
-  // status colors — paired: soft fill (default) + strong solid
+  // SOLID — filled role color
   | "primary"
-  | "primary-strong"
   | "success"
-  | "success-strong"
   | "warning"
-  | "warning-strong"
   | "destructive"
-  | "destructive-strong"
-  // info (blue)
-  | "info-soft"
   | "info"
-  // decorative colors
-  | "accent-soft"
-  | "violet"
-  | "violet-strong"
-  | "teal"
-  | "teal-strong"
   | "accent"
-  // warm decorative — amber (deep gold): base = soft, -strong = solid
+  | "violet"
+  | "teal"
   | "amber"
-  | "amber-strong"
-  // neutral
-  | "secondary"
+  // SOFT — pale tinted surface + role text
+  | "primary-soft"
+  | "success-soft"
+  | "warning-soft"
+  | "destructive-soft"
+  | "info-soft"
+  | "accent-soft"
+  | "violet-soft"
+  | "teal-soft"
+  | "amber-soft"
+  // NEUTRAL
   | "neutral"
+  | "elevated"
 
 export type TintIconSize = "sm" | "md" | "lg" | "xl"
 
@@ -34,7 +35,7 @@ interface TintIconProps {
   icon: React.ComponentType<{ className?: string }>
   tint?: TintIconTint
   size?: TintIconSize
-  /** Show a tint-matched border around the box. `neutral` always renders with its own border + shadow regardless. */
+  /** Show a tint-matched border around the box. `elevated` always renders with its own border + shadow regardless. */
   bordered?: boolean
   className?: string
   /** Override the inner icon's size class — for the rare case where a smaller icon is wanted inside a larger box. */
@@ -42,52 +43,54 @@ interface TintIconProps {
 }
 
 const BOX_BY_TINT: Record<TintIconTint, string> = {
-  // Status — soft fill / strong solid pairs
-  primary:               "bg-primary-soft text-primary",
-  "primary-strong":      "bg-primary text-primary-foreground",
-  success:               "bg-success-soft text-success",
-  "success-strong":      "bg-success text-success-foreground",
-  warning:               "bg-warning-soft text-warning-soft-foreground",
-  "warning-strong":      "bg-warning text-warning-foreground",
-  destructive:           "bg-destructive-soft text-destructive",
-  "destructive-strong":  "bg-destructive text-destructive-foreground",
-  // Info (blue)
-  "info-soft":           "bg-info-soft text-info-soft-foreground",
-  info:                  "bg-info text-info-foreground",
-  // Decorative
-  "accent-soft":                  "bg-accent-soft text-accent-soft-foreground",
-  violet:                "bg-violet-soft text-violet-strong",
-  "violet-strong":       "bg-violet text-violet-foreground",
-  teal:                  "bg-teal-soft text-teal-strong",
-  "teal-strong":         "bg-teal text-teal-foreground",
-  accent:                "bg-accent text-accent-foreground",
-  amber:                 "bg-amber-soft text-amber-strong",
-  "amber-strong":        "bg-amber text-amber-foreground",
-  // Neutral
-  secondary:             "bg-muted text-muted-foreground",
-  neutral:               "bg-card text-foreground border border-border shadow-sm",
+  // SOLID — filled
+  primary:            "bg-primary text-primary-foreground",
+  success:            "bg-success text-success-foreground",
+  warning:            "bg-warning text-warning-foreground",
+  destructive:        "bg-destructive text-destructive-foreground",
+  info:               "bg-info text-info-foreground",
+  accent:             "bg-accent text-accent-foreground",
+  violet:             "bg-violet text-violet-foreground",
+  teal:               "bg-teal text-teal-foreground",
+  amber:              "bg-amber text-amber-foreground",
+  // SOFT — pale surface + role text
+  "primary-soft":     "bg-primary-soft text-primary",
+  "success-soft":     "bg-success-soft text-success",
+  "warning-soft":     "bg-warning-soft text-warning-soft-foreground",
+  "destructive-soft": "bg-destructive-soft text-destructive",
+  "info-soft":        "bg-info-soft text-info-soft-foreground",
+  "accent-soft":      "bg-accent-soft text-accent-soft-foreground",
+  "violet-soft":      "bg-violet-soft text-violet-strong",
+  "teal-soft":        "bg-teal-soft text-teal-strong",
+  "amber-soft":       "bg-amber-soft text-amber-strong",
+  // NEUTRAL
+  neutral:            "bg-muted text-muted-foreground",
+  elevated:           "bg-card text-foreground border border-border shadow-sm",
 }
 
-const BORDER_BY_TINT: Record<Exclude<TintIconTint, "neutral">, string> = {
-  primary:               "border border-primary/40",
-  "primary-strong":      "border border-primary/40",
-  success:               "border border-success/40",
-  "success-strong":      "border border-success/40",
-  warning:               "border border-warning/40",
-  "warning-strong":      "border border-warning/40",
-  destructive:           "border border-destructive/40",
-  "destructive-strong":  "border border-destructive/40",
-  "info-soft":           "border border-info-soft-foreground/30",
-  info:                  "border border-info/40",
-  "accent-soft":                  "border border-accent-soft-foreground/30",
-  violet:                "border border-violet/40",
-  "violet-strong":       "border border-violet/40",
-  teal:                  "border border-teal/40",
-  "teal-strong":         "border border-teal/40",
-  accent:                "border border-accent-foreground/30",
-  amber:                 "border border-amber/40",
-  "amber-strong":        "border border-amber/40",
-  secondary:             "border border-border",
+const BORDER_BY_TINT: Record<Exclude<TintIconTint, "elevated">, string> = {
+  // SOLID
+  primary:            "border border-primary/40",
+  success:            "border border-success/40",
+  warning:            "border border-warning/40",
+  destructive:        "border border-destructive/40",
+  info:               "border border-info/40",
+  accent:             "border border-accent-foreground/30",
+  violet:             "border border-violet/40",
+  teal:               "border border-teal/40",
+  amber:              "border border-amber/40",
+  // SOFT
+  "primary-soft":     "border border-primary/40",
+  "success-soft":     "border border-success/40",
+  "warning-soft":     "border border-warning/40",
+  "destructive-soft": "border border-destructive/40",
+  "info-soft":        "border border-info-soft-foreground/30",
+  "accent-soft":      "border border-accent-soft-foreground/30",
+  "violet-soft":      "border border-violet/40",
+  "teal-soft":        "border border-teal/40",
+  "amber-soft":       "border border-amber/40",
+  // NEUTRAL
+  neutral:            "border border-border",
 }
 
 const SIZE_CLS: Record<TintIconSize, { box: string; icon: string }> = {
@@ -99,14 +102,14 @@ const SIZE_CLS: Record<TintIconSize, { box: string; icon: string }> = {
 
 export function TintIcon({
   icon: Icon,
-  tint = "primary",
+  tint = "primary-soft",
   size = "sm",
   bordered = false,
   className,
   iconClassName,
 }: TintIconProps) {
   const { box, icon: iconCls } = SIZE_CLS[size]
-  const borderCls = tint !== "neutral" && bordered ? BORDER_BY_TINT[tint] : ""
+  const borderCls = tint !== "elevated" && bordered ? BORDER_BY_TINT[tint] : ""
   return (
     <span
       className={cn(

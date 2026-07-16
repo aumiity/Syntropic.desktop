@@ -219,7 +219,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
-            <TintIcon icon={Package} tint="neutral" size="sm" />
+            <TintIcon icon={Package} tint="elevated" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ล็อต</h3>
             <Badge variant="neutral">{displayLots.length}</Badge>
           </div>

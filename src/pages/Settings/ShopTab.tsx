@@ -46,7 +46,7 @@ export function ShopTab() {
       <SectionCard
         icon={Store}
         title="ข้อมูลร้านค้า / ร้านยา"
-        tint="primary"
+        tint="primary-soft"
         right={
           <div className="flex items-center gap-2">
             {/* DEV ONLY — open the first-run setup wizard for styling/tweaks.

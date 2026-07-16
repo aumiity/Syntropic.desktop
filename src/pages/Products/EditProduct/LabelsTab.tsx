@@ -175,7 +175,7 @@ export function LabelsTab({
           className="min-w-0 sticky top-0 self-start"
           icon={Pill}
           title="ตัวอย่างฉลาก"
-          tint="success"
+          tint="success-soft"
           right={
             <div className="flex items-center gap-2">
               <ZoomControl value={zoom} min={ZOOM_MIN} max={ZOOM_MAX} step={ZOOM_STEP} onChange={setZoom} />
@@ -230,7 +230,7 @@ export function LabelsTab({
         <SectionCard
           icon={List}
           title="รายการฉลาก"
-          tint="secondary"
+          tint="neutral"
           right={
             <Button variant="elevated" onClick={openAddLabel} className="h-9 px-3">
               <Plus className="size-4" /> เพิ่มฉลาก

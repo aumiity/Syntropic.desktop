@@ -421,7 +421,7 @@ export default function EditProductPage() {
             <div className="bg-card rounded-card p-4 pt-3 shadow-card border border-border h-32 overflow-hidden relative">
               <TintIcon
                 icon={Info}
-                tint="primary"
+                tint="primary-soft"
                 size="lg"
                 bordered
                 className={`absolute top-4 right-4 z-10 ${isNew ? 'opacity-50' : ''}`}
@@ -455,7 +455,7 @@ export default function EditProductPage() {
               unit={isNew ? undefined : (baseUnit !== '—' ? `/ ${baseUnit}` : undefined)}
               sub={isNew ? undefined : `เฉลี่ย ${formatCurrency(product.cost_price)}`}
               icon={Coins}
-              tint="amber"
+              tint="amber-soft"
               className={isNew ? 'opacity-50' : ''}
             />
             <MetricCard
@@ -468,7 +468,7 @@ export default function EditProductPage() {
                 : undefined}
               subClassName={profit < 0 ? 'text-destructive' : undefined}
               icon={Tag}
-              tint="success"
+              tint="success-soft"
               className={isNew ? 'opacity-50' : ''}
             />
             <MetricCard
@@ -477,7 +477,7 @@ export default function EditProductPage() {
               unit={isNew ? undefined : (baseUnit !== '—' ? baseUnit : undefined)}
               sub={isNew ? undefined : 'คลิกเพื่อปรับสต็อก'}
               icon={PackageOpen}
-              tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive' : 'info-soft')}
+              tint={isNew ? 'info-soft' : (totalStock <= 0 ? 'destructive-soft' : 'info-soft')}
               onClick={isNew ? undefined : () => setAdjustOpen(true)}
               className={isNew ? 'opacity-50' : ''}
             />

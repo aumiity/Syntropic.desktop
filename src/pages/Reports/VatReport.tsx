@@ -127,7 +127,7 @@ export default function VatReportPage() {
         value: formatCurrency(data.output.vat_total),
         sub: `${data.output.bill_count.toLocaleString()} บิล`,
         icon: ReceiptText,
-        tint: 'primary',
+        tint: 'primary-soft',
       },
       {
         label: 'ภาษีซื้อ (Input VAT)',
@@ -141,7 +141,7 @@ export default function VatReportPage() {
         value: formatCurrency(Math.abs(net)),
         sub: 'ภาษีขาย − ภาษีซื้อ',
         icon: Landmark,
-        tint: net >= 0 ? 'warning' : 'success',
+        tint: net >= 0 ? 'warning-soft' : 'success-soft',
       },
     ])
     return () => setSummary(null)
@@ -152,7 +152,7 @@ export default function VatReportPage() {
       {/* ภาษีขาย */}
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 flex items-center gap-3">
-          <TintIcon icon={ReceiptText} tint="primary" size="sm" />
+          <TintIcon icon={ReceiptText} tint="primary-soft" size="sm" />
           <h3 className="text-base font-semibold text-foreground">รายงานภาษีขาย</h3>
           <Badge variant="neutral">{(data?.sales_rows.length ?? 0).toLocaleString()} บิล</Badge>
           <div className="ml-auto text-sm text-muted-foreground">
@@ -244,7 +244,7 @@ export default function VatReportPage() {
       {/* ภาษีซื้อ — จากค่าใช้จ่าย */}
       <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="px-4 h-12 flex items-center gap-3">
-          <TintIcon icon={Wallet} tint="amber" size="sm" />
+          <TintIcon icon={Wallet} tint="amber-soft" size="sm" />
           <h3 className="text-base font-semibold text-foreground">รายงานภาษีซื้อ — ค่าใช้จ่าย</h3>
           <Badge variant="neutral">{(data?.expense_rows.length ?? 0).toLocaleString()} รายการ</Badge>
           <div className="ml-auto text-sm text-muted-foreground">

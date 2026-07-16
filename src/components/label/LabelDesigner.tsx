@@ -328,7 +328,7 @@ export function LabelDesigner({
         <SectionCard
           className="min-w-0 sticky top-0 self-start"
           title={isBlank ? 'ตัวอย่างฉลากเปล่า (จัดตำแหน่ง)' : 'ตัวอย่างฉลาก (จัดตำแหน่ง)'}
-          tint="success"
+          tint="success-soft"
           right={previewActions}
         >
           {/* The preview renders through the SAME builder as the print path in an
@@ -374,7 +374,7 @@ export function LabelDesigner({
 
             <div className="pr-1">
               <TabsContent value="paper" className="space-y-3 mt-0">
-                <SectionCard icon={Printer} title="ตั้งค่า" tint="primary">
+                <SectionCard icon={Printer} title="ตั้งค่า" tint="primary-soft">
                   <FormField label="เครื่องพิมพ์">
                     <Select value={form.printer_name || '__default__'} onValueChange={v => setF('printer_name', v === '__default__' ? '' : v)}>
                       <SelectTrigger variant="elevated" className="w-full">
@@ -452,7 +452,7 @@ export function LabelDesigner({
               </TabsContent>
 
               <TabsContent value="sections" className="space-y-3 mt-0">
-                <SectionCard icon={Printer} title="ฟอนต์ &amp; บรรทัด" tint="amber">
+                <SectionCard icon={Printer} title="ฟอนต์ &amp; บรรทัด" tint="amber-soft">
                   <FormField label="ฟอนต์">
                     <Select value={form.font_family} onValueChange={v => setF('font_family', v)}>
                       <SelectTrigger variant="elevated" className="w-full">

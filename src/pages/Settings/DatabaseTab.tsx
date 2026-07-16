@@ -119,7 +119,7 @@ export function DatabaseTab() {
   return (
     <div className="max-w-3xl space-y-4">
       {/* Export */}
-      <SectionCard icon={Download} title="สำรองข้อมูล" tint="primary">
+      <SectionCard icon={Download} title="สำรองข้อมูล" tint="primary-soft">
         <p className="text-sm text-muted-foreground leading-relaxed">
           บันทึกฐานข้อมูลทั้งหมด (สินค้า ล็อต การขาย ภาษี ฯลฯ) ออกเป็นไฟล์ <span className="font-mono text-xs">.db</span> เดียว
           เก็บไว้ในที่ปลอดภัย เช่น USB หรือคลาวด์ เพื่อกู้คืนได้หากเครื่องเสียหาย
@@ -131,7 +131,7 @@ export function DatabaseTab() {
       </SectionCard>
 
       {/* Restore */}
-      <SectionCard icon={Upload} title="กู้คืนข้อมูล" tint="amber">
+      <SectionCard icon={Upload} title="กู้คืนข้อมูล" tint="amber-soft">
         <p className="text-sm text-muted-foreground leading-relaxed">
           เลือกไฟล์สำรอง <span className="font-mono text-xs">.db</span> มาแทนที่ฐานข้อมูลปัจจุบันทั้งหมด
           ระบบจะสำรองข้อมูลปัจจุบันไว้ก่อนอัตโนมัติ แล้วรีสตาร์ทโปรแกรม
