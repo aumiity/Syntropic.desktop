@@ -106,13 +106,14 @@ Secondary action **Buttons** (the one paired *next to* a primary action, e.g. "�
 
 ## Color palette & variants — USE THE FULL RANGE (HARD)
 
-We have a rich palette far beyond `primary` / `secondary` / `destructive`. **Don't default to those three everywhere — the app should feel colorful and varied.** Pick variants by *role*, not "what's the most neutral option."
+We have a rich palette far beyond `primary` / `neutral` / `destructive`. **Don't default to those three everywhere — the app should feel colorful and varied.** Pick variants by *role*, not "what's the most neutral option."
 
 ### `<Button>` variants (`button.tsx`) — current set
 
+> **HOVER RULE (HARD) — tokens only, never opacity.** Every variant hovers via its own token: `--<role>-hover` for solid, `--<role>-soft-hover` for soft. The hover shifts **lightness by 7% AWAY from the page background** — light theme darkens (`-7`), dark theme lightens (`+7`) — at the **same hue and saturation**. An `*-outline` shares the soft surface, so it hovers on the **same** `--<role>-soft-hover` token as its `*-soft` twin. Never `hover:bg-<role>/85`: an opacity step composites with the page, so it *fades* on light and *darkens* on dark, i.e. the same button hovers in opposite directions per theme. Adding a role? Add both tokens in `:root` **and** `.dark`, register them in `tailwind.config.js`, then reference them. (`--primary*` is also generated at runtime by `src/lib/accent-presets.ts` — keep its offsets in sync or the accent presets will disagree with `index.css`.) As of 2026-07-16 **every** variant in `button.tsx` is token-hovered; the only opacity left is `dark:hover:bg-input/50` / `muted/50` on the neutral group, parked for the dark-mode pass.
+
 Solid / primary roles:
 - `default` — primary teal · main CTA, save, confirm
-- `secondary` — white/gray with border · cancel, dismiss
 - `accent` — yellow `#F5C24A` · accent CTA, attention (this is the variant formerly called `tertiary`)
 - `success` — green · positive confirm (e.g. "เพิ่มสต็อก")
 - `warning` — solid orange · caution CTA
@@ -156,7 +157,7 @@ Badge shares the same role names as Button (minus the `elevated-<role>` button-o
 - Warm decorative: `amber` (deep gold) + `sand` (warm-neutral tan) — each with `-foreground` / `-soft` / `-strong`, same 4-token shape as `violet`/`teal`. Soft variants render `text-amber-strong`/`text-sand-strong` on the soft surface.
 - Brand: `primary`, `primary-soft`, `primary-soft-hover`, `primary-soft-border`, `primary-strong`, `primary-hover`, `primary-foreground`
 - Accent (yellow): `accent`, `accent-foreground` (no `tertiary` — that name is gone). `accent-soft`/`accent-soft-hover`/`accent-soft-foreground` = the soft cream/amber surface (formerly `warm`)
-- Neutrals: `background`, `card`, `muted`, `muted-hover`, `popover`, `secondary`
+- Neutrals: `background`, `card`, `muted`, `muted-hover`, `popover`
 - Decorative surfaces: `primary-soft` (light teal), `info-soft` (light blue), `accent-soft` (warm amber, formerly `warm`) — each with `-foreground` / `-hover`
 - Radius: `--radius-card` (→ `rounded-card`, the single source of truth for card/panel corners) and `--radius-control` (→ `rounded-control`, buttons/inputs). Change card roundness app-wide by editing `--radius-card` in `index.css` only.
 - Status: `success`/`success-soft`, `warning`/`warning-soft`/`warning-strong`, `destructive`/`destructive-soft`/`destructive-strong`
@@ -166,7 +167,7 @@ Badge shares the same role names as Button (minus the `elevated-<role>` button-o
 ### When writing new UI — guidelines
 
 1. **Differentiate actions by tint.** "Edit" `outline`, info/details icon `accent-soft`, external-link icon `primary-soft`, "Adjust stock" `info-soft`, "Delete" `destructive`, primary save `default`, secondary toggle `accent`. See the row-action rule in `ui-table-card.md` for the canonical square icon-button pattern.
-2. **Decorative chips/status badges** → reach for `accent`/`primary-soft`/`info-soft`/`accent-soft` before falling back to `secondary` or grey.
+2. **Decorative chips/status badges** → reach for `accent`/`primary-soft`/`info-soft`/`accent-soft` before falling back to `neutral` or grey.
 3. **Section accents / soft backgrounds** → `bg-primary-soft`, `bg-info-soft`, `bg-accent-soft` (NOT `bg-muted` for everything).
 4. **Hover states** → use the matching `-hover` token (`primary-hover`, `primary-soft-hover`, etc.) — already wired into the Button variants.
 5. **Missing role?** Add a new variant to `buttonVariants`/`badgeVariants` AND a matching token to `:root` + `.dark` in `index.css`. Never hardcode hex or Tailwind palette literals.

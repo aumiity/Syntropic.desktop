@@ -31,18 +31,9 @@ const buttonVariants = cva(
           "bg-accent text-accent-foreground",
           "hover:bg-accent-hover",
         ].join(" "),
-        "primary-soft": [
-          "bg-primary-soft text-primary",
-          "hover:bg-primary-soft-hover [a]:hover:bg-primary-soft/80",
-        ].join(" "),
-        "info-soft": [
-          "bg-info-soft text-info-soft-foreground",
-          "hover:bg-info-soft-hover [a]:hover:bg-info-soft/80",
-        ].join(" "),
-        "accent-soft": [
-          "bg-accent-soft text-accent-soft-foreground",
-          "hover:bg-accent-soft-hover [a]:hover:bg-accent-soft/80",
-        ].join(" "),
+        "primary-soft": "bg-primary-soft text-primary hover:bg-primary-soft-hover",
+        "info-soft": "bg-info-soft text-info-soft-foreground hover:bg-info-soft-hover",
+        "accent-soft": "bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft-hover",
         outline: [
           "shadow-none hover:shadow-none",
           "border-transparent bg-muted",
@@ -70,10 +61,14 @@ const buttonVariants = cva(
           "dark:bg-destructive-hover dark:hover:bg-destructive dark:text-destructive-foreground",
         ].join(" "),
         link: "text-primary underline-offset-4 shadow-none hover:shadow-none hover:underline",
-        // SOLID hover rule: every solid variant darkens via its own `--<role>-hover`
-        // token (~-7% lightness). NEVER use an opacity step (`hover:bg-x/85`) — that
-        // composites with the page background, so it FADES on light and DARKENS on
-        // dark, i.e. the same button hovers in opposite directions per theme.
+        // HOVER RULE (solid + soft): every variant hovers via its own token —
+        // `--<role>-hover` for solid, `--<role>-soft-hover` for soft — shifting
+        // lightness 7% AWAY from the page background (light: darker, dark: lighter)
+        // at the same hue/saturation. NEVER use an opacity step (`hover:bg-x/85`):
+        // it composites with the page, so it FADES on light and DARKENS on dark —
+        // the same button hovering in opposite directions per theme.
+        // Applies to solid, soft and *-outline alike: an outline shares the soft
+        // surface, so it hovers on the SAME --<role>-soft-hover token.
         success: "bg-success text-success-foreground hover:bg-success-hover",
         warning: "bg-warning text-warning-foreground hover:bg-warning-hover",
         info: "bg-info text-info-foreground hover:bg-info-hover",
@@ -81,26 +76,26 @@ const buttonVariants = cva(
         teal: "bg-teal text-teal-foreground hover:bg-teal-hover",
         amber: "bg-amber text-amber-foreground hover:bg-amber-hover",
         sand: "bg-sand text-sand-foreground hover:bg-sand-hover",
-        "success-soft": "bg-success-soft text-success hover:bg-success-soft/80",
+        "success-soft": "bg-success-soft text-success hover:bg-success-soft-hover",
         // warning-soft = pale ORANGE (distinct from `accent-soft` which is cream)
-        "warning-soft": "bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft/80",
-        "violet-soft": "bg-violet-soft text-violet-strong hover:bg-violet-soft/80",
-        "teal-soft": "bg-teal-soft text-teal-strong hover:bg-teal-soft/80",
-        "amber-soft": "bg-amber-soft text-amber-strong hover:bg-amber-soft/80",
-        "sand-soft": "bg-sand-soft text-sand-strong hover:bg-sand-soft/80",
+        "warning-soft": "bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft-hover",
+        "violet-soft": "bg-violet-soft text-violet-strong hover:bg-violet-soft-hover",
+        "teal-soft": "bg-teal-soft text-teal-strong hover:bg-teal-soft-hover",
+        "amber-soft": "bg-amber-soft text-amber-strong hover:bg-amber-soft-hover",
+        "sand-soft": "bg-sand-soft text-sand-strong hover:bg-sand-soft-hover",
         // Soft + colored border — bordered chip look (matches Badge *-outline)
         "primary-outline":      "border border-primary/40 bg-primary-soft text-primary hover:bg-primary-soft-hover",
-        "success-outline":      "border border-success/40 bg-success-soft text-success hover:bg-success-soft/80",
-        "warning-outline":      "border border-warning/40 bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft/80",
-        "destructive-outline":  "border border-destructive/40 bg-destructive-soft text-destructive hover:bg-destructive/25",
+        "success-outline":      "border border-success/40 bg-success-soft text-success hover:bg-success-soft-hover",
+        "warning-outline":      "border border-warning/40 bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft-hover",
+        "destructive-outline":  "border border-destructive/40 bg-destructive-soft text-destructive hover:bg-destructive-soft-hover",
         "info-outline":         "border border-info/40 bg-info-soft text-info-soft-foreground hover:bg-info-soft-hover",
-        "violet-outline":       "border border-violet/40 bg-violet-soft text-violet-strong hover:bg-violet-soft/80",
-        "teal-outline":         "border border-teal/40 bg-teal-soft text-teal-strong hover:bg-teal-soft/80",
-        "amber-outline":        "border border-amber/40 bg-amber-soft text-amber-strong hover:bg-amber-soft/80",
-        "sand-outline":         "border border-sand/40 bg-sand-soft text-sand-strong hover:bg-sand-soft/80",
+        "violet-outline":       "border border-violet/40 bg-violet-soft text-violet-strong hover:bg-violet-soft-hover",
+        "teal-outline":         "border border-teal/40 bg-teal-soft text-teal-strong hover:bg-teal-soft-hover",
+        "amber-outline":        "border border-amber/40 bg-amber-soft text-amber-strong hover:bg-amber-soft-hover",
+        "sand-outline":         "border border-sand/40 bg-sand-soft text-sand-strong hover:bg-sand-soft-hover",
         "accent-outline":       "border border-accent/80 bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft-hover",
         "muted-outline":        "border border-border-strong/30 bg-muted text-muted-foreground hover:bg-muted-hover",
-        "destructive-soft": "bg-destructive-soft text-destructive hover:bg-destructive/25 hover:text-destructive",
+        "destructive-soft": "bg-destructive-soft text-destructive hover:bg-destructive-soft-hover",
         // Flat white — same surface as `elevated` but NO shadow. The base cva hands
         // shadow-sm to every variant, so the flat ones refuse it explicitly (as
         // ghost/link/outline/mutedborder do). NOT part of the *-outline family:

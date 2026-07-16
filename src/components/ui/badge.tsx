@@ -55,7 +55,7 @@ const badgeVariants = cva(
         "teal-soft": "border-transparent bg-teal-soft text-teal-strong",
         "amber-soft": "border-transparent bg-amber-soft text-amber-strong",
         "sand-soft": "border-transparent bg-sand-soft text-sand-strong",
-        "destructive-soft": "bg-destructive-soft text-destructive hover:bg-destructive/25 hover:text-destructive",
+        "destructive-soft": "bg-destructive-soft text-destructive",
         "success-outline": "border-success/40 bg-success-soft text-success",
         "info-outline": "border-info/40 bg-info-soft text-info",
         "warning-outline": "border-warning/40 bg-warning-soft text-warning-soft-foreground",

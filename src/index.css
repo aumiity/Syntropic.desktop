@@ -35,7 +35,7 @@
     --primary-hover:        152 39% 20%;
     --primary-strong:       152 29% 20%;
     --primary-soft:         180 20% 90%; /* #E3EDEB */
-    --primary-soft-hover:   168 22% 87%;
+    --primary-soft-hover:   180 20% 83%;
     --primary-soft-border:  175 35% 70%;
 
     /* ── Accent — brand yellow ──────────────────────────────────────────── */
@@ -53,12 +53,14 @@
     --success-foreground: 0 0% 100%;
     --success-hover:      142 71% 30%;
     --success-soft:       138 76% 95%;
+    --success-soft-hover: 138 76% 88%;
 
     /* ── Status: Warning (orange) ───────────────────────────────────────── */
     --warning:            35 100% 50%;    /* #FF9500 — iOS warning orange */
     --warning-foreground: 0 0% 100%;
     --warning-hover:      35 100% 43%;
     --warning-soft:            34 100% 92%;    /* pale orange surface */
+    --warning-soft-hover:      34 100% 85%;
     --warning-soft-foreground: 27 90% 40%;     /* deep orange text */
 
     /* ── Status: Destructive (red) ──────────────────────────────────────── */
@@ -66,6 +68,7 @@
     --destructive-foreground: 0 0% 100%;
     --destructive-hover:      3 100% 52%;
     --destructive-soft:       2 84% 93%;
+    --destructive-soft-hover: 2 84% 86%;
     --destructive-strong:     0 70% 35%;
 
     /* ── Info (blue) ────────────────────────────────────────────────────── */
@@ -74,11 +77,11 @@
     --info-hover:           221 83% 46%;
     --info-soft:            219 100% 94%;
     --info-soft-foreground: 219 30% 44%;
-    --info-soft-hover:      219 100% 84%;
+    --info-soft-hover:      219 100% 87%;
 
     /* ── Warm (cream / amber decorative) ────────────────────────────────── */
     --accent-soft:            55 92% 95%;     /* #FCEFC8 — soft cream */
-    --accent-soft-hover:      45 96% 80%;
+    --accent-soft-hover:      55 92% 88%;
     --accent-soft-foreground: 41 96% 40%;     /* deep amber/brown text */
 
     /* ── Decorative palette: Violet ─────────────────────────────────────── */
@@ -86,6 +89,7 @@
     --violet-foreground: 0 0% 100%;
     --violet-hover:      262 83% 51%;
     --violet-soft:       250 100% 97%;
+    --violet-soft-hover: 250 100% 90%;
     --violet-strong:     263 70% 42%;
 
     /* ── Decorative palette: Teal ───────────────────────────────────────── */
@@ -93,6 +97,7 @@
     --teal-foreground: 0 0% 100%;
     --teal-hover:      167 76% 29%;
     --teal-soft:       165 76% 92%;
+    --teal-soft-hover: 165 76% 85%;
     --teal-strong:     167 76% 26%;
 
     /* ── Warm palette: Amber (deep gold — ลึกกว่า accent เหลือง) ─────────── */
@@ -100,6 +105,7 @@
     --amber-foreground: 45 100% 91%;     /* near-brown text on gold */
     --amber-hover:      38 95% 41%;
     --amber-soft:       45 100% 91%;    /* pale gold surface */
+    --amber-soft-hover: 45 100% 84%;
     --amber-strong:     32 88% 36%;     /* deep amber text on soft */
 
     /* ── Warm palette: Sand (warm neutral — แทนเทาเย็น) ──────────────────── */
@@ -107,6 +113,7 @@
     --sand-foreground: 0 0% 100%;
     --sand-hover:      30 25% 45%;
     --sand-soft:       36 44% 94%;      /* #F4ECE0 — warm sand surface */
+    --sand-soft-hover: 36 44% 87%;
     --sand-strong:     28 30% 38%;      /* warm brown text on soft */
 
     /* ── Sidebar (left navigation) ──────────────────────────────────────── */
@@ -163,7 +170,7 @@
     --primary-hover:        173 58% 35%;
     --primary-strong:       173 60% 30%;
     --primary-soft:         173 24% 13%; /* #1A2A28 */
-    --primary-soft-hover:   173 28% 17%;
+    --primary-soft-hover:   173 24% 20%;
     --primary-soft-border:  173 30% 25%;
 
     /* ── Accent ─────────────────────────────────────────────────────────── */
@@ -181,12 +188,14 @@
     --success-foreground: 0 0% 100%;
     --success-hover:      142 71% 30%;
     --success-soft:       142 30% 18%;
+    --success-soft-hover: 142 30% 25%;
 
     /* ── Status: Warning ────────────────────────────────────────────────── */
     --warning:            35 100% 60%;    /* lighter orange for dark mode */
     --warning-foreground: 0 0% 100%;
     --warning-hover:      35 100% 53%;
     --warning-soft:            30 30% 15%;     /* dark orange surface */
+    --warning-soft-hover:      30 30% 22%;
     --warning-soft-foreground: 32 95% 72%;     /* pale orange text */
 
     /* ── Status: Destructive ────────────────────────────────────────────── */
@@ -197,20 +206,25 @@
        LIGHTENS to --destructive. Left at 39% on purpose — retuning it to match the
        light-mode -7% rule would repaint every resting red chip. Revisit with dark mode. */
     --destructive-hover:      3 100% 39%;
+    /* BUG: this is the LIGHT value — every other *-soft in .dark is L 13-18%.
+       Renders a near-white chip on dark. Its hover is paired to it (-7) so the
+       two stay coherent; both need real dark values in the dark-mode pass. */
     --destructive-soft:       2 84% 93%;
+    --destructive-soft-hover: 2 84% 86%;
     --destructive-strong:     0 70% 35%;
 
     /* ── Info ───────────────────────────────────────────────────────────── */
     --info:                 221 83% 60%;   /* lighter blue for dark mode */
     --info-foreground:      0 0% 100%;
     --info-hover:           221 83% 53%;
+    /* BUG: LIGHT value in .dark — same story as --destructive-soft above. */
     --info-soft:            219 100% 94%;
     --info-soft-foreground: 219 30% 44%;
-    --info-soft-hover:      219 100% 84%;
+    --info-soft-hover:      219 100% 87%;
 
     /* ── Warm ───────────────────────────────────────────────────────────── */
     --accent-soft:            43 25% 14%;     /* dark amber surface */
-    --accent-soft-hover:      43 20% 22%;
+    --accent-soft-hover:      43 25% 21%;
     --accent-soft-foreground: 45 90% 80%;     /* pale amber text */
 
     /* ── Decorative: Violet ─────────────────────────────────────────────── */
@@ -218,6 +232,7 @@
     --violet-foreground: 0 0% 100%;
     --violet-hover:      262 83% 58%;
     --violet-soft:       263 30% 18%;
+    --violet-soft-hover: 263 30% 25%;
     --violet-strong:     263 80% 75%;
 
     /* ── Decorative: Teal ───────────────────────────────────────────────── */
@@ -225,6 +240,7 @@
     --teal-foreground: 0 0% 100%;
     --teal-hover:      167 70% 43%;
     --teal-soft:       167 30% 18%;
+    --teal-soft-hover: 167 30% 25%;
     --teal-strong:     167 70% 75%;
 
     /* ── Warm: Amber (brighter gold for dark) ───────────────────────────── */
@@ -232,6 +248,7 @@
     --amber-foreground: 43 90% 76%;
     --amber-hover:      40 92% 51%;
     --amber-soft:       40 32% 15%;     /* dark gold surface */
+    --amber-soft-hover: 40 32% 22%;
     --amber-strong:     43 90% 76%;     /* pale gold text */
 
     /* ── Warm: Sand (warm neutral for dark) ─────────────────────────────── */
@@ -239,6 +256,7 @@
     --sand-foreground: 30 30% 8%;
     --sand-hover:      32 22% 53%;
     --sand-soft:       30 14% 18%;      /* dark warm-neutral surface */
+    --sand-soft-hover: 30 14% 25%;
     --sand-strong:     34 40% 78%;      /* pale sand text */
 
     /* ── Sidebar ────────────────────────────────────────────────────────── */

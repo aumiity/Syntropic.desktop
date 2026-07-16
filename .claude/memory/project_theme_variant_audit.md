@@ -1,6 +1,6 @@
 ---
 name: project_theme_variant_audit
-description: /theme showcase rebuilt from cva as SSOT — Button/Badge done (2/33 sections); secondary removed; neutral-outline renamed to neutral (flat) vs elevated (shadow).
+description: /theme showcase rebuilt from cva as SSOT — Button/Badge done (2/33); secondary removed; neutral-outline renamed to neutral; every hover is token-based (L 7% away from page bg), no opacity left.
 metadata:
   type: project
 ---
@@ -21,13 +21,21 @@ metadata:
 
 **`badge.tsx` base ไม่มี shadow เลย** → 5 ตัวเดียวกันนั้นแบนฟรีไม่ต้องประกาศอะไร. **คนละกลไกกับ Button อย่าเอา logic ข้ามกัน** — แต่**ผลลัพธ์ตรงกันเป๊ะแล้ว: `elevated` = ตัวเดียวที่มีเงา ทั้ง 2 primitive**. มีคอมเมนต์กันลืมไว้ในทั้ง 2 ไฟล์แล้ว.
 
-## กฎ hover ของปุ่ม SOLID — โทเคนเท่านั้น ห้าม opacity (2026-07-16)
+## กฎ hover — โทเคนเท่านั้น ห้าม opacity (2026-07-16) — SOLID + SOFT + OUTLINE ครบแล้ว
 
-**ทุก solid variant ต้อง hover ด้วยโทเคนของตัวเอง `--<role>-hover` = เข้มขึ้น ~−7% lightness. ห้ามใช้ `hover:bg-<role>/85` เด็ดขาด.**
+**ทุก variant hover ด้วยโทเคนของตัวเอง: solid → `--<role>-hover`, soft → `--<role>-soft-hover`. ขยับ lightness 7% "หนีจากสีพื้นหลังหน้าจอ" (light −7 / dark +7) โดย hue/saturation คงเดิม. ห้าม `hover:bg-<role>/85` เด็ดขาด.**
 
-เดิมปนกัน 2 กลไก: 4 ตัว (primary/destructive/success/warning) ใช้โทเคน = **เข้มขึ้น**, อีก 6 ตัว (accent/info/violet/teal/amber/sand) ใช้ `/85` = **จางลง** (เพราะ opacity ไม่ได้ทำให้สีเข้ม มันแค่ปล่อยพื้นหลังทะลุขึ้นมา). **กับดักซ้อน: `/85` พึ่งสีพื้นหลัง → light จางลง / dark เข้มขึ้น = ปุ่มเดียวกัน hover กลับทิศกันคนละธีม.**
+**ทำไมต้องหนีพื้นหลัง ไม่ใช่ "เข้มขึ้น":** พื้น soft ใน dark เป็นสีเข้ม (L 13-18%) → hover ต้องสว่างขึ้นถึงจะเห็น. กฎ "เข้มขึ้นเสมอ" ใช้ไม่ได้.
 
-แก้แล้ว: เติมโทเคน `--accent-hover`/`--info-hover`/`--violet-hover`/`--teal-hover`/`--amber-hover`/`--sand-hover` ครบทั้ง `:root`+`.dark` → register `hover` ใน `tailwind.config.js` → เปลี่ยน 6 variant มาใช้โทเคน. จูน `destructive` (−20%→−7%) และ `warning` (−10%→−7%) ให้เท่ากันด้วย. `success` เหลือ −6% (ต่างจนมองไม่เห็น ไม่แตะ). ถอด `[a]:hover:bg-primary/80`/`accent/80` ทิ้งด้วย (opacity ตัวเดิมที่ซ่อนอยู่ในเคสปุ่ม-เป็น-ลิงก์). **ตระกูล `*-soft` ยังมี `[a]:hover:.../80` เหลืออยู่ — ยังไม่จัด.**
+**ทำไมห้าม opacity:** `/85` ไม่ได้ทำให้สีเข้ม มันแค่ปล่อยพื้นหลังทะลุขึ้นมา → **light จางลง / dark เข้มขึ้น = ปุ่มเดียวกัน hover กลับทิศกันคนละธีม.**
+
+- **SOLID (ทำแล้ว):** เดิม 4 ตัวใช้โทเคน / 6 ตัวใช้ `/85`. เติม `--accent/info/violet/teal/amber/sand-hover` + จูน `destructive` (−20→−7) และ `warning` (−10→−7). `success` เหลือ −6 (มองไม่เห็น ไม่แตะ).
+- **SOFT (ทำแล้ว):** เดิมมี **3 กลไก** — โทเคน (primary/info/accent-soft), `/80` (6 ตัว), และ **`destructive-soft` hover ไป `bg-destructive/25` = เอาสีแดง solid มาลดความทึบ ไม่ใช่โทเคน soft ของตัวเองเลย**. แถม 3 ตัวที่ใช้โทเคนก็ยังเพี้ยน: ΔL −3/−10/−15 และ 2 ตัว **เปลี่ยน hue ด้วย** (primary −12°, accent −10° → hover แล้วเปลี่ยนสี ไม่ใช่แค่เข้มขึ้น). เติมโทเคน `-soft-hover` ครบ 10 โรล ทั้ง 2 ธีม + จูน 3 ตัวเดิมให้ ∓7 และลบ hue shift.
+- **ถอด `[a]:hover:.../80` ทิ้งหมดแล้ว** (opacity ที่ซ่อนในเคสปุ่ม-เป็น-ลิงก์).
+- **OUTLINE (ทำแล้ว):** outline ใช้พื้นผิว soft ร่วมกับ `*-soft` → hover ด้วยโทเคน `--<role>-soft-hover` **ตัวเดียวกัน**. เดิม 4 ตัวใช้โทเคนอยู่แล้ว (primary/info/accent/muted), 6 ตัวใช้ `/80`, และ `destructive-outline` ใช้ `hover:bg-destructive/25` (โรคเดียวกับ `destructive-soft`). แก้ครบแล้ว.
+- **สถานะ 2026-07-16: `button.tsx` ทุก variant hover ด้วยโทเคนหมดแล้ว ไม่เหลือ opacity สักตัว** (ตรวจด้วยสคริปต์ไล่ทุก variant). ที่เหลืออย่างเดียวคือ `dark:hover:bg-input/50` / `muted/50` บนกลุ่ม neutral = dark-only พักไว้รอ dark-mode pass. **Badge ไม่มี hover เลยทั้งไฟล์ (span) ไม่ต้องแตะ.**
+
+> **`accent-presets.ts` สร้าง `--primary*` ทับตอน runtime** (`ACCENT_VAR_NAMES` + `buildVars`) — แก้ `index.css` อย่างเดียวไม่พอ ปุ่ม `primary-soft` จะ hover ไม่เหมือนกันระหว่างธีมเริ่มต้นกับตอนเลือก preset. sync แล้ว: light `l(46)`→`l(39)`, dark `l(-31)`→`l(-24)`. (`--primary-hover` = `l(-7)` ตรงกฎอยู่แล้วแต่แรก.)
 
 > **ห้ามจูน `--destructive-hover` ฝั่ง `.dark`** (คงไว้ 39%): ใน dark มันไม่ใช่สี hover แต่เป็น**สีพื้นตอนพัก** (`dark:bg-destructive-hover` ใน button.tsx+badge.tsx) แล้ว hover สว่างขึ้นไปหา `--destructive`. จูนตามกฎ = ป้ายแดงทุกอันใน dark เปลี่ยนสี. มีคอมเมนต์เตือนใน `index.css` แล้ว. ไว้รื้อตอนทำ dark mode.
 
@@ -54,6 +62,8 @@ Badge ขาด variant 2 ชุดเทียบกับ Button **โดย�
 
 1. **`elevated-<role>` 8 ตัว** (destructive/warning/success/accent × solid,soft) — นิยามด้วย `hover:`/`aria-expanded:` ล้วน ๆ ซึ่ง `<span>` ที่ไม่ interactive ไม่มีวันติด → จะกลายเป็นชิปเทาเหมือนกัน 8 อัน.
 2. **`muted-outline`** (ลบ 2026-07-16) — บน Button มันคือ `mutedborder` **แบบมีเงา** (พื้นผิวเดียวกันเป๊ะ ต่างกันที่มันไม่ปฏิเสธเงาจาก base). Badge ไม่มีเงามาแยก → **ซ้ำกันทุกพิกเซล**. ใช้ `mutedborder` แทน — ย้าย call site แล้ว **5 จุด**: ชิป "ปิด" (`EditProduct/LotsTab.tsx`), ชิป "ไม่ถูกใช้งาน" ternary ใน Settings `CategoriesTab`/`DrugTypesTab`/`UnitsTab`, และ `MOVEMENT_META` ใน `EditProduct/shared.ts` (`sale_void`+`purchase_return`, มี union type ต้องแก้ด้วย). **Button ยังเก็บทั้งคู่ไว้** เพราะยังต่างกันจริงด้วยเงา.
+
+> **บั๊ก dark ที่เจอเพิ่ม 2026-07-16 (ยังไม่แก้ รอ dark-mode pass):** `--destructive-soft` และ `--info-soft` ใน `.dark` **เป็นค่าของ light เป๊ะ ๆ** (L 93%/94%) ทั้งที่ `*-soft` ตัวอื่นใน dark อยู่ที่ L 13-18% → 2 variant นี้เป็นชิปขาวโพลนกลางธีมมืด. `-soft-hover` ของมันเลยต้องจับคู่แบบ light (−7) แทน (+7) ไม่งั้นชนเพดานขาว. มีคอมเมนต์กำกับใน `index.css` แล้ว.
 
 > **กับดัก dark mode ที่ยังค้าง (เจ้าของบอกไว้ทำทีหลัง อย่าเพิ่งไล่แก้):** `muted-outline` ไม่มี `dark:` override → ตอน dark ใช้ `--muted` ตรง ๆ ซึ่งใน `.dark` = `240 5% 96%` (**เกือบขาว**) = ชิปขาวจ้ากลางธีมมืด. `mutedborder` มี `dark:bg-input/30 dark:border-input` เลยถูกต้อง. ตอนย้าย LotsTab ไป `mutedborder` เลยได้ dark ที่ถูกมาฟรี. **`--muted` ใน `.dark` สว่างกว่า light (96% vs 92%) — น่าสงสัยว่าเป็นบั๊กโทเคน ไว้ตรวจตอนทำ dark mode.**
 

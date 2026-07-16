@@ -53,6 +53,7 @@ export default {
           foreground: 'hsl(var(--destructive-foreground))',
           hover: 'hsl(var(--destructive-hover))',
           soft: 'hsl(var(--destructive-soft))',
+          'soft-hover': 'hsl(var(--destructive-soft-hover))',
           strong: 'hsl(var(--destructive-strong))',
         },
         success: {
@@ -60,12 +61,14 @@ export default {
           foreground: 'hsl(var(--success-foreground))',
           hover: 'hsl(var(--success-hover))',
           soft: 'hsl(var(--success-soft))',
+          'soft-hover': 'hsl(var(--success-soft-hover))',
         },
         warning: {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
           hover: 'hsl(var(--warning-hover))',
           soft: 'hsl(var(--warning-soft))',
+          'soft-hover': 'hsl(var(--warning-soft-hover))',
           'soft-foreground': 'hsl(var(--warning-soft-foreground))',
         },
         violet: {
@@ -73,6 +76,7 @@ export default {
           foreground: 'hsl(var(--violet-foreground))',
           hover: 'hsl(var(--violet-hover))',
           soft: 'hsl(var(--violet-soft))',
+          'soft-hover': 'hsl(var(--violet-soft-hover))',
           strong: 'hsl(var(--violet-strong))',
         },
         teal: {
@@ -80,6 +84,7 @@ export default {
           foreground: 'hsl(var(--teal-foreground))',
           hover: 'hsl(var(--teal-hover))',
           soft: 'hsl(var(--teal-soft))',
+          'soft-hover': 'hsl(var(--teal-soft-hover))',
           strong: 'hsl(var(--teal-strong))',
         },
         amber: {
@@ -87,6 +92,7 @@ export default {
           foreground: 'hsl(var(--amber-foreground))',
           hover: 'hsl(var(--amber-hover))',
           soft: 'hsl(var(--amber-soft))',
+          'soft-hover': 'hsl(var(--amber-soft-hover))',
           strong: 'hsl(var(--amber-strong))',
         },
         sand: {
@@ -94,6 +100,7 @@ export default {
           foreground: 'hsl(var(--sand-foreground))',
           hover: 'hsl(var(--sand-hover))',
           soft: 'hsl(var(--sand-soft))',
+          'soft-hover': 'hsl(var(--sand-soft-hover))',
           strong: 'hsl(var(--sand-strong))',
         },
         muted: {

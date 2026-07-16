@@ -48,7 +48,8 @@ function buildVars(h: number, s: number, isDark: boolean, baseL = 49): Record<st
       '--primary-hover':             `${h} ${s}% ${l(-7)}%`,
       '--primary-strong':            `${h} ${s}% ${l(21)}%`,
       '--primary-soft':              `${h} ${s}% ${l(-31)}%`,
-      '--primary-soft-hover':        `${h} ${s}% ${l(-27)}%`,
+      // +7 from --primary-soft: hover moves AWAY from the dark page background.
+      '--primary-soft-hover':        `${h} ${s}% ${l(-24)}%`,
       '--primary-soft-border':       `${h} ${s}% ${l(-19)}%`,
       '--accent':                    `${h} ${s}% ${l(-29)}%`,
       '--accent-foreground':         `${h} ${s}% ${l(46)}%`,
@@ -62,7 +63,8 @@ function buildVars(h: number, s: number, isDark: boolean, baseL = 49): Record<st
     '--primary-hover':             `${h} ${s}% ${l(-7)}%`,
     '--primary-strong':            `${h} ${s}% ${l(-14)}%`,
     '--primary-soft':              `${h} ${s}% ${l(46)}%`,
-    '--primary-soft-hover':        `${h} ${s}% ${l(41)}%`,
+    // -7 from --primary-soft: hover moves AWAY from the light page background.
+    '--primary-soft-hover':        `${h} ${s}% ${l(39)}%`,
     '--primary-soft-border':       `${h} ${s}% ${l(31)}%`,
     '--accent':                    `${h} ${s}% ${l(46)}%`,
     '--accent-foreground':         `${h} ${s}% ${baseL}%`,
