@@ -56,12 +56,12 @@
     --success-soft-hover: 138 76% 88%;
 
     /* ── Status: Warning (orange) ───────────────────────────────────────── */
-    --warning:            23 90% 43%;    /* #FF9500 — iOS warning orange */
+    --warning:            27 100% 47%;   /* #EF6C00 — MUI warning.main */
     --warning-foreground: 0 0% 100%;
-    --warning-hover:      23 90% 36%;
-    --warning-soft:            19 87% 91%;    /* pale orange surface */
-    --warning-soft-hover:      19 87% 84%;
-    --warning-soft-foreground: 23 90% 43%;     /* deep orange text */
+    --warning-hover:      21 100% 45%;   /* #E65100 — MUI warning.dark */
+    --warning-soft:            19 100% 90%;    /* pale orange surface */
+    --warning-soft-hover:      19 100% 83%;
+    --warning-soft-foreground: 19 95% 58%;     /* deep orange text */
 
     /* ── Status: Destructive (red) ──────────────────────────────────────── */
     --destructive:            3 100% 59%;
@@ -72,9 +72,9 @@
     --destructive-strong:     0 70% 35%;
 
     /* ── Info (blue) ────────────────────────────────────────────────────── */
-    --info:                 221 83% 53%;   /* iOS-blue ≈ blue-600 #2563EB */
+    --info:                 201 98% 41%;   /* #0288D1 — MUI info.main */
     --info-foreground:      0 0% 99%;
-    --info-hover:           221 83% 46%;
+    --info-hover:           206 99% 31%;   /* #01579B — MUI info.dark */
     --info-soft:            219 100% 94%;
     --info-soft-foreground: 219 30% 44%;
     --info-soft-hover:      219 100% 87%;
@@ -85,9 +85,9 @@
     --accent-soft-foreground: 41 96% 40%;     /* deep amber/brown text */
 
     /* ── Decorative palette: Violet ─────────────────────────────────────── */
-    --violet:            262 83% 58%;
+    --violet:            291 64% 42%;    /* #9C27B0 — MUI secondary.main */
     --violet-foreground: 0 0% 100%;
-    --violet-hover:      262 83% 51%;
+    --violet-hover:      282 68% 38%;    /* #7B1FA2 — MUI secondary.dark */
     --violet-soft:       250 100% 97%;
     --violet-soft-hover: 250 100% 90%;
     --violet-strong:     263 70% 42%;
