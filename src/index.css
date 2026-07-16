@@ -56,12 +56,12 @@
     --success-soft-hover: 138 76% 88%;
 
     /* ── Status: Warning (orange) ───────────────────────────────────────── */
-    --warning:            35 100% 50%;    /* #FF9500 — iOS warning orange */
+    --warning:            23 90% 43%;    /* #FF9500 — iOS warning orange */
     --warning-foreground: 0 0% 100%;
-    --warning-hover:      35 100% 43%;
-    --warning-soft:            34 100% 92%;    /* pale orange surface */
-    --warning-soft-hover:      34 100% 85%;
-    --warning-soft-foreground: 27 90% 40%;     /* deep orange text */
+    --warning-hover:      23 90% 36%;
+    --warning-soft:            19 87% 91%;    /* pale orange surface */
+    --warning-soft-hover:      19 87% 84%;
+    --warning-soft-foreground: 23 90% 43%;     /* deep orange text */
 
     /* ── Status: Destructive (red) ──────────────────────────────────────── */
     --destructive:            3 100% 59%;
