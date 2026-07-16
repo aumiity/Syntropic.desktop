@@ -144,7 +144,7 @@ export function UnitsTab({
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Blocks} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">หน่วยนับ</h3>
-            <Badge variant="neutral-outline">{(product.units?.length ?? 0) + 1}</Badge>
+            <Badge variant="neutral">{(product.units?.length ?? 0) + 1}</Badge>
           </div>
           <Button variant="elevated" onClick={openAddUnit} className="h-9 px-3 ml-auto shrink-0">
             <Plus className="size-4" /> เพิ่มหน่วย

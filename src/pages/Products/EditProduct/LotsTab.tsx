@@ -221,7 +221,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Package} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ล็อต</h3>
-            <Badge variant="neutral-outline">{displayLots.length}</Badge>
+            <Badge variant="neutral">{displayLots.length}</Badge>
           </div>
 
           <Popover>
@@ -319,7 +319,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
                       {lot.is_cancelled
                         ? <Badge variant="destructive-outline" className="rounded-md">ยกเลิก</Badge>
                         : (lot.is_closed || lot.qty_on_hand === 0)
-                        ? <Badge variant="muted-outline" className="rounded-md">ปิด</Badge>
+                        ? <Badge variant="mutedborder" className="rounded-md">ปิด</Badge>
                         : <Badge variant="success-outline" className="rounded-md">ใช้งาน</Badge>}
                     </TableCell>
                     <TableCell>

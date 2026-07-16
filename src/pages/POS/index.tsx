@@ -52,7 +52,7 @@ const SEVERITY_LABELS: Record<string, string> = {
   mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต',
 }
 const SEVERITY_VARIANTS: Record<string, any> = {
-  mild: 'secondary', moderate: 'warning', severe: 'amber-soft', life_threatening: 'destructive',
+  mild: 'neutral', moderate: 'warning', severe: 'amber-soft', life_threatening: 'destructive',
 }
 
 interface ReturnLineItem {
@@ -1610,7 +1610,7 @@ export default function POSPage() {
                     <div className="text-center space-y-1.5">
                       <div className="text-2xl font-bold leading-tight">{c.full_name}</div>
                       <div className="flex items-center justify-center">
-                        <Badge variant="neutral-outline">{c.code || '-'}</Badge>
+                        <Badge variant="neutral">{c.code || '-'}</Badge>
                       </div>
                     </div>
                   </div>
@@ -1672,7 +1672,7 @@ export default function POSPage() {
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
                                     <span className="text-base font-medium text-foreground">{a.generic_name ?? a.drug_name_free ?? '—'}</span>
-                                    <Badge variant={SEVERITY_VARIANTS[a.severity ?? 'moderate'] ?? 'secondary'}>
+                                    <Badge variant={SEVERITY_VARIANTS[a.severity ?? 'moderate'] ?? 'neutral'}>
                                       {SEVERITY_LABELS[a.severity ?? 'moderate']}
                                     </Badge>
                                   </div>

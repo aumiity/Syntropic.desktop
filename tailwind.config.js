@@ -33,11 +33,6 @@ export default {
           'soft-border': 'hsl(var(--primary-soft-border))',
           strong: 'hsl(var(--primary-strong))',
         },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-          hover: 'hsl(var(--secondary-hover))',
-        },
         'info-soft': {
           DEFAULT: 'hsl(var(--info-soft))',
           foreground: 'hsl(var(--info-soft-foreground))',
@@ -46,6 +41,7 @@ export default {
         info: {
           DEFAULT: 'hsl(var(--info))',
           foreground: 'hsl(var(--info-foreground))',
+          hover: 'hsl(var(--info-hover))',
         },
         'accent-soft': {
           DEFAULT: 'hsl(var(--accent-soft))',
@@ -75,24 +71,28 @@ export default {
         violet: {
           DEFAULT: 'hsl(var(--violet))',
           foreground: 'hsl(var(--violet-foreground))',
+          hover: 'hsl(var(--violet-hover))',
           soft: 'hsl(var(--violet-soft))',
           strong: 'hsl(var(--violet-strong))',
         },
         teal: {
           DEFAULT: 'hsl(var(--teal))',
           foreground: 'hsl(var(--teal-foreground))',
+          hover: 'hsl(var(--teal-hover))',
           soft: 'hsl(var(--teal-soft))',
           strong: 'hsl(var(--teal-strong))',
         },
         amber: {
           DEFAULT: 'hsl(var(--amber))',
           foreground: 'hsl(var(--amber-foreground))',
+          hover: 'hsl(var(--amber-hover))',
           soft: 'hsl(var(--amber-soft))',
           strong: 'hsl(var(--amber-strong))',
         },
         sand: {
           DEFAULT: 'hsl(var(--sand))',
           foreground: 'hsl(var(--sand-foreground))',
+          hover: 'hsl(var(--sand-hover))',
           soft: 'hsl(var(--sand-soft))',
           strong: 'hsl(var(--sand-strong))',
         },
@@ -104,6 +104,7 @@ export default {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
+          hover: 'hsl(var(--accent-hover))',
         },
         popover: {
           DEFAULT: 'hsl(var(--popover))',

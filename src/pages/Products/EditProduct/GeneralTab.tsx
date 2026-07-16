@@ -450,7 +450,7 @@ export function GeneralTab({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="size-5" /> ยอดขายย้อนหลัง
-              <Badge variant="neutral-outline" className="ml-1">6 เดือน</Badge>
+              <Badge variant="neutral" className="ml-1">6 เดือน</Badge>
             </DialogTitle>
           </DialogHeader>
           <DialogBody className="p-0">

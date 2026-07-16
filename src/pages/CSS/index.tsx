@@ -551,7 +551,7 @@ export default function CSSPage() {
                       isActive={false}
                       onClick={() => {}}
                       disabled
-                      badge={<Badge variant="neutral-outline">ไม่รองรับภาษาไทย</Badge>}
+                      badge={<Badge variant="neutral">ไม่รองรับภาษาไทย</Badge>}
                     />
                   ) : (
                     <div aria-hidden="true" />

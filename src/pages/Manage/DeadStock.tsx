@@ -151,7 +151,7 @@ export default function ManageDeadStockPage() {
         <div className="flex items-center gap-3 shrink-0">
           <TintIcon icon={Box} tint="neutral" size="sm" />
           <h3 className="text-lg font-semibold text-foreground">สินค้าค้างสต็อก</h3>
-          <Badge variant="neutral-outline">{filteredRows.length.toLocaleString()}</Badge>
+          <Badge variant="neutral">{filteredRows.length.toLocaleString()}</Badge>
         </div>
 
         <SearchInput

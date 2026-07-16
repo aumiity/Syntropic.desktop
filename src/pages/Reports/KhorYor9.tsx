@@ -323,7 +323,7 @@ export default function KhorYor9Page() {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={FileText} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ข.ย.9 บัญชีการซื้อยา</h3>
-            <Badge variant="neutral-outline">{includedRows.length}/{total}</Badge>
+            <Badge variant="neutral">{includedRows.length}/{total}</Badge>
           </div>
 
           <div className="ml-auto flex items-center gap-2">

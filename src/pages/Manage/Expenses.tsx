@@ -141,7 +141,7 @@ export default function ManageExpensesPage() {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={ReceiptText} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการค่าใช้จ่าย</h3>
-            <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+            <Badge variant="neutral">{filtered.length.toLocaleString()}</Badge>
           </div>
 
           <Select value={catFilter} onValueChange={setCatFilter}>

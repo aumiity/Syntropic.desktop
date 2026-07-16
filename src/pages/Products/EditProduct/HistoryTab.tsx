@@ -178,7 +178,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={History} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติเคลื่อนไหว</h3>
-            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+            <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>
 
           <MultiDatePicker
@@ -311,7 +311,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
               ) : (movements ?? []).map(m => {
                 const meta = MOVEMENT_META[m.movement_type] ?? {
                   label: m.movement_type,
-                  variant: 'secondary' as const,
+                  variant: 'neutral' as const,
                   icon: Info,
                 }
                 const Icon = meta.icon

@@ -21,7 +21,7 @@ Products and bundles (products with `is_bundle=1`) now live in **one table**: `s
 
 ## New table columns/behavior in ProductsList
 
-- New "ประเภท" column: `Badge variant="neutral-outline"` for a plain product, `Badge variant="info-outline"` + `Boxes` icon for a bundle.
+- New "ประเภท" column: `Badge variant="neutral"` for a plain product, `Badge variant="info-outline"` + `Boxes` icon for a bundle.
 - Bundle rows' stock cell shows "สินค้าในชุด N รายการ" (from `component_count`) instead of a stock number.
 - Bundle row actions: แก้ไข (→ `/products/bundles/:id/edit`) + เปิด/ปิดการใช้งาน only — **no** "ปรับสต็อค" action (bundles don't hold their own stock).
 

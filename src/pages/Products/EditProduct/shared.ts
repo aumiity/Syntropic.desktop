@@ -44,16 +44,16 @@ export const MOVEMENT_META: Record<string, {
   label: string
   variant:
     | 'success-outline' | 'destructive-outline' | 'info-outline'
-    | 'accent-outline' | 'violet-outline' | 'muted-outline' | 'primary-outline'
+    | 'accent-outline' | 'violet-outline' | 'mutedborder' | 'primary-outline'
   icon: typeof ArrowDownToLine
 }> = {
   receive:         { label: 'รับเข้า',     variant: 'success-outline',     icon: ArrowDownToLine },
   sale:            { label: 'ขาย',         variant: 'destructive-outline', icon: ArrowUpFromLine },
   sale_return:     { label: 'คืนสินค้า', variant: 'violet-outline',      icon: RotateCcw },
-  sale_void:       { label: 'ยกเลิกการขาย', variant: 'muted-outline',       icon: Ban },
+  sale_void:       { label: 'ยกเลิกการขาย', variant: 'mutedborder',       icon: Ban },
   adjust_in:       { label: 'ปรับเพิ่ม',  variant: 'primary-outline',     icon: SlidersHorizontal },
   adjust_out:      { label: 'ปรับลด',     variant: 'accent-outline',     icon: SlidersHorizontal },
-  purchase_return: { label: 'ยกเลิกรับ',  variant: 'muted-outline',       icon: X },
+  purchase_return: { label: 'ยกเลิกรับ',  variant: 'mutedborder',       icon: X },
   expired:         { label: 'หมดอายุ',    variant: 'destructive-outline', icon: ClockAlert },
   near_expiry:     { label: 'หมดอายุ',    variant: 'destructive-outline', icon: ClockAlert },
 }

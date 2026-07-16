@@ -185,7 +185,7 @@ export default function ProductsList() {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Package} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
-            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+            <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>
 
           {/* Right cluster — ml-auto on first to push right */}

@@ -16,7 +16,7 @@ const SEVERITY_LABELS: Record<string, string> = {
   mild: 'เล็กน้อย', moderate: 'ปานกลาง', severe: 'รุนแรง', life_threatening: 'อันตรายถึงชีวิต',
 }
 const SEVERITY_VARIANTS: Record<string, any> = {
-  mild: 'secondary', moderate: 'warning', severe: 'amber-soft', life_threatening: 'destructive',
+  mild: 'neutral', moderate: 'warning', severe: 'amber-soft', life_threatening: 'destructive',
 }
 
 // Enter on a working input fires the primary OK action (modal contract).
@@ -157,7 +157,7 @@ export function CustomerFormDialog({ open, onOpenChange, customerId, defaultName
                 <div className="space-y-1.5">
                   {allergies.map(a => (
                     <div key={a.id} className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2 text-sm">
-                      <Badge variant={SEVERITY_VARIANTS[a.severity ?? 'moderate'] ?? 'secondary'} className="shrink-0">
+                      <Badge variant={SEVERITY_VARIANTS[a.severity ?? 'moderate'] ?? 'neutral'} className="shrink-0">
                         {SEVERITY_LABELS[a.severity ?? 'moderate']}
                       </Badge>
                       <span className="font-medium">{a.generic_name ?? a.drug_name_free ?? '—'}</span>

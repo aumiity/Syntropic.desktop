@@ -7,7 +7,7 @@ metadata:
 
 ผู้ใช้แก้ความเข้าใจเรื่อง design rules (2026-06-05) — อัปเดตแล้วใน CLAUDE.md, docs/claude/ui-*.md, DESIGN.md, docs/design-overview.th.html
 
-1. **`tertiary` ไม่มีแล้ว → `accent`** (สีเหลือง #F5C24A) — ทั้ง Button/Badge variant และไม่มี token `--tertiary`/`bg-tertiary` ใน CSS แล้ว (Tabs segmented active เปลี่ยนเป็น `bg-primary` ด้วย). **`brand-soft` ไม่มีแล้ว → `primary-soft`** (teal อ่อน). ออร์ดินัลเก่า quaternary/quinary/senary → primary-soft/info-soft/warm. variant จริงดูจาก `button.tsx`/`badge.tsx` — มีตระกูล `*-outline` ครบทุกสี + `neutral-outline`/`muted-outline` + `elevated`/`elevated-destructive`/`elevated-warning` (button-only).
+1. **`tertiary` ไม่มีแล้ว → `accent`** (สีเหลือง #F5C24A) — ทั้ง Button/Badge variant และไม่มี token `--tertiary`/`bg-tertiary` ใน CSS แล้ว (Tabs segmented active เปลี่ยนเป็น `bg-primary` ด้วย). **`brand-soft` ไม่มีแล้ว → `primary-soft`** (teal อ่อน). ออร์ดินัลเก่า quaternary/quinary/senary → primary-soft/info-soft/warm. variant จริงดูจาก `button.tsx`/`badge.tsx` — มีตระกูล `*-outline` ครบทุกสี + `neutral`/`muted-outline` + `elevated`/`elevated-destructive`/`elevated-warning` (button-only).
 
 2. **ห้ามใช้ `tabular-nums`** (มติโปรเจกต์) — **ลบออกจาก codebase หมดแล้ว 2026-06-05** (7 จุดใน AdjustStockDialog/LowStock/Dashboard; card.tsx ไม่เคยมีจริง). อย่าใส่กลับ.
 

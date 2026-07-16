@@ -25,11 +25,11 @@ const buttonVariants = cva(
       variant: {
         default: [
           "bg-primary text-primary-foreground",
-          "hover:bg-primary-hover [a]:hover:bg-primary/80",
+          "hover:bg-primary-hover",
         ].join(" "),
         accent: [
           "bg-accent text-accent-foreground",
-          "hover:bg-accent/85 [a]:hover:bg-accent/80",
+          "hover:bg-accent-hover",
         ].join(" "),
         "primary-soft": [
           "bg-primary-soft text-primary",
@@ -44,12 +44,14 @@ const buttonVariants = cva(
           "hover:bg-accent-soft-hover [a]:hover:bg-accent-soft/80",
         ].join(" "),
         outline: [
+          "shadow-none hover:shadow-none",
           "border-transparent bg-muted",
           "hover:bg-muted-hover hover:text-foreground",
           "aria-expanded:bg-muted aria-expanded:text-foreground",
           "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         ].join(" "),
         mutedborder: [
+          "shadow-none hover:shadow-none",
           "border-border-strong/30 bg-muted",
           "text-muted-foreground border",
           "hover:bg-muted-hover hover:text-foreground",
@@ -63,18 +65,22 @@ const buttonVariants = cva(
           "dark:hover:bg-muted/50",
         ].join(" "),
         destructive: [
-          "bg-destructive text-white",
+          "bg-destructive text-destructive-foreground",
           "hover:bg-destructive-hover",
-          "dark:bg-destructive-hover dark:hover:bg-destructive dark:text-white",
+          "dark:bg-destructive-hover dark:hover:bg-destructive dark:text-destructive-foreground",
         ].join(" "),
         link: "text-primary underline-offset-4 shadow-none hover:shadow-none hover:underline",
+        // SOLID hover rule: every solid variant darkens via its own `--<role>-hover`
+        // token (~-7% lightness). NEVER use an opacity step (`hover:bg-x/85`) — that
+        // composites with the page background, so it FADES on light and DARKENS on
+        // dark, i.e. the same button hovers in opposite directions per theme.
         success: "bg-success text-success-foreground hover:bg-success-hover",
         warning: "bg-warning text-warning-foreground hover:bg-warning-hover",
-        info: "bg-info text-info-foreground hover:bg-info/85",
-        violet: "bg-violet text-violet-foreground hover:bg-violet/85",
-        teal: "bg-teal text-teal-foreground hover:bg-teal/85",
-        amber: "bg-amber text-amber-soft hover:bg-amber/85",
-        sand: "bg-sand text-sand-foreground hover:bg-sand/85",
+        info: "bg-info text-info-foreground hover:bg-info-hover",
+        violet: "bg-violet text-violet-foreground hover:bg-violet-hover",
+        teal: "bg-teal text-teal-foreground hover:bg-teal-hover",
+        amber: "bg-amber text-amber-foreground hover:bg-amber-hover",
+        sand: "bg-sand text-sand-foreground hover:bg-sand-hover",
         "success-soft": "bg-success-soft text-success hover:bg-success-soft/80",
         // warning-soft = pale ORANGE (distinct from `accent-soft` which is cream)
         "warning-soft": "bg-warning-soft text-warning-soft-foreground hover:bg-warning-soft/80",
@@ -93,11 +99,13 @@ const buttonVariants = cva(
         "amber-outline":        "border border-amber/40 bg-amber-soft text-amber-strong hover:bg-amber-soft/80",
         "sand-outline":         "border border-sand/40 bg-sand-soft text-sand-strong hover:bg-sand-soft/80",
         "accent-outline":       "border border-accent/80 bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft-hover",
-        // Flat white — same surface as `elevated` but NO shadow. The base cva hands
-        // shadow-sm to every variant, so it must be refused explicitly (as ghost/link do).
-        "neutral-outline":      "border border-border bg-card text-foreground shadow-none hover:shadow-none hover:bg-muted",
-        "muted-outline":        "border border-border-strong/30 bg-muted-hover text-muted-foreground hover:bg-muted",
+        "muted-outline":        "border border-border-strong/30 bg-muted text-muted-foreground hover:bg-muted-hover",
         "destructive-soft": "bg-destructive-soft text-destructive hover:bg-destructive/25 hover:text-destructive",
+        // Flat white — same surface as `elevated` but NO shadow. The base cva hands
+        // shadow-sm to every variant, so the flat ones refuse it explicitly (as
+        // ghost/link/outline/mutedborder do). NOT part of the *-outline family:
+        // those all keep the inherited shadow. `elevated` is the only raised neutral.
+        neutral: "border border-border bg-card text-foreground shadow-none hover:shadow-none hover:bg-muted",
         elevated: [
           "bg-card text-foreground border-border border shadow-sm",
           "hover:bg-muted hover:shadow-sm",

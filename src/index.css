@@ -38,14 +38,10 @@
     --primary-soft-hover:   168 22% 87%;
     --primary-soft-border:  175 35% 70%;
 
-    /* ── Secondary ──────────────────────────────────────────────────────── */
-    --secondary:            0 0% 100%;
-    --secondary-foreground: 0 0% 12%;
-    --secondary-hover:      0 0% 92%;
-
     /* ── Accent — brand yellow ──────────────────────────────────────────── */
     --accent:            43 100% 64%;    /* #F5C24A */
     --accent-foreground: 0 0% 12%;
+    --accent-hover:      43 100% 57%;
 
     /* ── Muted (neutral grey surface) ───────────────────────────────────── */
     --muted:            0 0% 92%;
@@ -61,20 +57,21 @@
     /* ── Status: Warning (orange) ───────────────────────────────────────── */
     --warning:            35 100% 50%;    /* #FF9500 — iOS warning orange */
     --warning-foreground: 0 0% 100%;
-    --warning-hover:      35 100% 40%;
+    --warning-hover:      35 100% 43%;
     --warning-soft:            34 100% 92%;    /* pale orange surface */
     --warning-soft-foreground: 27 90% 40%;     /* deep orange text */
 
     /* ── Status: Destructive (red) ──────────────────────────────────────── */
     --destructive:            3 100% 59%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-hover:      3 100% 39%;
+    --destructive-hover:      3 100% 52%;
     --destructive-soft:       2 84% 93%;
     --destructive-strong:     0 70% 35%;
 
     /* ── Info (blue) ────────────────────────────────────────────────────── */
     --info:                 221 83% 53%;   /* iOS-blue ≈ blue-600 #2563EB */
     --info-foreground:      0 0% 99%;
+    --info-hover:           221 83% 46%;
     --info-soft:            219 100% 94%;
     --info-soft-foreground: 219 30% 44%;
     --info-soft-hover:      219 100% 84%;
@@ -87,24 +84,28 @@
     /* ── Decorative palette: Violet ─────────────────────────────────────── */
     --violet:            262 83% 58%;
     --violet-foreground: 0 0% 100%;
+    --violet-hover:      262 83% 51%;
     --violet-soft:       250 100% 97%;
     --violet-strong:     263 70% 42%;
 
     /* ── Decorative palette: Teal ───────────────────────────────────────── */
     --teal:            167 76% 36%;
     --teal-foreground: 0 0% 100%;
+    --teal-hover:      167 76% 29%;
     --teal-soft:       165 76% 92%;
     --teal-strong:     167 76% 26%;
 
     /* ── Warm palette: Amber (deep gold — ลึกกว่า accent เหลือง) ─────────── */
     --amber:            38 95% 48%;     /* #F29A07 — golden amber */
-    --amber-foreground: 30 60% 12%;     /* near-brown text on gold */
+    --amber-foreground: 45 100% 91%;     /* near-brown text on gold */
+    --amber-hover:      38 95% 41%;
     --amber-soft:       45 100% 91%;    /* pale gold surface */
     --amber-strong:     32 88% 36%;     /* deep amber text on soft */
 
     /* ── Warm palette: Sand (warm neutral — แทนเทาเย็น) ──────────────────── */
     --sand:            30 25% 52%;      /* #A98869 — warm tan */
     --sand-foreground: 0 0% 100%;
+    --sand-hover:      30 25% 45%;
     --sand-soft:       36 44% 94%;      /* #F4ECE0 — warm sand surface */
     --sand-strong:     28 30% 38%;      /* warm brown text on soft */
 
@@ -165,14 +166,10 @@
     --primary-soft-hover:   173 28% 17%;
     --primary-soft-border:  173 30% 25%;
 
-    /* ── Secondary ──────────────────────────────────────────────────────── */
-    --secondary:            0 0% 20%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-hover:      0 0% 28%;
-
     /* ── Accent ─────────────────────────────────────────────────────────── */
     --accent:            43 100% 64%;
     --accent-foreground: 44 100% 8%;
+    --accent-hover:      43 100% 57%;
 
     /* ── Muted ──────────────────────────────────────────────────────────── */
     --muted:            240 5% 96%;
@@ -188,13 +185,17 @@
     /* ── Status: Warning ────────────────────────────────────────────────── */
     --warning:            35 100% 60%;    /* lighter orange for dark mode */
     --warning-foreground: 0 0% 100%;
-    --warning-hover:      35 100% 45%;
+    --warning-hover:      35 100% 53%;
     --warning-soft:            30 30% 15%;     /* dark orange surface */
     --warning-soft-foreground: 32 95% 72%;     /* pale orange text */
 
     /* ── Status: Destructive ────────────────────────────────────────────── */
     --destructive:            3 100% 59%;
     --destructive-foreground: 0 0% 100%;
+    /* NOT a hover colour in dark: button.tsx/badge.tsx use --destructive-hover as
+       the RESTING destructive surface here (dark:bg-destructive-hover) and hover
+       LIGHTENS to --destructive. Left at 39% on purpose — retuning it to match the
+       light-mode -7% rule would repaint every resting red chip. Revisit with dark mode. */
     --destructive-hover:      3 100% 39%;
     --destructive-soft:       2 84% 93%;
     --destructive-strong:     0 70% 35%;
@@ -202,6 +203,7 @@
     /* ── Info ───────────────────────────────────────────────────────────── */
     --info:                 221 83% 60%;   /* lighter blue for dark mode */
     --info-foreground:      0 0% 100%;
+    --info-hover:           221 83% 53%;
     --info-soft:            219 100% 94%;
     --info-soft-foreground: 219 30% 44%;
     --info-soft-hover:      219 100% 84%;
@@ -214,24 +216,28 @@
     /* ── Decorative: Violet ─────────────────────────────────────────────── */
     --violet:            262 83% 65%;
     --violet-foreground: 0 0% 100%;
+    --violet-hover:      262 83% 58%;
     --violet-soft:       263 30% 18%;
     --violet-strong:     263 80% 75%;
 
     /* ── Decorative: Teal ───────────────────────────────────────────────── */
     --teal:            167 70% 50%;
     --teal-foreground: 0 0% 100%;
+    --teal-hover:      167 70% 43%;
     --teal-soft:       167 30% 18%;
     --teal-strong:     167 70% 75%;
 
     /* ── Warm: Amber (brighter gold for dark) ───────────────────────────── */
     --amber:            40 92% 58%;
-    --amber-foreground: 40 60% 8%;
+    --amber-foreground: 43 90% 76%;
+    --amber-hover:      40 92% 51%;
     --amber-soft:       40 32% 15%;     /* dark gold surface */
     --amber-strong:     43 90% 76%;     /* pale gold text */
 
     /* ── Warm: Sand (warm neutral for dark) ─────────────────────────────── */
     --sand:            32 22% 60%;
     --sand-foreground: 30 30% 8%;
+    --sand-hover:      32 22% 53%;
     --sand-soft:       30 14% 18%;      /* dark warm-neutral surface */
     --sand-strong:     34 40% 78%;      /* pale sand text */
 

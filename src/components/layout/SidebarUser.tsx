@@ -28,7 +28,7 @@ function RoleBadge({ role }: { role: string }) {
   const label = ROLE_LABEL[role] ?? role
   if (role === 'owner') return <Badge variant="primary-soft">{label}</Badge>
   if (role === 'pharmacist') return <Badge variant="info-soft">{label}</Badge>
-  return <Badge variant="neutral-outline">{label}</Badge>
+  return <Badge variant="neutral">{label}</Badge>
 }
 
 const menuItem =

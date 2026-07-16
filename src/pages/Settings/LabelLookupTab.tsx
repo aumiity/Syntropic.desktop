@@ -133,7 +133,7 @@ export function LabelLookupTab() {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Stethoscope} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">{kindDef?.label ?? 'รายการคำแปล'}</h3>
-            <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+            <Badge variant="neutral">{filtered.length.toLocaleString()}</Badge>
           </div>
           <SearchInput variant="elevated" value={q} onChange={e => setQ(e.target.value)} placeholder="ค้นหาชื่อรายการ..." />
           <Button size="lg" className="h-9 px-2 shrink-0 ml-auto" onClick={openAdd}>

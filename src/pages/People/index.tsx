@@ -135,7 +135,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Users} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อลูกค้า</h3>
-            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+            <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>
 
           {/* Right cluster — ml-auto on first to push right */}
@@ -393,7 +393,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Building2} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อผู้จำหน่าย</h3>
-            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+            <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>
 
           <SearchInput
@@ -691,7 +691,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={UserCog} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายชื่อพนักงาน</h3>
-            <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+            <Badge variant="neutral">{filtered.length.toLocaleString()}</Badge>
           </div>
 
           <SearchInput
@@ -768,7 +768,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                   {showColPhone && <TableCell className="text-sm text-muted-foreground truncate">{u.phone || '-'}</TableCell>}
                   {showColRole && (
                     <TableCell className="text-center">
-                      <Badge variant="neutral-outline">{ROLES[u.role] ?? u.role}</Badge>
+                      <Badge variant="neutral">{ROLES[u.role] ?? u.role}</Badge>
                     </TableCell>
                   )}
                   <TableCell className="text-center">

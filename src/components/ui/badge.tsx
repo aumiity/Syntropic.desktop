@@ -32,9 +32,9 @@ const badgeVariants = cva(
           "bg-accent-soft text-accent-soft-foreground",
         ].join(" "),
         destructive:
-          "bg-destructive text-white dark:bg-destructive-hover dark:text-white",
+          "bg-destructive text-destructive-foreground dark:bg-destructive-hover dark:text-destructive-foreground",
         outline:
-          "border-transparent bg-background aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 [a]:hover:bg-muted [a]:hover:text-muted-foreground",
+          "border-transparent bg-muted aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 [a]:hover:bg-muted [a]:hover:text-muted-foreground",
         mutedborder:
           "border-border-strong/30 bg-muted text-muted-foreground dark:border-input dark:bg-input/30 [a]:hover:bg-muted-hover [a]:hover:text-foreground",
         elevated:
@@ -66,8 +66,16 @@ const badgeVariants = cva(
         "amber-outline": "border-amber/40 bg-amber-soft text-amber-strong",
         "sand-outline": "border-sand/40 bg-sand-soft text-sand-strong",
         "accent-outline": "border-accent/80 bg-accent-soft text-accent-soft-foreground",
-        "neutral-outline": "border-border bg-card text-foreground",
-        "muted-outline": "border-border-strong/30 bg-muted-hover text-muted-foreground",
+        // NOTE: no `muted-outline` here — on Button it is the *raised* twin of
+        // `mutedborder` (same surface, keeps the base shadow). Badge has no shadow
+        // to differentiate them, so it would be a pixel-identical duplicate.
+        // Same reasoning as the missing `elevated-<role>` family below. Use
+        // `mutedborder`. Do not re-add.
+        //
+        // Flat white — same surface as `elevated` minus the shadow. Mirrors Button's
+        // `neutral`; NOT part of the *-outline family. (Badge's base cva has no
+        // shadow at all, so unlike Button nothing needs refusing here.)
+        neutral: "border-border bg-card text-foreground",
       },
     },
     defaultVariants: {

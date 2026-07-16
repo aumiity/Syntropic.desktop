@@ -176,7 +176,8 @@
       "Bash(lsof -i :5173 -sTCP:LISTEN)",
       "WebFetch(domain:thaifaces.com)",
       "Bash(sed -E 's/-\\(Regular|Bold|Medium|Light|SemiBold|ExtraBold|Thin|Black|Italic|BoldItalic|LightItalic|ExtraLightItalic|ExtraBoldItalic|ThinItalic|MediumItalic|SemiBoldItalic|BlackItalic\\)+\\\\.\\(ttf|woff2?\\)$//')",
-      "Bash(sed -E 's/_[0-9]+pt$//')"
+      "Bash(sed -E 's/_[0-9]+pt$//')",
+      "Bash(echo \"=== exit $? \\(1=none found\\) ===\")"
     ],
     "additionalDirectories": [
       "/tmp"

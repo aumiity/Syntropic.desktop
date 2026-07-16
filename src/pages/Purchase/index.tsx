@@ -851,7 +851,7 @@ export default function PurchasePage() {
                         <div className="flex items-center gap-3 shrink-0">
                           <TintIcon icon={Package} tint="neutral" size="sm" />
                           <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
-                          <Badge variant="neutral-outline">{rows.length.toLocaleString()}</Badge>
+                          <Badge variant="neutral">{rows.length.toLocaleString()}</Badge>
                         </div>
 
                         <div className="flex items-center gap-2 ml-auto">

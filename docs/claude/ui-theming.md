@@ -128,13 +128,18 @@ Soft / tinted:
 - `destructive-soft` — soft red tint · destructive secondary (the slot next to a `destructive` primary; this is the real variant — the old `destructive2` name does NOT exist in `button.tsx`)
 - `success-soft` / `violet-soft` / `teal-soft` / `amber-soft` / `sand-soft`
 
-Outline family (soft fill + role-colored hairline border) — `primary-outline`, `accent-outline`, `success-outline`, `info-outline`, `warning-outline`, `destructive-outline`, `violet-outline`, `teal-outline`, `amber-outline`, `sand-outline`, `neutral-outline`, `muted-outline`.
+Outline family (soft fill + role-colored hairline border) — `primary-outline`, `accent-outline`, `success-outline`, `info-outline`, `warning-outline`, `destructive-outline`, `violet-outline`, `teal-outline`, `amber-outline`, `sand-outline`, `muted-outline`. On Button every one of these **keeps the `shadow-sm` the base cva hands out** — the family is raised, not flat.
 
 Neutral / low-emphasis:
+**The whole neutral group is FLAT — `elevated` is the only raised neutral, on both primitives.**
+
+- `neutral` — flat white (`bg-card` + border, **no shadow**) · the flat twin of `elevated`. Despite the border it is **not** in the `*-outline` family (hence the bare name; it was called `neutral-outline` until 2026-07-16, do not use that name).
 - `outline` — muted bg, transparent border · neutral icon buttons · **the standard for row "แก้ไข" (edit) action buttons**
 - `mutedborder` — muted bg with a stronger border
 - `ghost` — transparent · minor actions
 - `link` — text-only
+
+**Flat vs raised, the one-line contract:** white + shadow = `elevated` · white + no shadow = `neutral`. On Button, all five neutrals above declare `shadow-none hover:shadow-none` to refuse the base cva's `shadow-sm`; every other variant (including the entire `*-outline` family) keeps it. On Badge the base cva has no shadow at all, so the same five are flat for free — **`elevated` is the only raised variant on either primitive.** Adding a neutral variant? Add `shadow-none hover:shadow-none` on Button, nothing on Badge.
 
 Elevated (the house raised look — only as the **secondary** beside a primary, never lone): `elevated`, `elevated-destructive`, `elevated-warning`.
 
@@ -142,7 +147,9 @@ Elevated (the house raised look — only as the **secondary** beside a primary, 
 
 ### `<Badge>` variants (`badge.tsx`)
 
-Badge shares the same role names as Button (minus the `elevated*` / `mutedborder` button-only ones), including the full `*-soft` and `*-outline` families and `neutral-outline` / `muted-outline`. Use for tags, statuses, FDA labels (`ข.ย.13`), tier markers.
+Badge shares the same role names as Button (minus the `elevated-<role>` button-only ones), including the full `*-soft` and `*-outline` families plus `neutral`. Use for tags, statuses, FDA labels (`ข.ย.13`), tier markers.
+
+**Badge deliberately has NO `muted-outline`** (removed 2026-07-16, do not re-add). On Button it is the *raised* twin of `mutedborder` — identical surface, keeps the base `shadow-sm`. Badge has no shadow to tell them apart, so it was a pixel-identical duplicate. Use `mutedborder`. This is the same carve-out as the missing `elevated-<role>` family: **a variant that defines itself by shadow or by `hover:` cannot exist on Badge.**
 
 ### Semantic color tokens (`index.css` — defined in both `:root` and `.dark`)
 

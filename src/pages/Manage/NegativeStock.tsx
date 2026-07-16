@@ -112,7 +112,7 @@ export default function NegativeStockPage() {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={PackageMinus} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">สต็อคติดลบ</h3>
-            <Badge variant="neutral-outline">{rows.length.toLocaleString()}</Badge>
+            <Badge variant="neutral">{rows.length.toLocaleString()}</Badge>
           </div>
           <span className="ml-2 text-sm text-muted-foreground truncate hidden xl:inline">
             ตัดสต็อคย้อนหลังเมื่อรับสินค้าเข้าระบบแล้ว

@@ -135,7 +135,7 @@ export function CategoriesTab() {
               <div className="flex items-center gap-3 shrink-0">
                 <TintIcon icon={Tag} tint="neutral" size="sm" />
                 <h3 className="text-lg font-semibold text-foreground">หมวดหมู่สินค้า</h3>
-                <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+                <Badge variant="neutral">{filtered.length.toLocaleString()}</Badge>
               </div>
               <SearchInput
                 variant="elevated"
@@ -198,7 +198,7 @@ export function CategoriesTab() {
                     <TableCell className="text-sm text-muted-foreground">{c.code ?? '—'}</TableCell>
                     <TableCell className="font-semibold text-sm text-foreground">{c.name}</TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={(c.usage_count ?? 0) > 0 ? 'teal-outline' : 'muted-outline'}>
+                      <Badge variant={(c.usage_count ?? 0) > 0 ? 'teal-outline' : 'mutedborder'}>
                         {(c.usage_count ?? 0).toLocaleString()} รายการ
                       </Badge>
                     </TableCell>

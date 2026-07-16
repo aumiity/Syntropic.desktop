@@ -265,7 +265,7 @@ export function LabelsTab({
                       </span>
                       <div className="ml-auto flex items-center gap-2 shrink-0">
                         {(l as any).is_default ? <Badge variant="primary-outline" className="rounded-md">ค่าเริ่มต้น</Badge> : null}
-                        {!l.is_active ? <Badge variant="neutral-outline" className="rounded-md">ปิด</Badge> : null}
+                        {!l.is_active ? <Badge variant="neutral" className="rounded-md">ปิด</Badge> : null}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">

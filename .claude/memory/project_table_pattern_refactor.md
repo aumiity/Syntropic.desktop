@@ -21,7 +21,7 @@ Visual + UX consistency across all list pages — one filter strip layout, one r
 
 ## Pattern parts (HARD invariants for any list page)
 
-1. **Title cluster** (filter strip left) — `<span size-8 rounded-lg border border-border bg-card shadow-sm>` icon-in-box + `<h3 text-lg font-semibold>` heading + `<Badge variant="neutral-outline">` count
+1. **Title cluster** (filter strip left) — `<span size-8 rounded-lg border border-border bg-card shadow-sm>` icon-in-box + `<h3 text-lg font-semibold>` heading + `<Badge variant="neutral">` count
 2. **Filter strip** `px-4 h-14` — search/select/date controls use `variant="elevated"` + `className="h-9"`, action popovers use `<Button size="lg" variant="elevated" className="h-9 w-9 p-0">`
 3. **Two popovers (right cluster)** — Filter (`<Filter/>` icon) for status filters, Settings2 (`<Settings2/>`) for column visibility
 4. **Table card** wrapper — `bg-card rounded-card shadow-card border border-border overflow-hidden` + inner table `border-l-[16px] border-r-[16px] border-card`

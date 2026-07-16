@@ -422,7 +422,7 @@ export default function Theme() {
               <SectionGroup title="พื้นฐาน" />
 
               {/* ── BUTTON ── */}
-              <Section title="Button" path="src/components/ui/button.tsx" full>
+              <Section title="Button" path="src/components/ui/button.tsx">
                 <DemoRow label="Solid — พื้นทึบเต็มสี">
                   <Button variant="default">default</Button>
                   <Button variant="accent">accent</Button>
@@ -447,7 +447,7 @@ export default function Theme() {
                   <Button variant="amber-soft">amber-soft</Button>
                   <Button variant="sand-soft">sand-soft</Button>
                 </DemoRow>
-                <DemoRow label="Outline — พื้นอ่อน + ขอบสี (chip style, ชุดเดียวกับ Badge *-outline)">
+                <DemoRow label="Outline — พื้นอ่อน + ขอบสี (มีเงาทุกตัว)">
                   <Button variant="primary-outline">primary-outline</Button>
                   <Button variant="accent-outline">accent-outline</Button>
                   <Button variant="destructive-outline">destructive-outline</Button>
@@ -458,14 +458,16 @@ export default function Theme() {
                   <Button variant="teal-outline">teal-outline</Button>
                   <Button variant="amber-outline">amber-outline</Button>
                   <Button variant="sand-outline">sand-outline</Button>
-                  <Button variant="neutral-outline">neutral-outline</Button>
                   <Button variant="muted-outline">muted-outline</Button>
                 </DemoRow>
-                <DemoRow label="Neutral / surface">
-                  <Button variant="outline">outline</Button>
-                  <Button variant="mutedborder">mutedborder</Button>
+                <DemoRow label="Neutral — แบน (ปฏิเสธเงาด้วย shadow-none)">
+                  <Button variant="neutral">neutral</Button>
                   <Button variant="ghost">ghost</Button>
                   <Button variant="link">link</Button>
+                  <Button variant="outline">outline</Button>
+                  <Button variant="mutedborder">mutedborder</Button>
+                </DemoRow>
+                <DemoRow label="Neutral — มีเงา (เทียบกับ neutral แถวบน)">
                   <Button variant="elevated">elevated</Button>
                 </DemoRow>
                 <DemoRow label="Elevated + role — นิ่งเป็น elevated กลาง ๆ, hover/aria-expanded ติดสีเข้ม">
@@ -537,7 +539,7 @@ export default function Theme() {
                   <Badge variant="amber-soft">amber-soft</Badge>
                   <Badge variant="sand-soft">sand-soft</Badge>
                 </DemoRow>
-                <DemoRow label="Outline — พื้นอ่อน + ขอบสี (chip style, ชุดเดียวกับ Button *-outline)">
+                <DemoRow label="Outline — พื้นอ่อน + ขอบสี (ไม่มี muted-outline)">
                   <Badge variant="primary-outline">primary-outline</Badge>
                   <Badge variant="accent-outline">accent-outline</Badge>
                   <Badge variant="destructive-outline">destructive-outline</Badge>
@@ -548,14 +550,15 @@ export default function Theme() {
                   <Badge variant="teal-outline">teal-outline</Badge>
                   <Badge variant="amber-outline">amber-outline</Badge>
                   <Badge variant="sand-outline">sand-outline</Badge>
-                  <Badge variant="neutral-outline">neutral-outline</Badge>
-                  <Badge variant="muted-outline">muted-outline</Badge>
                 </DemoRow>
-                <DemoRow label="Neutral / surface">
-                  <Badge variant="outline">outline</Badge>
-                  <Badge variant="mutedborder">mutedborder</Badge>
+                <DemoRow label="Neutral — แบน (badge base ไม่มีเงาอยู่แล้ว)">
+                  <Badge variant="neutral">neutral</Badge>
                   <Badge variant="ghost">ghost</Badge>
                   <Badge variant="link">link</Badge>
+                  <Badge variant="outline">outline</Badge>
+                  <Badge variant="mutedborder">mutedborder</Badge>
+                </DemoRow>
+                <DemoRow label="Neutral — มีเงา (เทียบกับ neutral แถวบน)">
                   <Badge variant="elevated">elevated</Badge>
                 </DemoRow>
                 <DemoRow label="In Context">
@@ -1358,7 +1361,7 @@ export default function Theme() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">หมวดหมู่</span>
-                          <Badge variant="neutral-outline">ยาต้านเชื้อ</Badge>
+                          <Badge variant="neutral">ยาต้านเชื้อ</Badge>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">สต็อก</span>
@@ -1514,7 +1517,7 @@ export default function Theme() {
                   รูปแบบมาตรฐานของ Products list / EditProduct tabs — Card (bg-card + border-border + shadow-card + rounded-card) ครอบ 3 แถบ:
                   <br />
                   <strong>แถบบน (h-12 px-4)</strong> — px-4 ตรงกับ inset 16px ของตาราง:
-                  ซ้าย = <strong>title</strong> (icon-in-box: <code>size-8 rounded-lg border bg-card shadow-sm</code> + h3 text-lg + Badge <code>neutral-outline</code> นับจำนวน) · ขวา (ชิดผ่าน <code>ml-auto</code>) = SearchInput + Select หมวด + <strong>ปุ่มตัวกรอง</strong> (icon-only Popover) + <strong>ปุ่มคอลัมน์</strong> (Settings2 Popover) — controls ทั้งหมดใช้ <strong>h-9</strong> + <code>variant="elevated"</code> (bg-card + border-border + shadow-sm)
+                  ซ้าย = <strong>title</strong> (icon-in-box: <code>size-8 rounded-lg border bg-card shadow-sm</code> + h3 text-lg + Badge <code>neutral</code> นับจำนวน) · ขวา (ชิดผ่าน <code>ml-auto</code>) = SearchInput + Select หมวด + <strong>ปุ่มตัวกรอง</strong> (icon-only Popover) + <strong>ปุ่มคอลัมน์</strong> (Settings2 Popover) — controls ทั้งหมดใช้ <strong>h-9</strong> + <code>variant="elevated"</code> (bg-card + border-border + shadow-sm)
                   <br />
                   <strong>ตาราง</strong> — wrap ด้วย <code>border-l-[16px] border-r-[16px] border-card</code> เพื่อ inset column header จากขอบ card · header แถบ muted + <code>border-b</code> + <code>text-foreground</code> · row hover = <code>bg-muted</code> (เดียวกับ header) · row divider = <code>border-border</code> · max-h-[440px] + <code>scrollbar-thin</code> (header sticky + 10 rows ≈ 40px แต่ละแถว)
                   <br />
@@ -1534,7 +1537,7 @@ export default function Theme() {
                     <div className="flex items-center gap-3 shrink-0">
                       <TintIcon icon={Package} tint="neutral" size="sm" />
                       <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
-                      <Badge variant="neutral-outline">{PRODUCTS.length * 3}</Badge>
+                      <Badge variant="neutral">{PRODUCTS.length * 3}</Badge>
                     </div>
                     <SearchInput
                       variant="elevated"
@@ -2083,7 +2086,7 @@ export default function Theme() {
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
                         <History className="size-5" /> ประวัติการเปลี่ยนราคา
-                        <Badge variant="neutral-outline" className="ml-1">3</Badge>
+                        <Badge variant="neutral" className="ml-1">3</Badge>
                         <Button size="lg" variant="elevated" className="h-9 px-2 ml-auto" title="รีเฟรช">
                           <RotateCcw className="size-4" />
                         </Button>

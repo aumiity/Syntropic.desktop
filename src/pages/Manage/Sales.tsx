@@ -284,7 +284,7 @@ export default function ManageSalesPage() {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={ReceiptText} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติการขาย</h3>
-            <Badge variant="neutral-outline">{total.toLocaleString()}</Badge>
+            <Badge variant="neutral">{total.toLocaleString()}</Badge>
           </div>
 
           <SearchInput
@@ -467,7 +467,7 @@ export default function ManageSalesPage() {
                   {showColStatus && (
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <Badge variant={SALE_TYPE_VARIANTS[s.sale_type] ?? 'secondary'}>
+                        <Badge variant={SALE_TYPE_VARIANTS[s.sale_type] ?? 'neutral'}>
                           {SALE_TYPE_LABELS[s.sale_type] ?? s.sale_type}
                         </Badge>
                         {isVoided

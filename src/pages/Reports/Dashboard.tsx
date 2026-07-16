@@ -563,7 +563,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_2.4fr] gap-4 items-stretch">
         <SectionCard
           icon={BellRing} title="แจ้งเตือน" tint="destructive"
-          right={loading ? null : <Badge variant="neutral-outline">{alertTotal > 0 ? `${alertTotal.toLocaleString()} รายการ` : 'ปกติ'}</Badge>}
+          right={loading ? null : <Badge variant="neutral">{alertTotal > 0 ? `${alertTotal.toLocaleString()} รายการ` : 'ปกติ'}</Badge>}
         >
           {loading ? (
             <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด...</div>
@@ -600,7 +600,7 @@ export default function DashboardPage() {
           <div className="h-12 px-4 flex items-center gap-3 shrink-0">
             <TintIcon icon={meta.icon} tint="neutral" size="sm" bordered />
             <h3 className="text-base font-semibold text-foreground">{meta.title}</h3>
-            <Badge variant="neutral-outline">{alertTotalRows.toLocaleString()} รายการ</Badge>
+            <Badge variant="neutral">{alertTotalRows.toLocaleString()} รายการ</Badge>
             <div className="ml-auto">
               <Button variant="elevated" size="lg" className="px-2" onClick={() => navigate(meta.route)}>
                 <Maximize2 /> เปิดตารางเต็ม

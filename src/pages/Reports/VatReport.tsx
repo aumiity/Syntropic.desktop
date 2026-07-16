@@ -154,7 +154,7 @@ export default function VatReportPage() {
         <div className="px-4 h-12 flex items-center gap-3">
           <TintIcon icon={ReceiptText} tint="primary" size="sm" />
           <h3 className="text-base font-semibold text-foreground">รายงานภาษีขาย</h3>
-          <Badge variant="neutral-outline">{(data?.sales_rows.length ?? 0).toLocaleString()} บิล</Badge>
+          <Badge variant="neutral">{(data?.sales_rows.length ?? 0).toLocaleString()} บิล</Badge>
           <div className="ml-auto text-sm text-muted-foreground">
             รวมภาษีขาย <span className="font-bold text-foreground">{formatCurrency(data?.output.vat_total ?? 0)}</span>
           </div>
@@ -203,7 +203,7 @@ export default function VatReportPage() {
         <div className="px-4 h-12 flex items-center gap-3">
           <TintIcon icon={ShoppingCart} tint="info" size="sm" />
           <h3 className="text-base font-semibold text-foreground">รายงานภาษีซื้อ — รับสินค้า</h3>
-          <Badge variant="neutral-outline">{(data?.purchase_rows.length ?? 0).toLocaleString()} บิล</Badge>
+          <Badge variant="neutral">{(data?.purchase_rows.length ?? 0).toLocaleString()} บิล</Badge>
           <div className="ml-auto text-sm text-muted-foreground">
             รวมภาษีซื้อ <span className="font-bold text-foreground">{formatCurrency(data?.input.purchase_vat ?? 0)}</span>
           </div>
@@ -246,7 +246,7 @@ export default function VatReportPage() {
         <div className="px-4 h-12 flex items-center gap-3">
           <TintIcon icon={Wallet} tint="amber" size="sm" />
           <h3 className="text-base font-semibold text-foreground">รายงานภาษีซื้อ — ค่าใช้จ่าย</h3>
-          <Badge variant="neutral-outline">{(data?.expense_rows.length ?? 0).toLocaleString()} รายการ</Badge>
+          <Badge variant="neutral">{(data?.expense_rows.length ?? 0).toLocaleString()} รายการ</Badge>
           <div className="ml-auto text-sm text-muted-foreground">
             รวมภาษีซื้อ <span className="font-bold text-foreground">{formatCurrency(data?.input.expense_vat ?? 0)}</span>
           </div>

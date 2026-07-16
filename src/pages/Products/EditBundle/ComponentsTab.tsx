@@ -163,7 +163,7 @@ export function ComponentsTab({ productId, controlledItems, onControlledItemsCha
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Boxes} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">รายการ</h3>
-            <Badge variant="neutral-outline">{items.length}</Badge>
+            <Badge variant="neutral">{items.length}</Badge>
           </div>
           <div className="flex-1" />
           <Button variant="elevated" size="lg" onClick={openSearch} className="px-2 shrink-0 gap-1.5">

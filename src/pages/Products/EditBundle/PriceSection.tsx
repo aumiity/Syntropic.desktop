@@ -205,7 +205,7 @@ export function PriceHistoryDialog({ open, onOpenChange, productId, isNew, reloa
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <History className="size-5" /> ประวัติการเปลี่ยนราคา
-            <Badge variant="neutral-outline" className="ml-1">{history?.length ?? 0}</Badge>
+            <Badge variant="neutral" className="ml-1">{history?.length ?? 0}</Badge>
           </DialogTitle>
         </DialogHeader>
         <DialogBody className="p-0">

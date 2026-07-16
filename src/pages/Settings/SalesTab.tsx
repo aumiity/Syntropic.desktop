@@ -172,7 +172,7 @@ export function SalesTab({ registerSave, saving, setSaving, setDirty }: {
                 <span className="text-sm font-medium text-foreground">สถานะร้าน</span>
                 {vatEnabled
                   ? <Badge variant="success-outline">จดทะเบียน VAT</Badge>
-                  : <Badge variant="neutral-outline">ไม่จดทะเบียน VAT</Badge>}
+                  : <Badge variant="neutral">ไม่จดทะเบียน VAT</Badge>}
               </div>
               {vatEnabled ? (
                 <>

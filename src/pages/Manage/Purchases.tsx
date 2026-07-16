@@ -552,7 +552,7 @@ export default function ManagePurchasesPage() {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={FileText} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประวัติการซื้อ</h3>
-            <Badge variant="neutral-outline">{histTotal.toLocaleString()}</Badge>
+            <Badge variant="neutral">{histTotal.toLocaleString()}</Badge>
           </div>
 
           <SearchInput

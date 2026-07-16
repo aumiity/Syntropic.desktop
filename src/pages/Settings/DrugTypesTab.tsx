@@ -108,7 +108,7 @@ export function DrugTypesTab() {
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={Pill} tint="neutral" size="sm" />
             <h3 className="text-lg font-semibold text-foreground">ประเภทยา</h3>
-            <Badge variant="neutral-outline">{filtered.length.toLocaleString()}</Badge>
+            <Badge variant="neutral">{filtered.length.toLocaleString()}</Badge>
           </div>
           <SearchInput
             variant="elevated"
@@ -180,7 +180,7 @@ export function DrugTypesTab() {
                     )
                   })}
                   <TableCell className="text-right">
-                    <Badge variant={(d.usage_count ?? 0) > 0 ? 'teal-outline' : 'muted-outline'}>
+                    <Badge variant={(d.usage_count ?? 0) > 0 ? 'teal-outline' : 'mutedborder'}>
                       {(d.usage_count ?? 0).toLocaleString()} รายการ
                     </Badge>
                   </TableCell>
