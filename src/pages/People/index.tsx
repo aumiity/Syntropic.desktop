@@ -768,7 +768,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
                   {showColPhone && <TableCell className="text-sm text-muted-foreground truncate">{u.phone || '-'}</TableCell>}
                   {showColRole && (
                     <TableCell className="text-center">
-                      <Badge variant="secondary">{ROLES[u.role] ?? u.role}</Badge>
+                      <Badge variant="neutral-outline">{ROLES[u.role] ?? u.role}</Badge>
                     </TableCell>
                   )}
                   <TableCell className="text-center">

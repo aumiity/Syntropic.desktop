@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 const badgeVariants = cva(
   [
     "inline-flex w-fit shrink-0 items-center justify-center gap-1",
-    "overflow-hidden rounded-md border border-transparent",
+    "overflow-hidden rounded-sm border border-transparent",
     "px-2 py-0.5 text-xs font-medium whitespace-nowrap",
     "transition-[color,box-shadow]",
     "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
@@ -19,8 +19,6 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        secondary:
-          "bg-secondary text-secondary-foreground border-border",
         accent: [
           "bg-accent text-accent-foreground",
         ].join(" "),
@@ -37,6 +35,10 @@ const badgeVariants = cva(
           "bg-destructive text-white dark:bg-destructive-hover dark:text-white",
         outline:
           "border-transparent bg-background aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 [a]:hover:bg-muted [a]:hover:text-muted-foreground",
+        mutedborder:
+          "border-border-strong/30 bg-muted text-muted-foreground dark:border-input dark:bg-input/30 [a]:hover:bg-muted-hover [a]:hover:text-foreground",
+        elevated:
+          "bg-card text-foreground border-border shadow-sm [a]:hover:bg-muted",
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",

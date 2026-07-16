@@ -54,7 +54,7 @@ import {
   AlertTriangle, CheckCircle, Package, ChevronRight,
   TrendingUp, TrendingDown, FileText, Boxes, AlertCircle, Coins, Building2,
   Settings2, Filter, Wallet, MoreHorizontal, Clock, PackageOpen,
-  RotateCcw, Printer, History, EyeOff, ClipboardList, Users, CreditCard, Save,
+  RotateCcw, Printer, History, ClipboardList, Users, CreditCard, Save,
 } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
 import { PriceInput } from '@/components/ui/price-input'
@@ -396,7 +396,7 @@ export default function Theme() {
                       <div className="flex-1 space-y-5">
                         <div className="flex flex-wrap gap-2">
                           <Button variant="default">ปุ่มหลัก</Button>
-                          <Button variant="secondary">รอง</Button>
+                          <Button variant="elevated">รอง</Button>
                           <Button variant="accent">รอง3</Button>
                           <Button variant="destructive">ลบ</Button>
                         </div>
@@ -423,74 +423,67 @@ export default function Theme() {
 
               {/* ── BUTTON ── */}
               <Section title="Button" path="src/components/ui/button.tsx" full>
-                <DemoRow label="Status — solid">
-                  <Button variant="default">Primary</Button>
-                  <Button variant="success">Success</Button>
-                  <Button variant="warning">Warning</Button>
-                  <Button variant="destructive">Destructive</Button>
-                  <Button variant="info">Info</Button>
+                <DemoRow label="Solid — พื้นทึบเต็มสี">
+                  <Button variant="default">default</Button>
+                  <Button variant="accent">accent</Button>
+                  <Button variant="destructive">destructive</Button>
+                  <Button variant="success">success</Button>
+                  <Button variant="warning">warning</Button>
+                  <Button variant="info">info</Button>
+                  <Button variant="violet">violet</Button>
+                  <Button variant="teal">teal</Button>
+                  <Button variant="amber">amber</Button>
+                  <Button variant="sand">sand</Button>
+                </DemoRow>
+                <DemoRow label="Soft — พื้นอ่อน ไม่มีขอบ">
+                  <Button variant="primary-soft">primary-soft</Button>
+                  <Button variant="accent-soft">accent-soft</Button>
+                  <Button variant="destructive-soft">destructive-soft</Button>
+                  <Button variant="success-soft">success-soft</Button>
+                  <Button variant="warning-soft">warning-soft</Button>
+                  <Button variant="info-soft">info-soft</Button>
+                  <Button variant="violet-soft">violet-soft</Button>
+                  <Button variant="teal-soft">teal-soft</Button>
+                  <Button variant="amber-soft">amber-soft</Button>
+                  <Button variant="sand-soft">sand-soft</Button>
+                </DemoRow>
+                <DemoRow label="Outline — พื้นอ่อน + ขอบสี (chip style, ชุดเดียวกับ Badge *-outline)">
+                  <Button variant="primary-outline">primary-outline</Button>
+                  <Button variant="accent-outline">accent-outline</Button>
+                  <Button variant="destructive-outline">destructive-outline</Button>
+                  <Button variant="success-outline">success-outline</Button>
+                  <Button variant="warning-outline">warning-outline</Button>
+                  <Button variant="info-outline">info-outline</Button>
+                  <Button variant="violet-outline">violet-outline</Button>
+                  <Button variant="teal-outline">teal-outline</Button>
+                  <Button variant="amber-outline">amber-outline</Button>
+                  <Button variant="sand-outline">sand-outline</Button>
+                  <Button variant="neutral-outline">neutral-outline</Button>
+                  <Button variant="muted-outline">muted-outline</Button>
+                </DemoRow>
+                <DemoRow label="Neutral / surface">
+                  <Button variant="outline">outline</Button>
+                  <Button variant="mutedborder">mutedborder</Button>
+                  <Button variant="ghost">ghost</Button>
+                  <Button variant="link">link</Button>
+                  <Button variant="elevated">elevated</Button>
+                </DemoRow>
+                <DemoRow label="Elevated + role — นิ่งเป็น elevated กลาง ๆ, hover/aria-expanded ติดสีเข้ม">
+                  <Button variant="elevated-destructive">elevated-destructive</Button>
+                  <Button variant="elevated-warning">elevated-warning</Button>
+                  <Button variant="elevated-success">elevated-success</Button>
+                  <Button variant="elevated-accent">elevated-accent</Button>
+                </DemoRow>
+                <DemoRow label="Elevated + role soft — เหมือนแถวบน แต่ hover ติดสีอ่อนกว่า">
+                  <Button variant="elevated-destructive-soft">elevated-destructive-soft</Button>
+                  <Button variant="elevated-warning-soft">elevated-warning-soft</Button>
+                  <Button variant="elevated-success-soft">elevated-success-soft</Button>
+                  <Button variant="elevated-accent-soft">elevated-accent-soft</Button>
                 </DemoRow>
                 <DemoRow label="Unsaved indicator (prop dirty) — จุดส้ม = ยังไม่บันทึก">
                   <Button dirty><Save className="size-4" /> บันทึก</Button>
                   <Button><Save className="size-4" /> บันทึก</Button>
                   <Button variant="elevated" dirty><Save className="size-4" /> บันทึก</Button>
-                </DemoRow>
-                <DemoRow label="Status — soft">
-                  <Button variant="primary-soft">Primary-soft</Button>
-                  <Button variant="success-soft">Success-soft</Button>
-                  <Button variant="warning-soft">Warning-soft</Button>
-                  <Button variant="accent-soft">Accent-soft</Button>
-                  <Button variant="destructive-soft">Destructive-soft</Button>
-                  <Button variant="info-soft">Info-soft</Button>
-                </DemoRow>
-                <DemoRow label="Decorative">
-                  <Button variant="accent">Accent</Button>
-                  <Button variant="violet">Violet</Button>
-                  <Button variant="violet-soft">Violet-soft</Button>
-                  <Button variant="teal">Teal</Button>
-                  <Button variant="teal-soft">Teal-soft</Button>
-                </DemoRow>
-                <DemoRow label="Warm — solid / soft (amber = ทองอำพัน, sand = น้ำตาลทรายอุ่น)">
-                  <Button variant="amber">Amber</Button>
-                  <Button variant="amber-soft">Amber-soft</Button>
-                  <Button variant="sand">Sand</Button>
-                  <Button variant="sand-soft">Sand-soft</Button>
-                </DemoRow>
-                <DemoRow label="Soft + colored border (chip style — matches Badge *-outline)">
-                  <Button variant="primary-outline">Primary-outline</Button>
-                  <Button variant="success-outline">Success-outline</Button>
-                  <Button variant="warning-outline">Warning-outline</Button>
-                  <Button variant="destructive-outline">Destructive-outline</Button>
-                  <Button variant="info-outline">Info-outline</Button>
-                  <Button variant="violet-outline">Violet-outline</Button>
-                  <Button variant="teal-outline">Teal-outline</Button>
-                  <Button variant="amber-outline">Amber-outline</Button>
-                  <Button variant="sand-outline">Sand-outline</Button>
-                  <Button variant="accent-outline">Accent-outline</Button>
-                  <Button variant="neutral-outline">Neutral-outline</Button>
-                  <Button variant="muted-outline">Muted-outline</Button>
-                </DemoRow>
-                <DemoRow label="Neutral / surface">
-                  <Button variant="secondary">Secondary</Button>
-                  <Button variant="outline">Outline</Button>
-                  <Button variant="mutedborder">Mutedborder</Button>
-                  <Button variant="ghost">Ghost</Button>
-                  <Button variant="elevated">Elevated</Button>
-                  <Button variant="link">Link</Button>
-                </DemoRow>
-                <DemoRow label="Elevated — white bg + shadow (no border)">
-                  <Button variant="elevated"><Filter className="size-4" /> Status</Button>
-                  <Button variant="elevated"><Wallet className="size-4" /> Method</Button>
-                  <Button variant="elevated-destructive"><Trash2 className="size-4" /> Elevated Destructive</Button>
-                  <Button variant="elevated-warning"><EyeOff className="size-4" /> Elevated Warning</Button>
-                  <Button variant="elevated-success"><RotateCcw className="size-4" /> Elevated Success</Button>
-                  <Button variant="elevated-accent"><Edit className="size-4" /> Elevated Accent</Button>
-                </DemoRow>
-                <DemoRow label="Elevated Soft — neutral at rest, SOFT role tint on hover/expanded (gentler than the solid Elevated row above)">
-                  <Button variant="elevated-destructive-soft"><Trash2 className="size-4" /> Elevated Destructive Soft</Button>
-                  <Button variant="elevated-warning-soft"><EyeOff className="size-4" /> Elevated Warning Soft</Button>
-                  <Button variant="elevated-success-soft"><RotateCcw className="size-4" /> Elevated Success Soft</Button>
-                  <Button variant="elevated-accent-soft"><Edit className="size-4" /> Elevated Accent Soft</Button>
                 </DemoRow>
                 <DemoRow label="Sizes">
                   <Button size="xl">XL</Button>
@@ -520,53 +513,50 @@ export default function Theme() {
 
               {/* ── BADGE ── */}
               <Section title="Badge" path="src/components/ui/badge.tsx">
-                <DemoRow label="Status — solid">
-                  <Badge variant="default">Primary</Badge>
-                  <Badge variant="success">Success</Badge>
-                  <Badge variant="warning">Warning</Badge>
-                  <Badge variant="destructive">Destructive</Badge>
-                  <Badge variant="info">Info</Badge>
+                <DemoRow label="Solid — พื้นทึบเต็มสี">
+                  <Badge variant="default">default</Badge>
+                  <Badge variant="accent">accent</Badge>
+                  <Badge variant="destructive">destructive</Badge>
+                  <Badge variant="success">success</Badge>
+                  <Badge variant="warning">warning</Badge>
+                  <Badge variant="info">info</Badge>
+                  <Badge variant="violet">violet</Badge>
+                  <Badge variant="teal">teal</Badge>
+                  <Badge variant="amber">amber</Badge>
+                  <Badge variant="sand">sand</Badge>
                 </DemoRow>
-                <DemoRow label="Status — soft">
-                  <Badge variant="primary-soft">Primary-soft</Badge>
-                  <Badge variant="success-soft">Success-soft</Badge>
-                  <Badge variant="warning-soft">Warning-soft</Badge>
-                  <Badge variant="accent-soft">Accent-soft</Badge>
-                  <Badge variant="destructive-soft">Destructive-soft</Badge>
-                  <Badge variant="info-soft">Info-soft</Badge>
+                <DemoRow label="Soft — พื้นอ่อน ไม่มีขอบ">
+                  <Badge variant="primary-soft">primary-soft</Badge>
+                  <Badge variant="accent-soft">accent-soft</Badge>
+                  <Badge variant="destructive-soft">destructive-soft</Badge>
+                  <Badge variant="success-soft">success-soft</Badge>
+                  <Badge variant="warning-soft">warning-soft</Badge>
+                  <Badge variant="info-soft">info-soft</Badge>
+                  <Badge variant="violet-soft">violet-soft</Badge>
+                  <Badge variant="teal-soft">teal-soft</Badge>
+                  <Badge variant="amber-soft">amber-soft</Badge>
+                  <Badge variant="sand-soft">sand-soft</Badge>
                 </DemoRow>
-                <DemoRow label="Decorative">
-                  <Badge variant="accent">Accent</Badge>
-                  <Badge variant="violet">Violet</Badge>
-                  <Badge variant="violet-soft">Violet-soft</Badge>
-                  <Badge variant="teal">Teal</Badge>
-                  <Badge variant="teal-soft">Teal-soft</Badge>
-                </DemoRow>
-                <DemoRow label="Warm — solid / soft (amber = ทองอำพัน, sand = น้ำตาลทรายอุ่น)">
-                  <Badge variant="amber">Amber</Badge>
-                  <Badge variant="amber-soft">Amber-soft</Badge>
-                  <Badge variant="sand">Sand</Badge>
-                  <Badge variant="sand-soft">Sand-soft</Badge>
+                <DemoRow label="Outline — พื้นอ่อน + ขอบสี (chip style, ชุดเดียวกับ Button *-outline)">
+                  <Badge variant="primary-outline">primary-outline</Badge>
+                  <Badge variant="accent-outline">accent-outline</Badge>
+                  <Badge variant="destructive-outline">destructive-outline</Badge>
+                  <Badge variant="success-outline">success-outline</Badge>
+                  <Badge variant="warning-outline">warning-outline</Badge>
+                  <Badge variant="info-outline">info-outline</Badge>
+                  <Badge variant="violet-outline">violet-outline</Badge>
+                  <Badge variant="teal-outline">teal-outline</Badge>
+                  <Badge variant="amber-outline">amber-outline</Badge>
+                  <Badge variant="sand-outline">sand-outline</Badge>
+                  <Badge variant="neutral-outline">neutral-outline</Badge>
+                  <Badge variant="muted-outline">muted-outline</Badge>
                 </DemoRow>
                 <DemoRow label="Neutral / surface">
-                  <Badge variant="secondary">Secondary</Badge>
-                  <Badge variant="outline">Outline</Badge>
-                  <Badge variant="ghost">Ghost</Badge>
-                  <Badge variant="link">Link</Badge>
-                </DemoRow>
-                <DemoRow label="Soft + colored border (chip style)">
-                  <Badge variant="primary-outline">Primary-outline</Badge>
-                  <Badge variant="success-outline">Success-outline</Badge>
-                  <Badge variant="warning-outline">Warning-outline</Badge>
-                  <Badge variant="destructive-outline">Destructive-outline</Badge>
-                  <Badge variant="info-outline">Info-outline</Badge>
-                  <Badge variant="violet-outline">Violet-outline</Badge>
-                  <Badge variant="teal-outline">Teal-outline</Badge>
-                  <Badge variant="amber-outline">Amber-outline</Badge>
-                  <Badge variant="sand-outline">Sand-outline</Badge>
-                  <Badge variant="accent-outline">Accent-outline</Badge>
-                  <Badge variant="neutral-outline">Neutral-outline</Badge>
-                  <Badge variant="muted-outline">Muted-outline</Badge>
+                  <Badge variant="outline">outline</Badge>
+                  <Badge variant="mutedborder">mutedborder</Badge>
+                  <Badge variant="ghost">ghost</Badge>
+                  <Badge variant="link">link</Badge>
+                  <Badge variant="elevated">elevated</Badge>
                 </DemoRow>
                 <DemoRow label="In Context">
                   <div className="flex items-center gap-2 text-sm">
@@ -1368,7 +1358,7 @@ export default function Theme() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">หมวดหมู่</span>
-                          <Badge variant="secondary">ยาต้านเชื้อ</Badge>
+                          <Badge variant="neutral-outline">ยาต้านเชื้อ</Badge>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">สต็อก</span>

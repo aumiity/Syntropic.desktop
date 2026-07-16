@@ -8,7 +8,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 const buttonVariants = cva(
   [
     "group/button inline-flex shrink-0 items-center justify-center",
-    "rounded-lg bg-clip-padding",
+    "rounded-md bg-clip-padding",
     "text-sm font-medium whitespace-nowrap",
     "transition-all outline-none select-none",
     "shadow-sm hover:shadow-sm",
@@ -26,10 +26,6 @@ const buttonVariants = cva(
         default: [
           "bg-primary text-primary-foreground",
           "hover:bg-primary-hover [a]:hover:bg-primary/80",
-        ].join(" "),
-        secondary: [
-          "bg-secondary border-border border text-secondary-foreground",
-          "hover:bg-secondary-hover [a]:hover:bg-secondary/80",
         ].join(" "),
         accent: [
           "bg-accent text-accent-foreground",
@@ -53,7 +49,7 @@ const buttonVariants = cva(
           "aria-expanded:bg-muted aria-expanded:text-foreground",
           "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         ].join(" "),
-         mutedborder: [
+        mutedborder: [
           "border-border-strong/30 bg-muted",
           "text-muted-foreground border",
           "hover:bg-muted-hover hover:text-foreground",
@@ -71,7 +67,7 @@ const buttonVariants = cva(
           "hover:bg-destructive-hover",
           "dark:bg-destructive-hover dark:hover:bg-destructive dark:text-white",
         ].join(" "),
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-primary underline-offset-4 shadow-none hover:shadow-none hover:underline",
         success: "bg-success text-success-foreground hover:bg-success-hover",
         warning: "bg-warning text-warning-foreground hover:bg-warning-hover",
         info: "bg-info text-info-foreground hover:bg-info/85",
@@ -97,7 +93,9 @@ const buttonVariants = cva(
         "amber-outline":        "border border-amber/40 bg-amber-soft text-amber-strong hover:bg-amber-soft/80",
         "sand-outline":         "border border-sand/40 bg-sand-soft text-sand-strong hover:bg-sand-soft/80",
         "accent-outline":       "border border-accent/80 bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft-hover",
-        "neutral-outline":      "border border-border bg-card text-foreground hover:bg-muted",
+        // Flat white — same surface as `elevated` but NO shadow. The base cva hands
+        // shadow-sm to every variant, so it must be refused explicitly (as ghost/link do).
+        "neutral-outline":      "border border-border bg-card text-foreground shadow-none hover:shadow-none hover:bg-muted",
         "muted-outline":        "border border-border-strong/30 bg-muted-hover text-muted-foreground hover:bg-muted",
         "destructive-soft": "bg-destructive-soft text-destructive hover:bg-destructive/25 hover:text-destructive",
         elevated: [

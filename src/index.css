@@ -39,18 +39,18 @@
     --primary-soft-border:  175 35% 70%;
 
     /* ── Secondary ──────────────────────────────────────────────────────── */
-    --secondary:            0 0% 99%;
-    --secondary-foreground: 0 0% 32%;
-    --secondary-hover:      0 0% 90%;
+    --secondary:            0 0% 100%;
+    --secondary-foreground: 0 0% 12%;
+    --secondary-hover:      0 0% 92%;
 
     /* ── Accent — brand yellow ──────────────────────────────────────────── */
     --accent:            43 100% 64%;    /* #F5C24A */
     --accent-foreground: 0 0% 12%;
 
     /* ── Muted (neutral grey surface) ───────────────────────────────────── */
-    --muted:            0 0% 95%;
+    --muted:            0 0% 92%;
     --muted-foreground: 0 0% 12%;
-    --muted-hover:      0 0% 88%;
+    --muted-hover:      0 0% 82%;
 
     /* ── Status: Success (green) ────────────────────────────────────────── */
     --success:            142 71% 36%;

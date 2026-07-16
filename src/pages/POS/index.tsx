@@ -1610,7 +1610,7 @@ export default function POSPage() {
                     <div className="text-center space-y-1.5">
                       <div className="text-2xl font-bold leading-tight">{c.full_name}</div>
                       <div className="flex items-center justify-center">
-                        <Badge variant="secondary">{c.code || '-'}</Badge>
+                        <Badge variant="neutral-outline">{c.code || '-'}</Badge>
                       </div>
                     </div>
                   </div>

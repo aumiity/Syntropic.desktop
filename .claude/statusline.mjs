@@ -52,7 +52,7 @@ const PIPE  = fg([72, 80, 116]) + ' | ' + RST;
 
 // subscription plan label. The statusline JSON has NO plan/tier field, so it can't be
 // auto-detected — set it per machine via the CLAUDE_PLAN env var, or fall back to this default.
-const PLAN = process.env.CLAUDE_PLAN || 'Max(5x)';
+const PLAN = process.env.CLAUDE_PLAN || 'Pro(1x)';
 
 // subscription expiry. The statusline JSON has NO billing/expiry field, so the renew date
 // is read from .claude/sub-expiry.txt (format YYYY-MM-DD) — repo-tracked, so it travels via

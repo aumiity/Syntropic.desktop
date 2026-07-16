@@ -105,7 +105,7 @@ export function LotPickerDialog<T extends LotPickerOption>({
                         <ClockAlert className="size-4 shrink-0" />
                         <span className="truncate">{expiry}</span>
                       </span>
-                      <Badge variant={active ? 'default' : 'secondary'} className="shrink-0 text-sm">
+                      <Badge variant={active ? 'default' : 'neutral-outline'} className="shrink-0 text-sm">
                         คงเหลือ {lot.qty_on_hand}
                       </Badge>
                     </div>
