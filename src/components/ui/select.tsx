@@ -2,6 +2,7 @@ import * as React from "react"
 import { Select as SelectPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { fieldVariant, type FieldVariant } from "./field-variants"
 import { ChevronDownIcon, ChevronUpIcon, CheckIcon } from "lucide-react"
 
 function Select({
@@ -37,8 +38,8 @@ function SelectTrigger({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default"
-  // See input.tsx — "default" is now ELEVATED; "filled" is the old flat look.
-  variant?: "default" | "elevated" | "filled"
+  // See field-variants.ts — shape x shadow on the house ELEVATED surface.
+  variant?: FieldVariant
 }) {
   return (
     <SelectPrimitive.Trigger
@@ -47,10 +48,8 @@ function SelectTrigger({
       data-variant={variant}
       className={cn(
         "group flex h-9 w-fit items-center justify-between gap-1.5",
-        "rounded-control",
-        variant === "filled"
-          ? "bg-muted dark:bg-input/30"
-          : "bg-card border border-border shadow-sm hover:shadow-sm hover:bg-muted",
+        fieldVariant(variant),
+        "hover:bg-muted",
         "py-2 pr-2 pl-2.5",
         "text-sm whitespace-nowrap",
         "transition-colors outline-none select-none",
@@ -219,25 +218,23 @@ function SelectScrollDownButton({
   )
 }
 
-function NativeSelect({ value, onChange, children, className, selectClassName, variant = 'elevated' }: {
+function NativeSelect({ value, onChange, children, className, selectClassName, variant = 'default' }: {
   value: number | string
   onChange: (v: string) => void
   children: React.ReactNode
   className?: string
   selectClassName?: string
-  /** House standard = 'elevated' (bg-card + border + shadow, matches SelectTrigger/Input).
-   *  'filled' = the recessed bg-input look, opt-in only. */
-  variant?: 'elevated' | 'filled'
+  /** See field-variants.ts — shape x shadow on the house ELEVATED surface. */
+  variant?: FieldVariant
 }) {
   return (
     <div className={cn('relative', className)}>
       <select
         className={cn(
-          'w-full h-9 rounded-control px-3 pr-9 text-sm appearance-none outline-none transition-colors',
+          'w-full h-9 px-3 pr-9 text-sm appearance-none outline-none transition-colors',
           'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-          variant === 'filled'
-            ? 'bg-muted dark:bg-input/30'
-            : 'bg-card border border-border shadow-sm hover:bg-muted dark:hover:bg-input/50',
+          fieldVariant(variant),
+          'hover:bg-muted dark:hover:bg-input/50',
           selectClassName,
         )}
         value={value}

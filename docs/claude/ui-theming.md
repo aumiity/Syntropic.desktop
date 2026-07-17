@@ -91,10 +91,23 @@ root font-size อยู่ที่ `html { font-size: … }` ใน `src/index
 
 The house style for controls and panels is the elevated look: `bg-card` + `border border-border` + `shadow-sm`. It reads as a raised card sitting on the background.
 
-**This is now the DEFAULT for inputs — `Input` / `Textarea` / `SelectTrigger` render elevated when you pass no variant.** The migration flipped each primitive's `default` code to the elevated styling and added a separate `variant="filled"` for the old flat `bg-input`/`bg-muted` look. So:
-- A bare `<Input>` / `<Textarea>` / `<SelectTrigger>` (and `SearchInput`) is already correct — **do NOT hand-add `variant="elevated"`** any more (it's a kept alias, identical to default; redundant on new code, harmless on old).
-- The bare flat look is the *exception*, opt in with `variant="filled"`, only where a recessed/inset field is deliberately wanted (e.g. dense inline-edit cells). When you spot a field that looks wrong after the flip (was intentionally flat), add `variant="filled"`.
-- Why flip the `default` value instead of deleting the `"default"` token? Non-breaking: no call site hardcoded `variant="default"` on these three (all bare inputs just omit the variant), and `"default"`/`"elevated"` both still compile. See [[input-elevated-default-flip]].
+**This is the DEFAULT for the field primitives — `Input` / `SearchInput` / `Textarea` / `SelectTrigger` / `NativeSelect` render elevated when you pass no variant.** So a bare `<Input>` is already correct — **do NOT hand-add `variant="elevated"`** (it's a kept alias, identical to default; redundant on new code, harmless on old). See [[input-elevated-default-flip]].
+
+### The four field variants (HARD) — `src/components/ui/field-variants.ts`
+
+As of 2026-07-17 all five field primitives share **one** variant set, exported from `field-variants.ts` as `FieldVariant` + `fieldVariant()`. Every variant sits on the same elevated surface (`bg-card` + `border border-border`) — the set is a pure **shape × shadow** matrix, nothing else:
+
+| variant | radius | shadow |
+|---|---|---|
+| `default` (= `elevated` alias) | `rounded-sm` | `shadow-sm` |
+| `flat` | `rounded-sm` | none |
+| `pill` | `rounded-full` | `shadow-sm` |
+| `pill-flat` | `rounded-full` | none |
+
+- **`filled` is DELETED (2026-07-17) — do not re-add.** The flat `bg-input`/`bg-muted` recessed look is gone from every field primitive; its one real call site (GR read-only receipt no.) moved to `flat`. A field that wants "quieter" now drops the *shadow*, not the surface.
+- **Never hardcode radius or shadow on a field.** No `rounded-md` / `rounded-lg` / `shadow-sm` in a primitive's own `cn()` and no `className="rounded-full"` at a call site — pick the variant. `fieldVariant(variant)` owns both properties; a literal in `className` fights it and wins silently.
+- Adding a shape (e.g. a squared `sharp`)? Add it to `FIELD_SHAPE` in `field-variants.ts` — all five primitives inherit it for free — then add a `DemoRow` per primitive in `/theme`.
+- **Radius carve-out (operator decision 2026-07-17):** the square field variants use a literal `rounded-sm` (0.125rem), **not** `--radius-control` (0.5rem). Fields are deliberately tighter-cornered than buttons — this is the one sanctioned exception to the "controls use `rounded-control`" rule below, and it lives in exactly one place (`FIELD_SHAPE`). Don't "fix" it back to the token; don't copy the exception to other controls.
 
 Secondary action **Buttons** (the one paired *next to* a primary action, e.g. "ยกเลิก/กลับ" beside "บันทึก") still use `variant="elevated"` explicitly — Button was NOT part of the flip. See [[dialog-button-convention]]. **`elevated` is never used as the only button** — a lone footer button takes the primary role (`default` for neutral/close/OK, `destructive` for negative). Filter-strip controls are the `h-9` cluster (search + category select + filter/column popovers).
 
@@ -102,7 +115,7 @@ Secondary action **Buttons** (the one paired *next to* a primary action, e.g. "�
 
 **The one exception — Button `default`.** Button's `default` variant is the primary teal CTA (save / confirm / pay) and must stay that way. The default-flip above is about *inputs/surfaces*, not action buttons. Do NOT swap Button defaults to elevated.
 
-> **Why not just make `elevated` the literal default value of the variant prop?** Considered and rejected: (1) Button's default can't move (it's the CTA). (2) Flipping Input/Select/Textarea defaults would silently restyle every existing call site that relies on `bg-input`, with no type-checker to catch regressions — you'd have to audit and re-tag every inset field by hand. The convention + showcase + copying from EditProduct is the lower-risk enforcement. If the codebase ever reaches ~95% elevated, revisit as a deliberate migration (rename `default`→`inset`/`filled`, flip the default value, sweep call sites).
+> **Historical note.** This section used to argue against flipping the input defaults (risk of silently restyling `bg-input` call sites). That migration has since happened *and* gone further: `filled` is deleted outright, so there is no flat-surface variant left to audit. The paragraph is kept only so the reasoning isn't rediscovered — do not act on it.
 
 ## Color palette & variants — USE THE FULL RANGE (HARD)
 
@@ -181,4 +194,4 @@ These are baked into the components — **no override needed**:
 - **`Table`** — `TableHead` is `sticky top-0 z-10 bg-muted text-foreground-subtle shadow-[0_1px_0_var(--border)]`. `TableRow` hover `bg-primary-soft/60`, selected `bg-primary-soft`. `TableCell` `py-1 px-2`. `<Table containerClassName="max-h-[NNNpx]">` makes the body scroll while the header stays.
 - **`Dialog`** — `DialogTitle` `text-xl` aligned with the X close button (`min-h-8 flex items-center`). Footer buttons commonly `size="xl"`. **Button roles by footer shape:** a *lone* button = primary role → `default` for neutral/positive ("ปิด/ตกลง/บันทึก/รับทราบ"), `destructive` for negative; *two* buttons = primary (`default`/`destructive`) + a secondary `elevated` ("ยกเลิก/กลับ"). `elevated` is never the only button; `destructive-soft` is the soft-red tinted secondary slot beside a `destructive` primary (the old `destructive2` name does NOT exist in `button.tsx`). `Switch` inside modals = `size="lg"`. → see [[dialog-button-convention]] in `docs/claude/ui-theming.md`.
 - **`DateInput` / `DateRangePicker`** — `h-10` wrapper default, `bg-input rounded-lg`, calendar icon absolute on the right (`right-2.5`). **`className` targets the wrapper** (sizes the whole component); the inner Input/Button is `h-full w-full`. Don't pass `className="h-X"` to the Input — it'll desync the calendar button position.
-- **Card radius** — every floating panel-card uses `rounded-card` (`--radius-card`, 1rem). Every control / control-panel (Button, Input, SelectContent, PopoverContent) uses `rounded-lg` / `rounded-control` (`--radius`, 0.5rem). Don't mix `rounded-xl` / `rounded-2xl` literals; reach for the tokens.
+- **Card radius** — every floating panel-card uses `rounded-card` (`--radius-card`, 1rem). Every control / control-panel (Button, SelectContent, PopoverContent) uses `rounded-lg` / `rounded-control` (`--radius`, 0.5rem). Don't mix `rounded-xl` / `rounded-2xl` literals; reach for the tokens. **Exception — the field primitives** (`Input`/`SearchInput`/`Textarea`/`SelectTrigger`/`NativeSelect`): square variants are `rounded-sm` (0.125rem) by operator decision, owned by `FIELD_SHAPE` in `field-variants.ts`. See the field-variants section above.

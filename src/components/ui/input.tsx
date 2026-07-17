@@ -2,12 +2,10 @@ import * as React from "react"
 import { Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { fieldVariant, type FieldVariant } from "./field-variants"
 
-// "default" is now the house ELEVATED treatment (bg-card + border + shadow) so
-// a bare <Input> is correct by default. "elevated" is kept as an explicit alias
-// for the ~existing call sites. "filled" is the old flat bg-input look — opt in
-// only where the flat treatment is genuinely wanted (e.g. dense inline edits).
-type InputVariant = "default" | "elevated" | "filled"
+// See field-variants.ts — shape x shadow on the house ELEVATED surface.
+type InputVariant = FieldVariant
 
 const Input = React.forwardRef<
   HTMLInputElement,
@@ -20,16 +18,15 @@ const Input = React.forwardRef<
       data-slot="input"
       data-variant={variant}
       className={cn(
-        "h-9 w-full min-w-0",
-        "rounded-lg",
+        "h-8 w-full min-w-0",
         "px-2.5 py-1",
         "text-sm outline-none transition-all",
         "file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
         "placeholder:text-foreground-subtle/50",
-        "focus:ring-[1px] focus:ring-ring focus:border-ring",
+        "focus:ring-[0.5px] focus:ring-ring focus:border-ring",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        "aria-invalid:ring-destructive/50 aria-invalid:ring-[1px] aria-invalid:border-destructive/50",
-        variant === "filled" ? "bg-input" : "bg-card border border-border shadow-sm",
+        "aria-invalid:ring-destructive aria-invalid:ring-[0.5px] aria-invalid:border-destructive",
+        fieldVariant(variant),
         className
       )}
       {...props}

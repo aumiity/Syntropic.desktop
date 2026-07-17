@@ -710,9 +710,17 @@ export default function Theme() {
                   <Input className="max-w-[180px]" placeholder="Disabled" disabled />
                   <Input className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
                 </DemoRow>
-                <DemoRow label="Filled — flat bg-input (opt-in via variant='filled'; the old default look)">
-                  <Input variant="filled" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
-                  <SearchInput variant="filled" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
+                <DemoRow label="flat — rounded-sm, no shadow">
+                  <Input variant="flat" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
+                  <SearchInput variant="flat" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
+                </DemoRow>
+                <DemoRow label="pill — rounded-full + shadow-sm">
+                  <Input variant="pill" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
+                  <SearchInput variant="pill" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
+                </DemoRow>
+                <DemoRow label="pill-flat — rounded-full, no shadow">
+                  <Input variant="pill-flat" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
+                  <SearchInput variant="pill-flat" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
                 </DemoRow>
               </Section>
 
@@ -749,21 +757,27 @@ export default function Theme() {
 
               {/* ── TEXTAREA ── */}
               <Section title="Textarea" path="src/components/ui/textarea.tsx">
-                <DemoRow label="Default — ELEVATED house look (bg-card + border + shadow); 'elevated' is a kept alias">
+                <DemoRow label="default — rounded-sm + shadow-sm ('elevated' is a kept alias)">
                   <Textarea className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
                 </DemoRow>
                 <DemoRow label="States">
                   <Textarea className="max-w-[180px]" placeholder="Disabled" disabled />
                   <Textarea className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
                 </DemoRow>
-                <DemoRow label="Filled — flat bg-input (opt-in via variant='filled'; the old default look)">
-                  <Textarea variant="filled" className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
+                <DemoRow label="flat — rounded-sm, no shadow">
+                  <Textarea variant="flat" className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
+                </DemoRow>
+                <DemoRow label="pill — rounded-full + shadow-sm">
+                  <Textarea variant="pill" className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
+                </DemoRow>
+                <DemoRow label="pill-flat — rounded-full, no shadow">
+                  <Textarea variant="pill-flat" className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
                 </DemoRow>
               </Section>
 
               {/* ── SELECT ── */}
               <Section title="Select" path="src/components/ui/select.tsx">
-                <DemoRow label="Default — ELEVATED house look (bg-card + border + shadow); 'elevated' is a kept alias">
+                <DemoRow label="default — rounded-sm + shadow-sm ('elevated' is a kept alias)">
                   <Select value={selectVal} onValueChange={setSelectVal}>
                     <SelectTrigger className="w-52">
                       <SelectValue placeholder="เลือกประเภทยา..." />
@@ -802,17 +816,19 @@ export default function Theme() {
                     </SelectContent>
                   </Select>
                 </DemoRow>
-                <DemoRow label="Filled — flat bg-muted (opt-in via variant='filled'; the old default look)">
-                  <Select>
-                    <SelectTrigger variant="filled" className="w-32">
-                      <SelectValue placeholder="All" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <DemoRow label="flat · pill · pill-flat — shape x shadow on the same elevated surface">
+                  {(['flat', 'pill', 'pill-flat'] as const).map(v => (
+                    <Select key={v}>
+                      <SelectTrigger variant={v} className="w-32">
+                        <SelectValue placeholder={v} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ))}
                 </DemoRow>
               </Section>
 

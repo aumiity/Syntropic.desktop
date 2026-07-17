@@ -773,7 +773,7 @@ export default function PurchasePage() {
                           <label className="block text-base font-semibold text-muted-foreground mb-1.5">เลขที่ใบรับ</label>
                           <div className="relative">
                             <Input
-                              variant="filled"
+                              variant="flat"
                               value={invoiceNo}
                               readOnly
                               tabIndex={-1}
