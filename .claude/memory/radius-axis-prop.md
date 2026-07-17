@@ -32,4 +32,10 @@ export const RADIUS_CLASS = { sm:"rounded-sm", md:"rounded-md", lg:"rounded-lg" 
 - pill ignore radius (จงใจ) — อย่าไปทำให้ pill รับ radius.
 - FIELD_SHAPE ถูกลบ (แทนด้วย FIELD_SHADOW + RADIUS_CLASS) — ถ้าเจอ doc/comment เก่าอ้าง FIELD_SHAPE = stale.
 
-Related: [[input-elevated-default-flip]] (field variant set), [[project_theme_variant_audit]] (งาน /theme audit ที่ trigger เรื่องนี้), [[feedback_border_over_ring]].
+## ค้างไว้ (parked 2026-07-17 — เจ้าโครงบอกกลับมาดูทีหลัง; ตอนนี้ไปลุย redesign หน้างานจริงก่อน แล้วค่อยย้อนแก้ component)
+- **`discount-dialog` — ปุ่ม footer + แถวใน dialog (ยัง h-9)**: ยังไม่ตัดสินว่าจะลง h-8 ไหม (footer dialog คนละบริบทกับ bar control)
+- **`tabs` — variant `toggle` (segmented, bake h-9)**: ยังไม่ตัดสินว่าจะลง h-8 ไหม
+- **`Button size="lg"` ยัง h-9 (จงใจไม่แตะรอบนี้)**: filter strip ที่ปน `<Button size="lg">` กับ field h-8 จะสูงไม่เท่ากันชั่วคราว — รอเจ้าของเคาะว่าจะให้ `size="lg"` → h-8 ทั้งระบบไหม
+- **แนวทางที่เจ้าของเลือก:** ทำ **หน้างานจริงก่อน** (มองภาพรวมจากหน้า ไม่ใช่จาก component) — ติดขัด component ตรงไหนค่อยแก้ตรงนั้น. อย่าไล่แก้ component เชิงรุกโดยไม่มีหน้าจริงมาขับ.
+
+Related: [[input-elevated-default-flip]] (field variant set), [[project_theme_variant_audit]] (งาน /theme audit ที่ trigger เรื่องนี้), [[project_ui_redesign_pass]] (งาน redesign หน้าจริงที่กำลังจะลุย), [[feedback_border_over_ring]].
