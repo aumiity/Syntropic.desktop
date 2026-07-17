@@ -17,17 +17,17 @@
     --background:         158 14% 89%;
     --foreground:         0 0% 12%;
     --foreground-subtle:  0 0% 40%;
-    --card:               0 0% 99%;
+    --card:               0 0% 100%;
     --card-foreground:    0 0% 32%;
-    --popover:            0 0% 99%;
+    --popover:            0 0% 100%;
     --popover-foreground: 0 0% 12%;
     --surface-hover:      240 6% 90%;
 
     /* ── Borders · inputs · ring ────────────────────────────────────────── */
-    --border:        0 0% 87%;
+    --border:        0 0% 85%;
     --border-strong: 0 0% 50%;
-    --input:         0 0% 95%;
-    --ring:          175 35% 75%;
+    --input:         0 0% 100%;
+    --ring:          152 39% 27%;
 
     /* ── Primary — brand teal ───────────────────────────────────────────── */
     --primary:              152 39% 27%; /* #0F5D56 */
