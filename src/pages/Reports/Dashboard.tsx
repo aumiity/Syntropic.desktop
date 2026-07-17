@@ -457,7 +457,7 @@ export default function DashboardPage() {
         <SectionCard
           icon={Trophy} title="สินค้าขายดี" tint="primary-soft"
           right={
-            <Button size="lg" variant="elevated" className="h-9 w-9 p-0" onClick={() => setTopSortBy(m => m === 'revenue' ? 'qty' : 'revenue')} title={`สลับเกณฑ์เรียง (${TOP_SORT_LABEL[topSortBy]})`}>
+            <Button size="lg" variant="elevated" className="h-8 w-8 p-0" onClick={() => setTopSortBy(m => m === 'revenue' ? 'qty' : 'revenue')} title={`สลับเกณฑ์เรียง (${TOP_SORT_LABEL[topSortBy]})`}>
               <ArrowLeftRight />
             </Button>
           }
@@ -470,7 +470,7 @@ export default function DashboardPage() {
         <SectionCard
           icon={TrendingUp} title="กำไรสูงสุด" tint="success-soft"
           right={
-            <Button size="lg" variant="elevated" className="h-9 w-9 p-0" onClick={() => setProfitMode(m => m === 'baht' ? 'pct' : 'baht')} title={`สลับการแสดงกำไร (${profitMode === 'baht' ? 'บาท' : '%'})`}>
+            <Button size="lg" variant="elevated" className="h-8 w-8 p-0" onClick={() => setProfitMode(m => m === 'baht' ? 'pct' : 'baht')} title={`สลับการแสดงกำไร (${profitMode === 'baht' ? 'บาท' : '%'})`}>
               <ArrowLeftRight />
             </Button>
           }
@@ -617,10 +617,10 @@ export default function DashboardPage() {
                 : `แสดง ${alertStart + 1}-${Math.min(alertStart + ALERT_PAGE_SIZE, alertTotalRows)} จาก ${alertTotalRows.toLocaleString()} รายการ`}
             </span>
             <div className="flex items-center gap-1.5">
-              <Button variant="elevated" size="lg" className="h-9 w-9 p-0" disabled={alertPage <= 1} onClick={() => setAlertPage(p => Math.max(1, p - 1))} title="ก่อนหน้า">
+              <Button variant="elevated" size="lg" className="h-8 w-8 p-0" disabled={alertPage <= 1} onClick={() => setAlertPage(p => Math.max(1, p - 1))} title="ก่อนหน้า">
                 <ChevronLeft />
               </Button>
-              <Button variant="elevated" size="lg" className="h-9 w-9 p-0" disabled={alertPage >= alertLastPage} onClick={() => setAlertPage(p => Math.min(alertLastPage, p + 1))} title="ถัดไป">
+              <Button variant="elevated" size="lg" className="h-8 w-8 p-0" disabled={alertPage >= alertLastPage} onClick={() => setAlertPage(p => Math.min(alertLastPage, p + 1))} title="ถัดไป">
                 <ChevronRight />
               </Button>
             </div>

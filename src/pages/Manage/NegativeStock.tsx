@@ -120,7 +120,7 @@ export default function NegativeStockPage() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 ml-auto" title="จัดการตาราง">
+              <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0 ml-auto" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>

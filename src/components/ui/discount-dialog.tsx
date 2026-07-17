@@ -186,9 +186,9 @@ export function DiscountDialog({
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive-soft" size="lg" className="mr-auto w-24 h-9" onClick={() => { setBaht('0'); apply(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
-            <Button className="w-24 h-9" variant="elevated" size="lg" onClick={onClose}>ยกเลิก</Button>
-            <Button className="w-24 h-9" variant="destructive" size="lg" onClick={() => apply(d)}>ตกลง</Button>
+            <Button variant="destructive-soft" size="lg" className="mr-auto w-24 h-8" onClick={() => { setBaht('0'); apply(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
+            <Button className="w-24 h-8" variant="elevated" size="lg" onClick={onClose}>ยกเลิก</Button>
+            <Button className="w-24 h-8" variant="destructive" size="lg" onClick={() => apply(d)}>ตกลง</Button>
           </DialogFooter>
         </DialogContent>
       )}

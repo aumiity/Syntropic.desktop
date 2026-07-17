@@ -226,7 +226,7 @@ export function LotsTab({ product, productId, baseUnit, onRefresh }: Props) {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 ml-auto" title="ตัวกรอง">
+              <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0 ml-auto" title="ตัวกรอง">
                 <Filter className="size-4" />
               </Button>
             </PopoverTrigger>

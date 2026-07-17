@@ -90,7 +90,7 @@ function CopiesStepper({
       <Button
         variant="elevated"
         size="lg"
-        className="h-9 w-9 p-0 shrink-0"
+        className="h-8 w-8 p-0 shrink-0"
         disabled={disabled || n <= 1}
         onClick={() => onChange(String(Math.max(1, n - 1)))}
         aria-label="ลดจำนวน"
@@ -111,7 +111,7 @@ function CopiesStepper({
       <Button
         variant="elevated"
         size="lg"
-        className="h-9 w-9 p-0 shrink-0"
+        className="h-8 w-8 p-0 shrink-0"
         disabled={disabled || n >= 99}
         onClick={() => onChange(String(Math.min(99, n + 1)))}
         aria-label="เพิ่มจำนวน"
@@ -415,7 +415,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                   <Button
                     variant="elevated"
                     size="lg"
-                    className="h-9 w-9 shrink-0 p-0"
+                    className="h-8 w-8 shrink-0 p-0"
                     title="แก้ไขฉลากนี้"
                     disabled={!activeLabel || printing || blankActive}
                     onClick={() => activeRow && activeLabel && openEditLabel(activeRow.productId, activeLabel)}

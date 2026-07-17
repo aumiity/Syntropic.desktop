@@ -200,7 +200,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
             return (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0 relative" title="ตัวกรองประเภท">
+                  <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0 relative" title="ตัวกรองประเภท">
                     <Filter className="size-4" />
                     {isNarrowing && (
                       <span className="absolute -top-1 -right-1 size-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
@@ -250,7 +250,7 @@ export function HistoryTab({ productId, isNew, active }: Props) {
           <Button
             size="lg"
             variant="elevated"
-            className="h-9 w-9 p-0 shrink-0"
+            className="h-8 w-8 p-0 shrink-0"
             onClick={reloadMovements}
             disabled={movementsLoading}
             tooltip="รีเฟรช"

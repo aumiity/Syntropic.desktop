@@ -594,7 +594,7 @@ export default function ManagePurchasesPage() {
             return (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองสถานะ">
+                  <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="ตัวกรองสถานะ">
                     <Filter className="size-4" />
                   </Button>
                 </PopoverTrigger>
@@ -639,7 +639,7 @@ export default function ManagePurchasesPage() {
             return (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง VAT">
+                  <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="ตัวกรอง VAT">
                     <Percent className="size-4" />
                   </Button>
                 </PopoverTrigger>
@@ -668,7 +668,7 @@ export default function ManagePurchasesPage() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+              <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>

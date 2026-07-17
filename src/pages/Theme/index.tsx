@@ -1587,7 +1587,7 @@ export default function Theme() {
                     {/* Filter popover — secondary filters (status, show disabled) */}
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
+                        <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="ตัวกรอง">
                           <Filter className="size-4" />
                         </Button>
                       </PopoverTrigger>
@@ -1635,7 +1635,7 @@ export default function Theme() {
                     {/* Column settings popover — visibility per column */}
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+                        <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="จัดการตาราง">
                           <Settings2 className="size-4" />
                         </Button>
                       </PopoverTrigger>
@@ -1774,7 +1774,7 @@ export default function Theme() {
                   </span>
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  ปุ่ม <code className="bg-muted px-1 rounded">elevated</code> icon (h-9 w-9) เปิด popover เลือกอย่างเดียว —
+                  ปุ่ม <code className="bg-muted px-1 rounded">elevated</code> icon (h-8 w-8) เปิด popover เลือกอย่างเดียว —
                   ค่าเริ่มต้น <code className="bg-muted px-1 rounded">'all'</code> (โชว์ทั้งหมด) แล้วเลือกแคบเป็น{' '}
                   <code className="bg-muted px-1 rounded">'enabled'</code> /{' '}
                   <code className="bg-muted px-1 rounded">'disabled'</code> ได้. ใช้ทุกตาราง list ที่มีสถานะเปิด/ปิด

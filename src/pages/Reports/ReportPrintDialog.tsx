@@ -167,7 +167,7 @@ export default function ReportPrintDialog({
           {pageCount > 1 && (
             <div className="shrink-0 flex items-center justify-center gap-3">
               <Button
-                variant="elevated" size="icon-lg" className="h-9 w-9 p-0"
+                variant="elevated" size="icon-lg" className="h-8 w-8 p-0"
                 onClick={() => setViewPage(p => Math.max(1, p - 1))}
                 disabled={viewPage <= 1} tooltip="หน้าก่อนหน้า"
               >
@@ -175,7 +175,7 @@ export default function ReportPrintDialog({
               </Button>
               <span className="text-sm text-muted-foreground select-none">หน้า {viewPage} / {pageCount}</span>
               <Button
-                variant="elevated" size="icon-lg" className="h-9 w-9 p-0"
+                variant="elevated" size="icon-lg" className="h-8 w-8 p-0"
                 onClick={() => setViewPage(p => Math.min(pageCount, p + 1))}
                 disabled={viewPage >= pageCount} tooltip="หน้าถัดไป"
               >

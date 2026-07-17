@@ -154,7 +154,7 @@ function CustomersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
           {/* Column settings popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+              <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
@@ -410,7 +410,7 @@ function SuppliersTab({ refreshStats, addNonce }: { refreshStats: () => void; ad
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+              <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>
@@ -708,7 +708,7 @@ function StaffTab({ refreshStats, addNonce }: { refreshStats: () => void; addNon
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+              <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="จัดการตาราง">
                 <Settings2 className="size-4" />
               </Button>
             </PopoverTrigger>

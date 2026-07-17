@@ -32,10 +32,19 @@ export const RADIUS_CLASS = { sm:"rounded-sm", md:"rounded-md", lg:"rounded-lg" 
 - pill ignore radius (จงใจ) — อย่าไปทำให้ pill รับ radius.
 - FIELD_SHAPE ถูกลบ (แทนด้วย FIELD_SHADOW + RADIUS_CLASS) — ถ้าเจอ doc/comment เก่าอ้าง FIELD_SHAPE = stale.
 
-## ค้างไว้ (parked 2026-07-17 — เจ้าโครงบอกกลับมาดูทีหลัง; ตอนนี้ไปลุย redesign หน้างานจริงก่อน แล้วค่อยย้อนแก้ component)
-- **`discount-dialog` — ปุ่ม footer + แถวใน dialog (ยัง h-9)**: ยังไม่ตัดสินว่าจะลง h-8 ไหม (footer dialog คนละบริบทกับ bar control)
-- **`tabs` — variant `toggle` (segmented, bake h-9)**: ยังไม่ตัดสินว่าจะลง h-8 ไหม
-- **`Button size="lg"` ยัง h-9 (จงใจไม่แตะรอบนี้)**: filter strip ที่ปน `<Button size="lg">` กับ field h-8 จะสูงไม่เท่ากันชั่วคราว — รอเจ้าของเคาะว่าจะให้ `size="lg"` → h-8 ทั้งระบบไหม
-- **แนวทางที่เจ้าของเลือก:** ทำ **หน้างานจริงก่อน** (มองภาพรวมจากหน้า ไม่ใช่จาก component) — ติดขัด component ตรงไหนค่อยแก้ตรงนั้น. อย่าไล่แก้ component เชิงรุกโดยไม่มีหน้าจริงมาขับ.
+## control heights → h-8 (DONE 2026-07-17, tsc PASS)
+ทั้ง 3 ข้อที่เคย park ทำครบแล้ว (เจ้าของสั่ง "เปลี่ยน h-8 ให้หมด"):
+- **`Button size="lg"` h-9 → h-8** (button.tsx) — ตัวแม่ กระทบทุก `<Button size="lg">` ที่ไม่ได้ override ความสูงเอง ให้สืบทอด h-8 ฟรี. **หมายเหตุ:** `size="lg"` ตอนนี้ = `size="default"` เป๊ะ (ทั้งคู่ `h-8 gap-1.5 px-2.5`) — ต่างแค่ชื่อ ยังไม่ยุบรวม.
+- **`discount-dialog` footer 3 ปุ่ม** `w-24 h-9` → `w-24 h-8` (แถวสรุปในกล่อง h-9 ไม่ใช่ปุ่ม — ไม่แตะ)
+- **`tabs` variant `toggle`** baked `:h-9` → `:h-8` (+ คอมเมนต์ + `docs/claude/ui-components.md`)
+- **38 ปุ่มไอคอน filter strip `h-9 w-9` → `h-8 w-8`** ทั่ว src/pages+dialogs+label (sed แพทเทิร์นเดียว, รวม doc text ใน Theme showcase)
+
+## ค้าง — 129 จุด page-level h-9 (เลื่อนโดยตั้งใจ)
+- ยังเหลือ **~129 `h-9` ในเพจ** ที่ไม่ใช่ `h-9 w-9` — ส่วนใหญ่เป็น control ในบาร์ (`SearchInput className="h-9"`, `SelectTrigger className="h-9 ..."`, `Button size="lg" className="h-9 px-2"` = explicit override ทับ h-8 ของ size ใหม่).
+- **เจ้าของเลือก: ไม่กวาดรวม → แก้ h-8 ตอน redesign แต่ละหน้า** (เห็น context จริงก่อน). **อย่ากวาด 129 จุดเชิงรุก** — รอทำตอนเจาะหน้านั้น ๆ.
+- กฎ control-height ใน CLAUDE.md/ui-table-card ยัง **⏸️ PAUSED** — de facto ใหม่คือ h-8 แต่ยังไม่ codify จนกว่าหน้าจะครบ.
+
+## แนวทางที่เจ้าของเลือก (workflow)
+ทำ **หน้างานจริงก่อน** (มองภาพรวมจากหน้า ไม่ใช่จาก component) — ติดขัด component ตรงไหนค่อยแก้ตรงนั้น. อย่าไล่แก้ component เชิงรุกโดยไม่มีหน้าจริงมาขับ.
 
 Related: [[input-elevated-default-flip]] (field variant set), [[project_theme_variant_audit]] (งาน /theme audit ที่ trigger เรื่องนี้), [[project_ui_redesign_pass]] (งาน redesign หน้าจริงที่กำลังจะลุย), [[feedback_border_over_ring]].

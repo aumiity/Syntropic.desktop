@@ -166,7 +166,7 @@ export default function ManageDeadStockPage() {
         {/* Threshold-window filter popover — was previously the clickable summary cards */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรองช่วงเวลา">
+            <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="ตัวกรองช่วงเวลา">
               <Filter className="size-4" />
             </Button>
           </PopoverTrigger>

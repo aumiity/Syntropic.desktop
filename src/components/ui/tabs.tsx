@@ -42,10 +42,10 @@ const tabsListVariants = cva(
     "data-[variant=segmented]:rounded-lg data-[variant=segmented]:p-1 data-[variant=segmented]:gap-1 data-[variant=segmented]:group-data-[orientation=horizontal]/tabs:h-10",
     // toggle = connected segmented group: buttons flush (gap-0), the container's
     // rounded-lg + overflow-hidden rounds only the outer ENDS (หัวมน-ท้ายมน) and
-    // clips the square inner buttons. h-9 is baked HERE (not via className): the
-    // base group-data h-8 modifier outranks a plain `h-9` className by
+    // clips the square inner buttons. h-8 is baked HERE (not via className): a
+    // plain `h-8` className is outranked by the base group-data modifier by
     // specificity, so the height must be set at the same modifier level to win.
-    "data-[variant=toggle]:rounded-lg data-[variant=toggle]:p-0 data-[variant=toggle]:gap-0 data-[variant=toggle]:overflow-hidden data-[variant=toggle]:group-data-[orientation=horizontal]/tabs:h-9",
+    "data-[variant=toggle]:rounded-lg data-[variant=toggle]:p-0 data-[variant=toggle]:gap-0 data-[variant=toggle]:overflow-hidden data-[variant=toggle]:group-data-[orientation=horizontal]/tabs:h-8",
   ].join(" "),
   {
     variants: {
@@ -55,9 +55,9 @@ const tabsListVariants = cva(
         pill: "bg-transparent",
         segmented: "bg-muted",
         // ring (inset box-shadow), NOT border — a real border is box-box and
-        // eats 1px top+bottom, shrinking the h-full triggers to 34px inside a 36px
-        // bar; ring costs zero layout height so triggers fill the full h-9 (36px),
-        // matching standalone h-9 buttons.
+        // eats 1px top+bottom, shrinking the h-full triggers to 30px inside a 32px
+        // bar; ring costs zero layout height so triggers fill the full h-8 (32px),
+        // matching standalone h-8 buttons.
         toggle: "bg-card ring-1 ring-inset ring-border",
       },
     },
