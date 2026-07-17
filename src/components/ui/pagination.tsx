@@ -72,7 +72,7 @@ function Pagination({
         value={String(pageSize)}
         onValueChange={(v) => onPageSizeChange!(v === "all" ? "all" : Number(v))}
       >
-        <SelectTrigger className="h-9 min-w-20">
+        <SelectTrigger className="h-8 min-w-20">
           <SelectValue>{pageSizeLabel(pageSize!)}</SelectValue>
         </SelectTrigger>
         <SelectContent className="min-w-28">

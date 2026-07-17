@@ -151,7 +151,7 @@ export function DateRangePicker({
           type="button"
           variant="outline"
           className={cn(
-            'relative h-9 w-full justify-start font-normal',
+            'relative h-8 w-full justify-start font-normal',
             'rounded-lg px-2.5 pr-9 text-sm',
             variant === 'elevated'
               ? 'bg-card border border-border shadow-sm hover:shadow-sm hover:bg-muted'

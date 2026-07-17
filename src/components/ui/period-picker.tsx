@@ -266,7 +266,7 @@ function MonthPanel({ from, onPick }: { from: string; onPick: (f: string, t: str
               variant={isSelected ? 'default' : 'ghost'}
               size="sm"
               className={cn(
-                'h-9 text-sm',
+                'h-8 text-sm',
                 !isSelected && isCurrent && 'ring-2 ring-primary/40 text-primary',
               )}
               onClick={() => {
@@ -314,7 +314,7 @@ function YearPanel({ from, onPick }: { from: string; onPick: (f: string, t: stri
               variant={isSelected ? 'default' : 'ghost'}
               size="sm"
               className={cn(
-                'h-9 text-sm',
+                'h-8 text-sm',
                 !isSelected && isCurrent && 'ring-2 ring-primary/40 text-primary',
               )}
               onClick={() => {

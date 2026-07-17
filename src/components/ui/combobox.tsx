@@ -148,7 +148,7 @@ export function Combobox<T>({
           disabled={disabled}
           variant={variant === 'elevated' ? 'elevated' : (hasValue ? 'primary-soft' : 'outline')}
           className={cn(
-            "h-9 w-full justify-between gap-2 px-3 rounded-lg text-sm font-normal",
+            "h-8 w-full justify-between gap-2 px-3 rounded-lg text-sm font-normal",
             triggerClassName
           )}
         >

@@ -1,11 +1,19 @@
 ---
 name: project_theme_variant_audit
-description: /theme showcase rebuilt from cva as SSOT — Button/Badge done + click-tested (2/33); secondary removed; neutral-outline renamed to neutral; every hover is token-based (L 7% away from page bg), no opacity left.
+description: /theme showcase rebuilt from cva as SSOT — พื้นฐาน + ฟอร์ม/อินพุต done (13/33); field radius sm→md permanent; secondary removed; neutral-outline renamed to neutral; every hover is token-based (L 7% away from page bg), no opacity left.
 metadata:
   type: project
 ---
 
 **ACTIVE 2026-07-16 — รื้อโซนโชว์ variant ในหน้า `/theme` ให้ตรงกับ primitive จริง.**
+
+## ทำไปแล้ว 13/33 sections — กลุ่ม "พื้นฐาน" (5) + กลุ่ม "ฟอร์มและอินพุต" (8) ครบ
+
+**อัปเดต 2026-07-17 (รอบ 4) — กลุ่ม "ฟอร์มและอินพุต" ครบ 8 sections (Input/NumInput/PriceInput/Textarea/Select/Combobox/Checkbox/Switch):**
+- **SSOT field = `field-variants.ts`** (5 primitive: Input/SearchInput/Textarea/SelectTrigger/NativeSelect) — variant = `default`(=`elevated` alias)/`flat`/`pill`/`pill-flat` = แมทริกซ์ทรง×เงา. Combobox มีแค่ `default`/`elevated`. Checkbox = `default`/`destructive` (**ไม่มี `warning`** — warning อยู่บน CheckRow/Toggle wrapper เท่านั้น). Switch = `default`/`destructive`/`warning`. NumInput/PriceInput ไม่มี variant.
+- **แก้ label โกหก:** Input/Textarea/Select เดิม label เป็นประโยค ("Default — ELEVATED house look…") → เปลี่ยนเป็นชื่อ variant ตรงตัว + จัดแถว variant ติดกันก่อน States/Types; Combobox แถวแรกเติมชื่อ `default`.
+- **เจ้าของเปลี่ยนมุม field `rounded-sm` → `rounded-md` เอาถาวร (2026-07-17 รอบสอง)** — label ทุกแถวที่เขียน `rounded-sm` โกหกทันที. sync ครบ 5 จุด: `FIELD_SHAPE`+คอมเมนต์ SSOT ใน `field-variants.ts`, `docs/claude/ui-theming.md` (ตาราง+carve-out+Card-radius), `CLAUDE.md` invariant L68, `/theme` showcase, `.claude/memory/input-elevated-default-flip.md`+`MEMORY.md` pointer. ดู [[input-elevated-default-flip]]. **อย่าแก้กลับเป็น `sm`.**
+- Checkbox/Switch/NumInput/PriceInput = label ตรง SSOT อยู่แล้ว ไม่ต้องรื้อ (เหมือนกลุ่มพื้นฐานที่ clean). **รอ click-test ในแอปจริง.**
 
 ## ทำไปแล้ว 5/33 sections — กลุ่ม "พื้นฐาน" ครบ + TintIcon rename ใหญ่ (Button + Badge + TintIcon + Avatar + Label)
 
@@ -80,7 +88,7 @@ Outline (ไม่มี neutral แล้ว) → **Neutral/surface — แบ�
 ## ค้างไว้ — เริ่ม session หน้าจากตรงนี้
 
 1. **click-test ผ่านหมดแล้ว 2026-07-16** — รอบ rename `neutral` + จัดแถวใหม่ + hover โทเคนล้วน เจ้าของยืนยันโอเคทั้งหมดในแอปจริง. Button + Badge ปิดจบสมบูรณ์.
-2. เหลือ **28 sections** ที่ยังไม่ได้รื้อ. กลุ่มถัดไป = "ฟอร์มและอินพุต" (Input/Select/Combobox/Checkbox/Switch มี variant จริง — น่าจะมีของให้แก้ ต่างจากกลุ่มพื้นฐานที่ clean).
+2. กลุ่ม "ฟอร์มและอินพุต" (8) ครบแล้ว 2026-07-17 (รอบ 4) — เหลือ **20 sections**. กลุ่มถัดไป = "วันที่และเวลา" (DateInput/DateRangePicker/PeriodPicker/MultiDatePicker/Calendar — บรรทัด 1040+ ใน `Theme/index.tsx`; DateInput/DateRangePicker มี prop `variant` เชิง elevated ให้ตรวจ, ที่เหลือแทบไม่มี variant).
 
 ## บทเรียน
 

@@ -9,8 +9,8 @@ import { Check } from "lucide-react"
 // for touch-friendly contexts (e.g. POS row selection). Both the Root box and
 // the Indicator box use the SAME size so the checked fill matches the border.
 const checkboxSizes = {
-  default: { box: "size-4", check: "[&>svg]:size-4" },
-  lg: { box: "size-5", check: "[&>svg]:size-[18px]" },
+  default: { box: "size-4", check: "[&>svg]:size-3" },
+  lg: { box: "size-5", check: "[&>svg]:size-4" },
 } as const
 
 // Checked-fill color by role. `default` = primary teal (the standard tick).

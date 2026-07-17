@@ -66,12 +66,12 @@ function Switch({
 // signalling the active destructive/attention state. The switch itself already
 // turns red/yellow when on via the Switch variant.
 //
-// `framed="input"` is the top-bar variant: a borderless h-9 bg-input pill that
+// `framed="input"` is the top-bar variant: a borderless h-8 bg-input pill that
 // blends with the search Input next to it in the table-card top bar (reads as
 // one continuous control row, not a popped-out chip). Use whenever a Toggle
-// lives in a top bar beside a search field. h-9 matches every other bar
-// control (search Input, DateInput/DateRangePicker/Combobox/NativeSelect all
-// default h-9) — see CLAUDE.md "EVERY bar = h-12, EVERY control = h-9".
+// lives in a top bar beside a search field. h-8 matches the other bar controls
+// being retuned in the 2026-07 redesign (search Input, DateInput/DateRangePicker/
+// Combobox/NativeSelect) — the h-9 rule is PAUSED (see CLAUDE.md), don't revert.
 function Toggle({ checked, onChange, label, size, variant = "default", framed, disabled, className }: {
   checked: boolean
   onChange: (v: boolean) => void
@@ -88,7 +88,7 @@ function Toggle({ checked, onChange, label, size, variant = "default", framed, d
       "flex items-center gap-2 cursor-pointer select-none",
       disabled && "cursor-not-allowed opacity-50",
       // top-bar input-blended frame (matches the search Input)
-      frameInput && "h-9 px-3 rounded-lg bg-input transition-colors",
+      frameInput && "h-8 px-3 rounded-lg bg-input transition-colors",
       // standard pill frame (border + bg-card)
       framed && !frameInput && "h-12 px-3 rounded-lg border transition-colors",
       // plain neutral frame for every variant while off

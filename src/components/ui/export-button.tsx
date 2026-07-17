@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 // ({ ok, path?, canceled? }). Success (saved) → green toast with the path;
 // cancel (user dismissed the save dialog) → silent; throw → red toast.
 //
-// iconOnly = the filter-strip variant (h-9 square + tooltip). Otherwise a
+// iconOnly = the filter-strip variant (h-8 square + tooltip). Otherwise a
 // labelled button for the Export Hub rows.
 
 interface ExportButtonProps {
@@ -55,7 +55,7 @@ export function ExportButton({
       <Button
         size="lg"
         variant="elevated"
-        className={cn('h-9 w-9 p-0 shrink-0', className)}
+        className={cn('h-8 w-8 p-0 shrink-0', className)}
         onClick={handleClick}
         disabled={disabled || busy}
         tooltip={tooltip ?? label}
@@ -69,7 +69,7 @@ export function ExportButton({
     <Button
       size="lg"
       variant="elevated"
-      className={cn('h-9', className)}
+      className={cn('h-8', className)}
       onClick={handleClick}
       disabled={disabled || busy}
     >

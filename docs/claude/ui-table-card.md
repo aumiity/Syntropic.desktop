@@ -25,7 +25,9 @@ Rule of thumb: only the column-header band is muted. The bottom status bar gets 
 
 **Leading icon (HARD):** a table-card header's `<TintIcon>` is always `tint="neutral"` + `bordered` (the elevated, colorless look) — NEVER a colored tint. Colored/role tints are for `SectionCard` headers only. Canonical: `Manage/Expenses.tsx` (รายการค่าใช้จ่าย header) and `Reports/NewDashboard.tsx` (สินค้าค้างสต็อก header).
 
-### ONE bar height rule (HARD): EVERY bar = `h-12`, EVERY control inside = `h-9`
+> **⏸️ SUSPENDED 2026-07-17 — the control-height rule is PAUSED during the UI redesign.** The operator is retuning control heights **`h-9 → h-8`** (primitive-by-primitive) to taste. While paused: **do NOT enforce `h-9`, do NOT revert `h-8` back to `h-9`.** Bars stay `h-12` unless the operator says otherwise. This whole section is kept as reference and will be re-fixed (possibly at `h-8`) once the redesign settles. Same "tune now, codify later" mode as the `radius` prop.
+
+### ONE bar height rule (HARD): EVERY bar = `h-12`, EVERY control inside = `h-9` _(paused — see above)_
 
 **There is no longer a separate "filter strip" height.** Whatever the bar holds — a title + count + Add button, OR a search field + a row of filters, OR a status/total footer — the bar is **`h-12`** and *every* control sitting in it is **`h-9`**. No exceptions, no `h-14`, no `h-10` in a bar. The old filter-strip split (`h-14` strip / `h-10` controls) is DEAD — do not reintroduce it.
 

@@ -3,6 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { RADIUS_CLASS, type Radius } from "./radius"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
 const buttonVariants = cva(
@@ -204,10 +205,12 @@ type ButtonProps = React.ComponentProps<"button"> &
     tooltipSide?: React.ComponentProps<typeof TooltipContent>["side"]
     /** Unsaved-changes indicator — shows an orange dot before the content. Ignored when asChild (Slot takes a single child). */
     dirty?: boolean
+    /** Override the corner radius (shared axis — see radius.ts). Omit to keep the per-size default (base md, larger sizes lg). */
+    radius?: Radius
   }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", asChild = false, dirty = false, tooltip, tooltipSide = "top", "aria-label": ariaLabel, children, ...props }, ref) => {
+  ({ className, variant = "default", size = "default", asChild = false, dirty = false, radius, tooltip, tooltipSide = "top", "aria-label": ariaLabel, children, ...props }, ref) => {
   const Comp = asChild ? Slot.Root : "button"
 
   // asChild → Slot requires exactly one child element, so never inject the dot there.
@@ -234,7 +237,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       data-variant={variant}
       data-size={size}
       aria-label={ariaLabel ?? (typeof tooltip === "string" ? tooltip : undefined)}
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size }), radius && RADIUS_CLASS[radius], className)}
       {...props}
     >
       {content}

@@ -3,14 +3,15 @@ import { Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { fieldVariant, type FieldVariant } from "./field-variants"
+import { type Radius } from "./radius"
 
 // See field-variants.ts — shape x shadow on the house ELEVATED surface.
 type InputVariant = FieldVariant
 
 const Input = React.forwardRef<
   HTMLInputElement,
-  React.ComponentProps<"input"> & { variant?: InputVariant }
->(({ className, type, variant = "default", ...props }, ref) => {
+  React.ComponentProps<"input"> & { variant?: InputVariant; radius?: Radius }
+>(({ className, type, variant = "default", radius = "md", ...props }, ref) => {
   return (
     <input
       ref={ref}
@@ -23,10 +24,10 @@ const Input = React.forwardRef<
         "text-sm outline-none transition-all",
         "file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
         "placeholder:text-foreground-subtle/50",
-        "focus:ring-[0.5px] focus:ring-ring focus:border-ring",
+        "focus:ring-[1px] focus:ring-ring focus:border-ring",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        "aria-invalid:ring-destructive aria-invalid:ring-[0.5px] aria-invalid:border-destructive",
-        fieldVariant(variant),
+        "aria-invalid:ring-destructive aria-invalid:ring-[1px] aria-invalid:border-destructive",
+        fieldVariant(variant, radius),
         className
       )}
       {...props}
@@ -37,12 +38,12 @@ Input.displayName = "Input"
 
 const SearchInput = React.forwardRef<
   HTMLInputElement,
-  React.ComponentProps<"input"> & { wrapperClassName?: string; variant?: InputVariant }
->(({ className, wrapperClassName, variant, ...props }, ref) => {
+  React.ComponentProps<"input"> & { wrapperClassName?: string; variant?: InputVariant; radius?: Radius }
+>(({ className, wrapperClassName, variant, radius, ...props }, ref) => {
   return (
     <div className={cn("relative w-96 shrink-0", wrapperClassName)}>
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-      <Input ref={ref} variant={variant} className={cn("pl-9", className)} {...props} />
+      <Input ref={ref} variant={variant} radius={radius} className={cn("pl-9", className)} {...props} />
     </div>
   )
 })

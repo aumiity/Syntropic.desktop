@@ -3,6 +3,7 @@ import { Select as SelectPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { fieldVariant, type FieldVariant } from "./field-variants"
+import { type Radius } from "./radius"
 import { ChevronDownIcon, ChevronUpIcon, CheckIcon } from "lucide-react"
 
 function Select({
@@ -34,12 +35,14 @@ function SelectTrigger({
   className,
   size = "default",
   variant = "default",
+  radius = "md",
   children,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default"
   // See field-variants.ts — shape x shadow on the house ELEVATED surface.
   variant?: FieldVariant
+  radius?: Radius
 }) {
   return (
     <SelectPrimitive.Trigger
@@ -47,8 +50,8 @@ function SelectTrigger({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "group flex h-9 w-fit items-center justify-between gap-1.5",
-        fieldVariant(variant),
+        "group flex h-8 w-fit items-center justify-between gap-1.5",
+        fieldVariant(variant, radius),
         "hover:bg-muted",
         "py-2 pr-2 pl-2.5",
         "text-sm whitespace-nowrap",
@@ -218,7 +221,7 @@ function SelectScrollDownButton({
   )
 }
 
-function NativeSelect({ value, onChange, children, className, selectClassName, variant = 'default' }: {
+function NativeSelect({ value, onChange, children, className, selectClassName, variant = 'default', radius = 'md' }: {
   value: number | string
   onChange: (v: string) => void
   children: React.ReactNode
@@ -226,14 +229,15 @@ function NativeSelect({ value, onChange, children, className, selectClassName, v
   selectClassName?: string
   /** See field-variants.ts — shape x shadow on the house ELEVATED surface. */
   variant?: FieldVariant
+  radius?: Radius
 }) {
   return (
     <div className={cn('relative', className)}>
       <select
         className={cn(
-          'w-full h-9 px-3 pr-9 text-sm appearance-none outline-none transition-colors',
+          'w-full h-8 px-3 pr-9 text-sm appearance-none outline-none transition-colors',
           'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-          fieldVariant(variant),
+          fieldVariant(variant, radius),
           'hover:bg-muted dark:hover:bg-input/50',
           selectClassName,
         )}

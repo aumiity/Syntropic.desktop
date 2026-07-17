@@ -4,7 +4,7 @@ import { Filter, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Canonical "กรองสถานะ" control for table-card bars. One elevated icon button
-// (h-9 w-9) that opens a single-select popover: ทั้งหมด / ใช้งาน / ปิดใช้งาน.
+// (h-8 w-8) that opens a single-select popover: ทั้งหมด / ใช้งาน / ปิดใช้งาน.
 // Default selection is always 'all' (show everything) — callers map the chosen
 // value onto their own data/query. Reference behaviour: Products/ProductsList.
 export type StatusFilterValue = 'all' | 'enabled' | 'disabled'
@@ -33,7 +33,7 @@ export function StatusFilterButton<T extends string = StatusFilterValue>({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button size="lg" variant="elevated" className={cn('h-9 w-9 p-0 shrink-0', className)} title="ตัวกรอง">
+        <Button size="lg" variant="elevated" className={cn('h-8 w-8 p-0 shrink-0', className)} title="ตัวกรอง">
           <Filter className="size-4" />
         </Button>
       </PopoverTrigger>

@@ -92,7 +92,7 @@ export interface MultiDatePickerProps {
   /** Modes shown in the in-picker tab strip. Default: all four. */
   allowedModes?: MultiDateMode[]
   align?: 'start' | 'center' | 'end'
-  /** Control height. 'default' = h-9 (table-bar control); 'lg' = h-10 (sits in a TabStrip row). */
+  /** Control height. 'default' = h-8 (table-bar control); 'lg' = h-10 (sits in a TabStrip row). */
   size?: 'default' | 'lg'
   className?: string
   placeholder?: string
@@ -114,7 +114,7 @@ export function MultiDatePicker({
   const [open, setOpen] = React.useState(false)
   const pillId = React.useId()
   // Height + matching chevron-button square size for the two stepper buttons.
-  const frameH = size === 'lg' ? 'h-10' : 'h-9'
+  const frameH = size === 'lg' ? 'h-10' : 'h-8'
   const chevronSquare = size === 'lg' ? 'size-10' : 'size-9'
 
   const handleStep = (dir: -1 | 1) => {

@@ -3,6 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { RADIUS_CLASS, type Radius } from "./radius"
 
 const badgeVariants = cva(
   [
@@ -87,17 +88,22 @@ const badgeVariants = cva(
 function Badge({
   className,
   variant = "default",
+  radius,
   asChild = false,
   ...props
 }: React.ComponentProps<"span"> &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
+  VariantProps<typeof badgeVariants> & {
+    asChild?: boolean
+    /** Override the corner radius (shared axis — see radius.ts). Omit to keep the default `rounded-sm`. */
+    radius?: Radius
+  }) {
   const Comp = asChild ? Slot.Root : "span"
 
   return (
     <Comp
       data-slot="badge"
       data-variant={variant}
-      className={cn(badgeVariants({ variant }), className)}
+      className={cn(badgeVariants({ variant }), radius && RADIUS_CLASS[radius], className)}
       {...props}
     />
   )

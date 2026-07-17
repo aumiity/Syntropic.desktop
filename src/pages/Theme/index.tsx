@@ -506,6 +506,11 @@ export default function Theme() {
                   <Button variant="destructive"><Trash2 /> ลบ</Button>
                   <Button variant="ghost"><ChevronRight /> ถัดไป</Button>
                 </DemoRow>
+                <DemoRow label="radius — แกนมุมร่วม; ไม่ใส่ = ตาม size (base md, size ใหญ่ lg). ใส่ radius='sm|md|lg' เพื่อ override">
+                  <Button radius="sm">radius sm</Button>
+                  <Button radius="md">radius md</Button>
+                  <Button radius="lg">radius lg</Button>
+                </DemoRow>
                 <DemoRow label="States">
                   <Button disabled>Disabled</Button>
                   <Button variant="outline" disabled>Disabled Outline</Button>
@@ -560,6 +565,11 @@ export default function Theme() {
                 </DemoRow>
                 <DemoRow label="Neutral — มีเงา (เทียบกับ neutral แถวบน)">
                   <Badge variant="elevated">elevated</Badge>
+                </DemoRow>
+                <DemoRow label="radius — แกนมุมร่วม (default badge = sm); ใส่ radius='md|lg' เพื่อ override">
+                  <Badge radius="sm">radius sm</Badge>
+                  <Badge radius="md">radius md</Badge>
+                  <Badge radius="lg">radius lg</Badge>
                 </DemoRow>
                 <DemoRow label="In Context">
                   <div className="flex items-center gap-2 text-sm">
@@ -691,26 +701,19 @@ export default function Theme() {
 
               <SectionGroup title="ฟอร์มและอินพุต" />
 
-              {/* ── INPUT ── */}
+              {/* ── INPUT ── variants = shape x shadow on the shared ELEVATED surface (SSOT field-variants.ts) */}
               <Section title="Input" path="src/components/ui/input.tsx">
-                <DemoRow label="Default — ELEVATED house look (bg-card + border + shadow); 'elevated' is a kept alias">
+                <DemoRow label="default — rounded-md + shadow-sm (house look; a bare <Input> gets this). 'elevated' = kept alias, identical">
                   <Input
                     className="max-w-xs"
                     placeholder="พิมพ์ข้อความ..."
                     value={inputVal}
                     onChange={e => setInputVal(e.target.value)}
                   />
+                  <Input variant="elevated" className="max-w-[200px]" placeholder="elevated (alias)" />
                   {inputVal && <span className="text-sm text-muted-foreground">ค่า: {inputVal}</span>}
                 </DemoRow>
-                <DemoRow label="Types">
-                  <Input className="max-w-[140px]" type="number" placeholder="0.00" />
-                  <Input className="max-w-[140px]" type="password" placeholder="รหัสผ่าน" />
-                </DemoRow>
-                <DemoRow label="States">
-                  <Input className="max-w-[180px]" placeholder="Disabled" disabled />
-                  <Input className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
-                </DemoRow>
-                <DemoRow label="flat — rounded-sm, no shadow">
+                <DemoRow label="flat — rounded-md, no shadow">
                   <Input variant="flat" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
                   <SearchInput variant="flat" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
                 </DemoRow>
@@ -721,6 +724,19 @@ export default function Theme() {
                 <DemoRow label="pill-flat — rounded-full, no shadow">
                   <Input variant="pill-flat" className="max-w-[220px]" placeholder="พิมพ์ข้อความ..." />
                   <SearchInput variant="pill-flat" wrapperClassName="w-[260px]" placeholder="Search transactions.." />
+                </DemoRow>
+                <DemoRow label="radius — แกนมุมร่วม (field/Button/Badge); default = md. ใช้ radius='sm' แทน className='rounded-*'; pill ไม่สนใจ radius">
+                  <Input radius="sm" className="max-w-[150px]" placeholder="radius sm" />
+                  <Input radius="md" className="max-w-[150px]" placeholder="radius md" />
+                  <Input radius="lg" className="max-w-[150px]" placeholder="radius lg" />
+                </DemoRow>
+                <DemoRow label="Types">
+                  <Input className="max-w-[140px]" type="number" placeholder="0.00" />
+                  <Input className="max-w-[140px]" type="password" placeholder="รหัสผ่าน" />
+                </DemoRow>
+                <DemoRow label="States — disabled · invalid (aria-invalid = กรอบแดงอย่างเดียว)">
+                  <Input className="max-w-[180px]" placeholder="Disabled" disabled />
+                  <Input className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
                 </DemoRow>
               </Section>
 
@@ -757,14 +773,10 @@ export default function Theme() {
 
               {/* ── TEXTAREA ── */}
               <Section title="Textarea" path="src/components/ui/textarea.tsx">
-                <DemoRow label="default — rounded-sm + shadow-sm ('elevated' is a kept alias)">
+                <DemoRow label="default — rounded-md + shadow-sm ('elevated' = kept alias)">
                   <Textarea className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
                 </DemoRow>
-                <DemoRow label="States">
-                  <Textarea className="max-w-[180px]" placeholder="Disabled" disabled />
-                  <Textarea className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
-                </DemoRow>
-                <DemoRow label="flat — rounded-sm, no shadow">
+                <DemoRow label="flat — rounded-md, no shadow">
                   <Textarea variant="flat" className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
                 </DemoRow>
                 <DemoRow label="pill — rounded-full + shadow-sm">
@@ -773,11 +785,15 @@ export default function Theme() {
                 <DemoRow label="pill-flat — rounded-full, no shadow">
                   <Textarea variant="pill-flat" className="max-w-xs" placeholder="ระบุบันทึกหรือหมายเหตุ..." />
                 </DemoRow>
+                <DemoRow label="States — disabled · invalid">
+                  <Textarea className="max-w-[180px]" placeholder="Disabled" disabled />
+                  <Textarea className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
+                </DemoRow>
               </Section>
 
               {/* ── SELECT ── */}
               <Section title="Select" path="src/components/ui/select.tsx">
-                <DemoRow label="default — rounded-sm + shadow-sm ('elevated' is a kept alias)">
+                <DemoRow label="default — rounded-md + shadow-sm ('elevated' = kept alias)">
                   <Select value={selectVal} onValueChange={setSelectVal}>
                     <SelectTrigger className="w-52">
                       <SelectValue placeholder="เลือกประเภทยา..." />
@@ -816,7 +832,7 @@ export default function Theme() {
                     </SelectContent>
                   </Select>
                 </DemoRow>
-                <DemoRow label="flat · pill · pill-flat — shape x shadow on the same elevated surface">
+                <DemoRow label="flat (rounded-md, no shadow) · pill (rounded-full + shadow) · pill-flat (rounded-full, no shadow)">
                   {(['flat', 'pill', 'pill-flat'] as const).map(v => (
                     <Select key={v}>
                       <SelectTrigger variant={v} className="w-32">
@@ -834,7 +850,7 @@ export default function Theme() {
 
               {/* ── COMBOBOX ── */}
               <Section title="Combobox" path="src/components/ui/combobox.tsx">
-                <DemoRow label="Searchable select (click → search inside)">
+                <DemoRow label="default — searchable select (click → search inside)">
                   <div className="w-72">
                     <Combobox
                       items={comboItems}
@@ -850,7 +866,7 @@ export default function Theme() {
                     />
                   </div>
                 </DemoRow>
-                <DemoRow label="With empty/all row (filter mode) — h-9 เท่ากับ Input / DateInput / DateRangePicker">
+                <DemoRow label="With empty/all row (filter mode) — h-8 เท่ากับ Input / DateInput / DateRangePicker">
                   <div className="w-72">
                     <Combobox
                       items={comboItems}
@@ -1054,18 +1070,18 @@ export default function Theme() {
                     )}
                   </div>
                 </DemoRow>
-                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip'>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-8) — สำหรับ filter strip'>
                   <DateInput
                     variant="elevated"
                     value={dateVal}
                     onChange={setDateVal}
-                    className="h-9 w-44"
+                    className="h-8 w-44"
                   />
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
                   รับ / ส่งค่าเป็น ISO <code>yyyy-mm-dd</code>.
                   แสดงผลเป็น <code>dd/mm/yyyy</code>. มี calendar picker ในตัว.
-                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์ SearchInput/Select/DateRangePicker.
+                  filter strip ใช้ <code>variant="elevated" className="h-8"</code> ให้แมตช์ SearchInput/Select/DateRangePicker.
                 </p>
               </Section>
 
@@ -1087,13 +1103,13 @@ export default function Theme() {
                     )}
                   </div>
                 </DemoRow>
-                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip ของ list table'>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-8) — สำหรับ filter strip ของ list table'>
                   <DateRangePicker
                     variant="elevated"
                     from={rangeFrom}
                     to={rangeTo}
                     onChange={(f, t) => { setRangeFrom(f); setRangeTo(t) }}
-                    className="h-9 w-60"
+                    className="h-8 w-60"
                   />
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">

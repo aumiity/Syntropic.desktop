@@ -20,7 +20,7 @@ export function GranularitySelect({
 }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as Granularity)}>
-      <SelectTrigger className="h-9 w-36 gap-1.5 bg-muted hover:bg-muted-hover rounded-lg text-sm font-medium">
+      <SelectTrigger className="h-8 w-36 gap-1.5 bg-muted hover:bg-muted-hover rounded-lg text-sm font-medium">
         <CalendarDays className="size-4 text-muted-foreground" />
         <SelectValue>{LABELS[value]}</SelectValue>
       </SelectTrigger>

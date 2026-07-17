@@ -19,14 +19,14 @@ export function ZoomControl({ value, min, max, step, onChange, className }: Zoom
   const roundZoom = (next: number) => Math.round(next * 100) / 100
 
   return (
-    <div className={cn('inline-flex h-9 items-stretch overflow-hidden rounded-lg shadow-sm', className)}>
+    <div className={cn('inline-flex h-8 items-stretch overflow-hidden rounded-lg shadow-sm', className)}>
       <Button
         type="button"
         size="lg"
         variant="elevated"
         disabled={value <= min}
         onClick={() => onChange(Math.max(min, roundZoom(value - step)))}
-        className="h-9 w-9 rounded-l-lg rounded-r-none border-r-0 px-0 shadow-none hover:shadow-none"
+        className="h-8 w-8 rounded-l-lg rounded-r-none border-r-0 px-0 shadow-none hover:shadow-none"
         tooltip="ซูมออก"
       >
         <ZoomOut className="size-4" />
@@ -36,7 +36,7 @@ export function ZoomControl({ value, min, max, step, onChange, className }: Zoom
         variant="elevated"
         size="lg"
         onClick={() => onChange(1)}
-        className="h-9 w-14 rounded-none px-0 text-muted-foreground shadow-none hover:shadow-none"
+        className="h-8 w-14 rounded-none px-0 text-muted-foreground shadow-none hover:shadow-none"
         tooltip="รีเซ็ตเป็นขนาดจริง (100%)"
       >
         {Math.round(value * 100)}%
@@ -47,7 +47,7 @@ export function ZoomControl({ value, min, max, step, onChange, className }: Zoom
         variant="elevated"
         disabled={value >= max}
         onClick={() => onChange(Math.min(max, roundZoom(value + step)))}
-        className="h-9 w-9 rounded-l-none rounded-r-lg border-l-0 px-0 shadow-none hover:shadow-none"
+        className="h-8 w-8 rounded-l-none rounded-r-lg border-l-0 px-0 shadow-none hover:shadow-none"
         tooltip="ซูมเข้า"
       >
         <ZoomIn className="size-4" />
