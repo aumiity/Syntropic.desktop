@@ -1086,10 +1086,10 @@ export default function POSPage() {
               return (
                 <Button key={i} variant="ghost"
                   onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
-                  className={`relative flex flex-col items-stretch text-left h-28 px-4 py-3 rounded-2xl border border-border transition-colors ${
+                  className={`relative flex flex-col items-stretch text-left h-32 px-4 py-3 rounded-2xl border border-border shadow-card hover:shadow-card transition-colors ${
                     isActive
                       ? 'text-primary-foreground hover:text-primary-foreground hover:bg-transparent'
-                      : 'bg-card text-foreground hover:bg-surface-hover'
+                      : 'bg-card text-foreground hover:bg-card dark:hover:bg-card'
                   }`}>
                   {isActive && (
                     <motion.div
@@ -1099,20 +1099,21 @@ export default function POSPage() {
                       transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                     />
                   )}
-                  <span className={`absolute top-3 right-3 z-10 grid place-items-center w-11 h-11 rounded-xl shrink-0 ${iconBox}`}>
+                  <span className={`absolute top-3 right-4 z-10 grid place-items-center w-11 h-11 rounded-lg shrink-0 ${iconBox}`}>
                     <Icon className="size-7" strokeWidth={2}/>
-                    {hasItems && (
-                      <span
-                        aria-label={`${lineCount} รายการ`}
-                        className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 grid place-items-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold ring-2 ring-card"
-                      >
-                        {lineCount > 99 ? '99+' : lineCount}
-                      </span>
-                    )}
                   </span>
+                  {hasItems && (
+                    <Badge
+                      variant="accent"
+                      aria-label={`${lineCount} รายการ`}
+                      className="absolute bottom-3 right-4 z-10 h-5 min-w-5 px-1.5 justify-center font-semibold rounded-sm leading-none"
+                    >
+                      {lineCount > 99 ? '99+' : lineCount}
+                    </Badge>
+                  )}
                   <span className="relative z-10 text-sm font-semibold leading-none pr-12">รายการขาย {i + 1}</span>
-                  <div className="relative z-10 flex flex-col gap-1 w-full min-w-0 mt-auto">
-                    <span className="text-2xl font-bold leading-none truncate">
+                  <div className="relative z-10 flex flex-col w-full min-w-0 mt-auto">
+                    <span className="text-3xl font-semibold leading-none truncate" style={{ fontFamily: "'Source Serif 4', serif" }}>
                       {formatCurrency(total)}
                     </span>
                     <div className="flex items-center w-full">
@@ -1126,7 +1127,7 @@ export default function POSPage() {
                 </Button>
               )
             })}
-            <div className="flex flex-col gap-1.5 h-28 px-3 py-2.5 bg-card rounded-2xl border border-border">
+            <div className="flex flex-col gap-1.5 h-32 px-3 py-2.5 bg-card rounded-2xl border border-border shadow-card">
               <Button variant="ghost"
                 onClick={() => setShowCustomerSearch(true)}
                 className="relative flex items-center gap-2 flex-1 min-h-0 p-1 rounded-xl hover:bg-transparent text-left">
@@ -1170,7 +1171,7 @@ export default function POSPage() {
 
           {/* Sale type + search + clear-all header */}
           <div className="flex items-center gap-2 px-4 h-12 shrink-0 border-0">
-            <div className="flex h-9 items-stretch gap-0.5 rounded-lg bg-muted/40 shrink-0">
+            <div className="flex h-8 items-stretch gap-0.5 rounded-lg bg-muted/40 shrink-0">
               <Button
                 type="button"
                 variant="ghost"
@@ -1215,12 +1216,12 @@ export default function POSPage() {
                 placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                 autoFocus
                 autoComplete="off"
-                className="h-9 py-2 pl-3 pr-9 text-sm rounded-lg"/>
-              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
+                className="h-8 py-2 pl-9 pr-3 text-sm rounded-lg"/>
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
             </div>
             <Button variant="destructive-soft" size="sm" disabled={cart.items.length === 0}
               onClick={() => { cart.clearCart(); setExpandedBundles(new Set()); refocusSearch() }}
-              className="gap-1.5 px-3 py-1.5 h-9 rounded-lg text-sm font-medium hover:bg-destructive hover:text-primary-foreground shrink-0">
+              className="gap-1.5 px-3 py-1.5 h-8 rounded-lg text-sm font-medium hover:bg-destructive hover:text-primary-foreground shrink-0">
               <Trash2 className="size-3.5" /> ลบรายการทั้งหมด
             </Button>
           </div>
@@ -1436,7 +1437,7 @@ export default function POSPage() {
             <div className="text-right text-md font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
             <div ref={totalNumRef}
               className="mt-6 text-right font-bold leading-[1.05] tracking-tight whitespace-nowrap"
-              style={{ fontSize: `${totalFont}px`, letterSpacing: '-1.5px' }}>
+              style={{ fontSize: `${totalFont}px`, letterSpacing: '-1.5px', fontFamily: "'Source Serif 4', serif" }}>
               {formatCurrency(totalAmount)}
             </div>
           </div>

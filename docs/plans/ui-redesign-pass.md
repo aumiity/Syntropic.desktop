@@ -114,6 +114,15 @@
   - commit `620552c` (pushed main)
   - **ถัดไป (พรุ่งนี้ต่อ):** เจ้าของประกาศจะรื้อ **UI ใหม่ทั้งระบบทีละหน้า** (ไม่ใช่แค่ journey wave เดิม — คราวนี้เจาะ "CSS Component ต่าง ๆ" ไปทีละหน้าเหมือนเดิมแต่เริ่มจาก Sidebar ก่อน) เช็ค Wave list ด้านบนว่ายังตรงกับที่เจ้าของอยากทำต่อไหม ก่อนเจาะหน้าใหม่
 
+- **2026-07-18** — **#3 POS review pass (dev-overlay ทีละจุด)** — เจ้าของปักโน้ตทีละจุดผ่าน review overlay, แก้ทีละอัน (POS/index.tsx เป็นหลัก):
+  - **Cart slots:** เอา hover ออก (`hover:bg-card dark:hover:bg-card` คุม ghost 2 โหมด), tinticon `rounded-lg`, สูง `h-28→h-32`, badge จำนวน → มุมล่างขวา `<Badge variant="accent">` ลอกจาก Sidebar (`h-5 min-w-5 px-1.5 rounded-sm`), ไอคอน+badge `right-4` ให้ตรง `px-4` (แก้ content ซ้าย-ขวาไม่เท่า)
+  - **ตัวเลขยอด (สล็อต + ยอดสุทธิ right rail) = Source Serif 4 ผ่าน inline `style={{fontFamily:"'Source Serif 4',serif"}}`**
+  - **Search row → h-8** (input + ปุ่มปลีก/ส่ง + ลบทั้งหมด) ตาม redesign h-9→h-8; แว่นขยายย้ายชิดซ้าย (`pl-9 pr-3`)
+  - **Shadow:** ลอง `shadow-card-lg` แล้วเจ้าของว่าฟุ้ง → revert เป็น `shadow-card` ทั้งหน้า (ถอด token `-lg`). **คง `cn()` = `extendTailwindMerge` ลงทะเบียน `shadow-card`** (จำเป็น: ghost บังคับ `shadow-none` + twMerge default ไม่รู้จักคลาส custom → เงาขึ้นเฉพาะ hover)
+  - **DEV:** ใส่ `data-review-ui` ที่ TitleBar → กดปุ่มออกจากโหมดปักโน้ตได้ (เดิม overlay ดักคลิกทับ)
+  - toggle ปลีก/ส่ง: ลอง pill (`rounded-full`) แล้ว revert กลับ segmented เดิม (เจ้าของว่าไม่สวย)
+  - pending/tunable: `h-32`/`text-3xl` อาจปรับถ้าเลขยาว, letterSpacing ยอดสุทธิจูนกับ sans เดิม; POS dead imports (`Label`/`Switch`/`Plus`/`Minus`/`ChevronLeft`/`Contact`/`Users`) = ของเดิม ไม่แตะ ([[project_prebuild_cleanup]])
+
 ## โน้ตต่อหน้า (เก็บ decision/ของที่เจอระหว่างทำ)
 - **Sidebar nav pill/hover** — ใช้ inset (`inset-y-0.5 inset-x-2.5`) + `rounded-lg` ทั้ง active (`motion.div` layoutId) และ hover (`span` + `group-hover:`) ให้ขนาดตรงกันเป๊ะ อย่าแยกให้ hover เต็มแถวอีก (เคยเป็นบั๊กที่เจ้าของจับได้)
 - **Sidebar กรอบนอก = `rounded-xl` เจาะจง ไม่ใช่ `rounded-card`/`rounded-control`** — เจ้าของทดสอบเทียบแล้วเลือกเอง (2026-07-14); ต่างจาก panel การ์ดทั่วไปที่ยังใช้ `rounded-card` ตามกฎเดิม
@@ -123,3 +132,5 @@
 - **โลโก้ Syntropic:** ยังไม่มี asset จริง → ใช้ SVG logomark ใน `brand.tsx` (3 แท่งไล่ระดับ = growth/syntropy + จุด accent เหลือง). เปลี่ยนเป็นโลโก้จริงได้ที่ `LogoGlyph` ใน `brand.tsx` ที่เดียว
 - **BrandPanel/BrandMark = ใช้ซ้ำ:** Setup + Login (Wave 1) ต้องหน้าตาเดียวกัน — แก้ที่ `brand.tsx` กระทบทั้งคู่
 - **gradient แบรนด์:** `from-primary to-primary-strong` (token มีครบ light/dark)
+- **ห้ามใช้ arbitrary Tailwind class กับชื่อฟอนต์ที่มีช่องว่าง** (`font-['Source_Serif_4']`) — Tailwind ไม่แปลง `_`→ช่องว่างในเครื่องหมายคำพูด → ได้ `'Source_Serif_4'` ที่ไม่ตรง @font-face → ตกไป Times (เตี้ย/อ้วน). ใช้ **inline `style={{fontFamily}}`** (เห็นผลทันที) หรือเพิ่ม key ใน `tailwind.config.js` fontFamily (ต้อง **restart dev server** ถึงจะ generate). Source Serif 4 bundle แล้วที่ `src/assets/fonts/SourceSerif4-Regular.woff2` (@font-face ใน index.css)
+- **คลาสเงา custom (`shadow-card`) ต้องลงทะเบียนกับ tailwind-merge** ใน `cn()` (`extendTailwindMerge`, `src/lib/utils.ts`) — ไม่งั้น twMerge ไม่ dedupe กับ `shadow-none` ที่ปุ่ม `variant="ghost"` บังคับ → เงาขึ้นไม่สม่ำเสมอ (เฉพาะตอน hover)

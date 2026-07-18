@@ -29,7 +29,7 @@ const STEP_LABELS = ['ข้อมูลร้าน', 'ภาษี (VAT)', '�
 
 const STEP_META: Record<1 | 2 | 3 | 4, { title: string; desc: string }> = {
   1: { title: 'ข้อมูลร้าน', desc: 'ชื่อ ที่อยู่ และเบอร์โทร จะถูกพิมพ์บนฉลากยาและใบเสร็จ' },
-  2: { title: 'ภาษีมูลค่าเพิ่ม (VAT)', desc: 'เลือกสถานะภาษีของร้าน — ตัดสินใจครั้งเดียวตอนติดตั้ง' },
+  2: { title: 'ภาษีมูลค่าเพิ่ม (VAT)', desc: 'ตั้งค่าสถานะภาษีของร้าน' },
   3: { title: 'ตั้งรหัสผ่านผู้ดูแล', desc: 'รหัสผ่านสำหรับบัญชีผู้ดูแลระบบ (admin) เพื่อเข้าสู่ระบบ' },
   4: { title: 'ยืนยันข้อมูล', desc: 'ตรวจสอบความถูกต้องอีกครั้งก่อนเริ่มใช้งาน' },
 }
@@ -237,7 +237,7 @@ export function SetupWizard({ onComplete, dryRun = false }: { onComplete: () => 
         </BrandPanel>
 
         <div className="flex-1 overflow-auto">
-          <div className="mx-auto w-full max-w-lg px-8 py-10 space-y-6">
+          <div className="mx-auto w-full max-w-lg px-0 py-10 space-y-3">
             <div className="space-y-1.5">
               <div className="text-xs font-medium uppercase tracking-wide text-primary">ขั้นที่ {step} จาก 4</div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">{meta.title}</h1>

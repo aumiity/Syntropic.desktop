@@ -189,6 +189,7 @@ export function TitleBar() {
 
   return (
     <div
+      data-review-ui
       className="no-print absolute top-0 left-0 right-0 flex items-center justify-between h-9 select-none z-50"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >

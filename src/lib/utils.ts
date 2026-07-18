@@ -1,11 +1,21 @@
 import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
 import dayjs from 'dayjs'
 import 'dayjs/locale/th'
 import buddhistEra from 'dayjs/plugin/buddhistEra'
 
 dayjs.extend(buddhistEra)
 dayjs.locale('th')
+
+// Register our custom box-shadow token (shadow-card, defined in tailwind.config.js)
+// with tailwind-merge. Without this, twMerge doesn't know it's a box-shadow
+// utility, so it won't dedupe it against a component's own shadow class — e.g.
+// Button variant="ghost" forces `shadow-none`, and both classes survive; CSS
+// order then wins, making the intended shadow appear only intermittently (it
+// showed only on hover on the POS cart slots).
+const twMerge = extendTailwindMerge({
+  extend: { classGroups: { shadow: [{ shadow: ['card'] }] } },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

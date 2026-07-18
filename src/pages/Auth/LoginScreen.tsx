@@ -367,7 +367,7 @@ export function LoginScreen({ onComplete, preview = false }: { onComplete?: () =
             ) : (
               <div className="space-y-4 animate-in fade-in slide-in-from-right-3 duration-200 motion-reduce:animate-none">
                 {/* ผู้ใช้ที่เลือก */}
-                <div className="flex items-center gap-3.5 rounded-2xl border px-4 py-3">
+                <div className="flex items-center gap-3.5 rounded-2xl border bg-card px-4 py-3 shadow-sm">
                   <InitialAvatar name={selected?.name} size="lg" />
                   <div className="flex-1 min-w-0">
                     <div className="text-base font-semibold text-foreground truncate">{selected?.name}</div>

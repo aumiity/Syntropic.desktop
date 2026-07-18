@@ -23,7 +23,7 @@ export function ChoiceCard({
       type="button"
       onClick={onClick}
       className={cn(
-        'relative rounded-card border p-4 pr-9 text-left transition-colors',
+        'relative rounded-lg border p-4 pr-9 text-left transition-colors',
         selected
           ? 'border-primary bg-primary/5 ring-[1px] ring-primary'
           : 'border-border bg-card hover:border-primary',

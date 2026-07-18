@@ -682,10 +682,12 @@ input[type=number] { -moz-appearance: textfield; appearance: none; }
 }
 
 /* ── Theme Lab — serif comparison candidates ─────────────────────────────
-   Reference-only fonts for the /theme-lab font comparison section. NOT wired
-   into --font-latin/--font-thai — the real app's typography is untouched.
-   Each file is a variable font; the two font-weight blocks below both point
-   at the same file so Chromium interpolates the requested weight. */
+   Reference-only fonts for the /theme-lab font comparison section — plus Source
+   Serif 4, also applied directly (arbitrary font-family) to prominent numeric
+   readouts like the POS slot totals. NOT wired into --font-latin/--font-thai —
+   the real app's body typography is untouched. Each file is a variable font;
+   the two font-weight blocks below both point at the same file so Chromium
+   interpolates the requested weight. */
 @font-face {
   font-family: 'Source Serif 4';
   src: url('./assets/fonts/SourceSerif4-Regular.woff2') format('woff2');
