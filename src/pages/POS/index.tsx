@@ -1086,10 +1086,10 @@ export default function POSPage() {
               return (
                 <Button key={i} variant="ghost"
                   onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
-                  className={`relative flex flex-col items-stretch text-left h-32 px-4 py-3 rounded-2xl border border-border shadow-card hover:shadow-card transition-colors ${
+                  className={`relative flex flex-col items-stretch text-left h-32 px-4 py-3 rounded-2xl border shadow-card hover:shadow-card transition-colors ${
                     isActive
-                      ? 'text-primary-foreground hover:text-primary-foreground hover:bg-transparent'
-                      : 'bg-card text-foreground hover:bg-card dark:hover:bg-card'
+                      ? 'border-primary text-primary-foreground hover:text-primary-foreground hover:bg-transparent'
+                      : 'border-border bg-card text-foreground hover:bg-card dark:hover:bg-card'
                   }`}>
                   {isActive && (
                     <motion.div
@@ -1436,7 +1436,7 @@ export default function POSPage() {
           <div ref={totalCardRef} className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0 overflow-hidden">
             <div className="text-right text-md font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
             <div ref={totalNumRef}
-              className="mt-6 text-right font-bold leading-[1.05] tracking-tight whitespace-nowrap"
+              className="mt-6 text-right font-semibold leading-[1.05] tracking-tight whitespace-nowrap"
               style={{ fontSize: `${totalFont}px`, letterSpacing: '-1.5px', fontFamily: "'Source Serif 4', serif" }}>
               {formatCurrency(totalAmount)}
             </div>
