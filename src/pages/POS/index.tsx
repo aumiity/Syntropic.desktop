@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '@/stores/cartStore'
 import { getCurrentUserId, getCurrentUserName } from '@/stores/userStore'
 import { useManagerOverride } from '@/hooks/useManagerOverride'
@@ -157,7 +156,6 @@ function recomputeAdjustAllocations(rows: AdjustLineItem[]): { rows: AdjustLineI
 export default function POSPage() {
   const { toast } = useToast()
   const cart = useCartStore()
-  const navigate = useNavigate()
 
   // Search modal
   const [searchOpen, setSearchOpen] = useState(false)
@@ -1164,11 +1162,11 @@ export default function POSPage() {
                     <motion.div
                       layoutId="pos-cart-slot-pill"
                       aria-hidden
-                      className="absolute inset-0 rounded-2xl bg-primary"
+                      className="absolute -inset-px rounded-2xl bg-primary shadow-lg"
                       transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
                     />
                   )}
-                  <span className={`absolute top-3 right-4 z-10 grid place-items-center w-11 h-11 rounded-lg shrink-0 ${iconBox}`}>
+                  <span className={`absolute top-3 right-4 z-10 grid place-items-center w-11 h-11 rounded-xl shrink-0 ${iconBox}`}>
                     <Icon className="size-7" strokeWidth={2}/>
                   </span>
                   {hasItems && (
@@ -1529,10 +1527,6 @@ export default function POSPage() {
             <Button variant="elevated" onClick={() => setShowReturn(true)}
               className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
               <RotateCcw className="size-6 text-primary" /> รับคืนสินค้า
-            </Button>
-            <Button variant="elevated" onClick={() => navigate('/manage')}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
-              <Trash2 className="size-6 text-destructive" /> ยกเลิกบิล
             </Button>
           </div>
 
