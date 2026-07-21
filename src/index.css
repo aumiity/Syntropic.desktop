@@ -44,9 +44,9 @@
     --accent-hover:      43 100% 57%;
 
     /* ── Muted (neutral grey surface) ───────────────────────────────────── */
-    --muted:            0 0% 92%;
+    --muted:            0 0% 96%;
     --muted-foreground: 0 0% 12%;
-    --muted-hover:      0 0% 82%;
+    --muted-hover:      0 0% 89%;
 
     /* ── Status: Success (green) ────────────────────────────────────────── */
     --success:            142 71% 36%;

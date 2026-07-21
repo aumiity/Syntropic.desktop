@@ -8,11 +8,9 @@ import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import { Input, SearchInput } from '@/components/ui/input'
 import { PriceInput } from '@/components/ui/price-input'
-import { Label } from '@/components/ui/label'
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog'
 import { CustomerSearchDialog } from '@/components/dialogs/CustomerSearchDialog'
 import { ProductSearchDialog } from '@/components/dialogs/ProductSearchDialog'
-import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -39,12 +37,12 @@ import { LabelPrintDialog } from '@/components/dialogs/LabelPrintDialog'
 import { EXPIRY_WARN_MONTHS, EXPIRY_DANGER_MONTHS } from '@/lib/expiry'
 import { extractVat, VAT_RATE_DEFAULT } from '@/lib/vat'
 import {
-  Search, Trash2, Plus, Minus,
+  Search, Trash2,
   Banknote, AlertTriangle, PackageX,
   UserPlus, Info,
-  RotateCcw, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Tag,
+  RotateCcw, ChevronRight, ChevronDown, ChevronUp, Tag,
   ShoppingBag, Hourglass, RefreshCcw, HandCoins,
-  Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, Contact, Users, PackageMinus, ClockAlert,
+  Phone, MapPin, CreditCard, Cake, Pill, HeartPulse, PackageMinus, ClockAlert,
   Check, SquarePen, CircleSlash2, CircleDollarSign, CirclePercent,
 } from 'lucide-react'
 
@@ -244,6 +242,14 @@ export default function POSPage() {
   // Keyed by idx because CartItem has no stable id — keep the Set in sync when
   // rows are removed (see removeCartItem).
   const [expandedBundles, setExpandedBundles] = useState<Set<number>>(new Set())
+
+  // Cart row selection — click a row to select it; a hotkey (F7 = qty) then
+  // opens the matching edit dialog for the selected row. Kept in sync with the
+  // shifting row indices on remove / clear / slot-switch (see below).
+  const [selectedRowIdx, setSelectedRowIdx] = useState<number | null>(null)
+  // Scroll container of the cart table — used to keep the selected row visible
+  // when the selection moves by arrow keys or on auto-select of a new item.
+  const cartScrollRef = useRef<HTMLDivElement>(null)
 
   // Per-row modals
   const [unitModalIdx, setUnitModalIdx] = useState<number | null>(null)
@@ -500,6 +506,62 @@ export default function POSPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [anyModalOpen, cart])
 
+  // F7 opens the qty editor for the currently-selected cart row (click a row to
+  // select it first). Same "nothing else open + in-bounds" guard as the other
+  // edit hotkeys — add more keys here (unit/price/discount) on the same pattern.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'F7') return
+      if (anyModalOpen) return
+      if (selectedRowIdx === null || selectedRowIdx >= cart.items.length) return
+      e.preventDefault()
+      setQtyModalIdx(selectedRowIdx)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [anyModalOpen, selectedRowIdx, cart.items.length])
+
+  // F3 opens the unit picker for the selected cart row. Base-unit-only bundles
+  // have no unit picker (static label in-row), so skip them.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'F3') return
+      if (anyModalOpen) return
+      if (selectedRowIdx === null || selectedRowIdx >= cart.items.length) return
+      if (cart.items[selectedRowIdx]?.product?.is_bundle) return
+      e.preventDefault()
+      setUnitModalIdx(selectedRowIdx)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [anyModalOpen, selectedRowIdx, cart.items])
+
+  // Arrow up/down moves the cart-row selection (only when no modal owns the keys,
+  // so it never fights the search-modal's own arrow highlight). From no selection,
+  // Down picks the first row and Up the last; then it clamps within bounds.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (anyModalOpen) return
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+      const n = cart.items.length
+      if (n === 0) return
+      e.preventDefault()
+      setSelectedRowIdx(prev => {
+        if (prev === null) return e.key === 'ArrowDown' ? 0 : n - 1
+        const next = e.key === 'ArrowDown' ? prev + 1 : prev - 1
+        return Math.max(0, Math.min(n - 1, next))
+      })
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [anyModalOpen, cart.items.length])
+
+  // Keep the selected row visible (on arrow-move or auto-select of a new item).
+  useEffect(() => {
+    if (selectedRowIdx === null) return
+    cartScrollRef.current?.querySelector('[data-selected-row]')?.scrollIntoView({ block: 'nearest' })
+  }, [selectedRowIdx])
+
   const refocusSearch = useCallback(() => {
     setTimeout(() => {
       if (anyModalOpenRef.current) return
@@ -520,6 +582,8 @@ export default function POSPage() {
       })
       return next
     })
+    // Keep the selected-row pointer aligned with the shifted indices.
+    setSelectedRowIdx(prev => prev === null ? null : prev === idx ? null : prev > idx ? prev - 1 : prev)
     cart.removeItem(idx)
     refocusSearch()
   }, [cart, refocusSearch])
@@ -633,6 +697,11 @@ export default function POSPage() {
     const unitName = unit?.unit_name ?? product.unit_name ?? 'ชิ้น'
     const qty = multiplier ?? product.default_qty ?? 1
     cart.addItem({ product_id: product.id, item_name: product.trade_name, unit_name: unitName, qty, unit_price: price, discount: 0, line_total: price * qty, product, selectedUnit: unit ?? undefined })
+    // Auto-select the just-added row (merged existing line or newly appended one),
+    // reading the freshly-committed store state (the `cart` closure is stale here).
+    const items = useCartStore.getState().items
+    const addedIdx = items.findIndex(i => i.product_id === product.id && i.unit_name === unitName)
+    setSelectedRowIdx(addedIdx >= 0 ? addedIdx : items.length - 1)
     closeSearch() // ปิด modal + รีเซ็ตตัวคูณ (single-use)
   }
 
@@ -1011,7 +1080,7 @@ export default function POSPage() {
       const wantPrint = printReceiptChecked
       setLastInvoice(result.invoice_no)
       setDailyStats({ bills: result.daily_bills, total: result.daily_total, latest: result.latest_bill_time })
-      cart.clearCart(); setExpandedBundles(new Set()); setShowPayment(false); setShowSuccess(true)
+      cart.clearCart(); setExpandedBundles(new Set()); setSelectedRowIdx(null); setShowPayment(false); setShowSuccess(true)
       setCashAmount(''); setCardAmount(''); setTransferAmount('')
       // Bill may have oversold a product (deductFefo writes lot_id=NULL marker
       // rows when stock runs out). Refresh the sidebar badge so the operator
@@ -1085,10 +1154,10 @@ export default function POSPage() {
                 : 'bg-primary text-primary-foreground'
               return (
                 <Button key={i} variant="ghost"
-                  onClick={() => { cart.setActiveSlot(i); refocusSearch() }}
+                  onClick={() => { cart.setActiveSlot(i); setSelectedRowIdx(null); refocusSearch() }}
                   className={`relative flex flex-col items-stretch text-left h-32 px-4 py-3 rounded-2xl border shadow-card hover:shadow-card transition-colors ${
                     isActive
-                      ? 'border-primary text-primary-foreground hover:text-primary-foreground hover:bg-transparent'
+                      ? 'border-transparent text-primary-foreground hover:text-primary-foreground hover:bg-transparent'
                       : 'border-border bg-card text-foreground hover:bg-card dark:hover:bg-card'
                   }`}>
                   {isActive && (
@@ -1170,44 +1239,38 @@ export default function POSPage() {
           <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden border border-border">
 
           {/* Sale type + search + clear-all header */}
-          <div className="flex items-center gap-2 px-4 h-12 shrink-0 border-0">
-            <div className="flex h-8 items-stretch gap-0.5 rounded-lg bg-muted/40 shrink-0">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => { cart.setSaleType('retail'); refocusSearch() }}
-                className={`relative flex h-full w-[70px] px-0 rounded-lg text-sm font-semibold justify-center hover:bg-transparent ${
-                  cart.saleType === 'retail' ? 'text-primary-foreground hover:text-primary-foreground' : 'text-foreground-subtle hover:text-foreground'
-                }`}>
-                {cart.saleType === 'retail' && (
-                  <motion.div
-                    layoutId="pos-sale-type-pill"
-                    aria-hidden
-                    className="absolute inset-0 rounded-lg bg-primary"
-                    transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
-                  />
-                )}
-                <span className="relative z-10">ขายปลีก</span>
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => { cart.setSaleType('wholesale'); refocusSearch() }}
-                className={`relative flex h-full w-[70px] px-0 rounded-lg text-sm font-semibold justify-center hover:bg-transparent ${
-                  cart.saleType === 'wholesale' ? 'text-accent-foreground hover:text-accent-foreground' : 'text-foreground-subtle hover:text-foreground'
-                }`}>
-                {cart.saleType === 'wholesale' && (
-                  <motion.div
-                    layoutId="pos-sale-type-pill"
-                    aria-hidden
-                    className="absolute inset-0 rounded-lg bg-accent"
-                    transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }}
-                  />
-                )}
-                <span className="relative z-10">ขายส่ง</span>
-              </Button>
-            </div>
-            <div className="relative flex-1 min-w-0">
+          <div className="flex items-center gap-2 px-4 h-16 shrink-0 border-0">
+            {/* Sale-type toggle switch: both labels stay on each half over a track;
+                a status-coloured capsule (ปลีก = primary, ส่ง = accent) slides behind
+                them and the active-side label lifts to its on-colour. The track (h-8)
+                matches the search box beside it. */}
+            <Button
+              type="button"
+              variant="ghost"
+              aria-pressed={cart.saleType === 'wholesale'}
+              onClick={() => { cart.setSaleType(cart.saleType === 'wholesale' ? 'retail' : 'wholesale'); refocusSearch() }}
+              className={`relative h-[calc(2rem+2px)] w-44 shrink-0 rounded-full p-0 overflow-hidden transition-colors ${
+                cart.saleType === 'wholesale' ? 'bg-accent hover:bg-accent' : 'bg-primary hover:bg-primary'
+              }`}>
+              {/* white sliding capsule (h-8), behind the labels */}
+              <span
+                aria-hidden
+                className={`absolute inset-y-0.5 w-[calc(50%-0.25rem)] rounded-full bg-card shadow-md transition-all duration-300 ${
+                  cart.saleType === 'wholesale' ? 'left-[calc(50%+0.125rem)]' : 'left-0.5'
+                }`}
+              />
+              {/* both labels — active (on the white capsule) darkens, inactive
+                  (on the coloured track) uses that track's on-colour */}
+              <span className="absolute inset-0 z-10 flex items-center">
+                <span className={`flex-1 text-center text-sm font-semibold transition-colors duration-300 ${
+                  cart.saleType === 'wholesale' ? 'text-accent-foreground/70' : 'text-foreground'
+                }`}>ขายปลีก</span>
+                <span className={`flex-1 text-center text-sm font-semibold transition-colors duration-300 ${
+                  cart.saleType === 'wholesale' ? 'text-foreground' : 'text-primary-foreground/70'
+                }`}>ขายส่ง</span>
+              </span>
+            </Button>
+            <div className="relative w-96 shrink-0">
               <Input
                 ref={mainInputRef}
                 value={query}
@@ -1216,18 +1279,19 @@ export default function POSPage() {
                 placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                 autoFocus
                 autoComplete="off"
-                className="h-8 py-2 pl-9 pr-3 text-sm rounded-lg"/>
+                className="h-8 py-2 pl-9 pr-3 text-sm rounded-full"/>
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
             </div>
-            <Button variant="destructive-soft" size="sm" disabled={cart.items.length === 0}
-              onClick={() => { cart.clearCart(); setExpandedBundles(new Set()); refocusSearch() }}
-              className="gap-1.5 px-3 py-1.5 h-8 rounded-lg text-sm font-medium hover:bg-destructive hover:text-primary-foreground shrink-0">
-              <Trash2 className="size-3.5" /> ลบรายการทั้งหมด
+            <Button variant="destructive" size="sm" disabled={cart.items.length === 0}
+              tooltip="ลบรายการทั้งหมด"
+              onClick={() => { cart.clearCart(); setExpandedBundles(new Set()); setSelectedRowIdx(null); refocusSearch() }}
+              className="h-8 w-8 p-0 rounded-lg shrink-0 ml-auto mr-2">
+              <Trash2 className="size-4" />
             </Button>
           </div>
 
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-            <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
+            <div ref={cartScrollRef} className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
               <table className="w-full caption-bottom text-base table-fixed border-l-[16px] border-r-[16px] border-card">
                 <colgroup>
                   <col style={{ width: 36 }} />
@@ -1240,7 +1304,7 @@ export default function POSPage() {
                   <col style={{ width: 60 }} />
                 </colgroup>
                 <TableHeader className="sticky top-0 z-10 bg-muted">
-                  <TableRow className="hover:bg-muted">
+                  <TableRow className="hover:bg-muted [&_th]:h-10">
                     <TableHead className="text-center text-sm  text-foreground-subtle">#</TableHead>
                     <TableHead className="text-sm  text-foreground-subtle">ชื่อสินค้า</TableHead>
                     <TableHead className="text-center text-sm  text-foreground-subtle">หน่วย</TableHead>
@@ -1271,7 +1335,10 @@ export default function POSPage() {
                     const components = isBundle ? (item.product?.bundle_items ?? []) : []
                     return (
                     <React.Fragment key={idx}>
-                    <TableRow className="hover:bg-transparent [&_td]:py-1">
+                    <TableRow
+                      onClick={() => setSelectedRowIdx(idx)}
+                      data-selected-row={selectedRowIdx === idx ? '' : undefined}
+                      className={`cursor-pointer [&_td]:py-1 ${selectedRowIdx === idx ? 'bg-muted hover:bg-muted' : 'hover:bg-transparent'}`}>
                       <TableCell className="text-center text-sm text-muted-foreground p-0">
                         {isBundle ? (
                           <Button
@@ -1445,26 +1512,26 @@ export default function POSPage() {
           {/* Quick actions (vertical stack) */}
           <div className="flex flex-col gap-1.5 flex-1 min-h-0">
             <Button variant="elevated" onClick={openCashDrawer}
-              className="relative w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              className="relative w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
               <Banknote className="size-6 text-info" /> เปิดลิ้นชัก
               <span className="absolute right-2 top-2 inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-xs font-semibold text-border-strong">F10</span>
             </Button>
             <Button variant="elevated" disabled={cart.items.length === 0}
               onClick={() => setShowLabelPrint(true)}
-              className="relative w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              className="relative w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
               <Tag className="size-6 text-info-soft-foreground" /> พิมพ์ฉลาก
               <span className="absolute right-2 top-2 inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-xs font-semibold text-border-strong">F4</span>
             </Button>
             <Button variant="elevated" onClick={() => setShowAdjust(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
               <PackageMinus className="size-6 text-accent" /> ตัดสต็อก
             </Button>
             <Button variant="elevated" onClick={() => setShowReturn(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
               <RotateCcw className="size-6 text-primary" /> รับคืนสินค้า
             </Button>
             <Button variant="elevated" onClick={() => navigate('/manage')}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium">
+              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
               <Trash2 className="size-6 text-destructive" /> ยกเลิกบิล
             </Button>
           </div>
@@ -1472,14 +1539,14 @@ export default function POSPage() {
           {/* Pay button */}
           <Button disabled={cart.items.length === 0}
             onClick={openPayment}
-            className="relative w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-accent/85  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3">
+            className="relative w-full flex-1 max-h-32 justify-center gap-3 bg-accent text-accent-foreground hover:bg-accent/85  disabled:text-foreground-subtle disabled:opacity-100 rounded-2xl px-5 py-3 shadow-card">
               <HandCoins className="size-9" strokeWidth={2.2} />
               <span className="text-4xl font-bold leading-none">ชำระเงิน</span>
               <span className="absolute right-2 top-2 inline-flex items-center rounded-md border border-foreground/60 px-1.5 py-0.5 text-xs font-semibold text-foreground">F9</span>
           </Button>
 
           {/* Daily summary */}
-          <div className="rounded-2xl bg-card px-3 py-2.5 shrink-0 flex flex-col gap-2 border border-border">
+          <div className="rounded-2xl bg-card px-3 py-2.5 shrink-0 flex flex-col gap-2 border border-border shadow-card">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
                 <HandCoins className="size-4 text-primary shrink-0" />
