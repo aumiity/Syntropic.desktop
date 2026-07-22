@@ -1185,7 +1185,7 @@ export default function POSPage() {
                     </span>
                     <div className="flex items-center w-full">
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant={isActive ? 'amber-soft' : 'accent'} className="text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant={isActive ? 'amber-soft' : 'amber'} className="text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
                         <Badge variant={isActive ? 'primary-soft' : 'default'} className="text-xs rounded-md">ขายปลีก</Badge>
                       )}
@@ -1237,9 +1237,9 @@ export default function POSPage() {
           <div className="flex flex-1 flex-col min-h-0 bg-card rounded-2xl shadow-card overflow-hidden border border-border">
 
           {/* Sale type + search + clear-all header */}
-          <div className="flex items-center gap-2 px-4 h-16 shrink-0 border-0">
+          <div className="flex items-center gap-2 px-4 h-14 shrink-0 border-0">
             {/* Sale-type toggle switch: both labels stay on each half over a track;
-                a status-coloured capsule (ปลีก = primary, ส่ง = accent) slides behind
+                a status-coloured capsule (ปลีก = primary, ส่ง = amber) slides behind
                 them and the active-side label lifts to its on-colour. The track (h-8)
                 matches the search box beside it. */}
             <Button
@@ -1247,21 +1247,21 @@ export default function POSPage() {
               variant="ghost"
               aria-pressed={cart.saleType === 'wholesale'}
               onClick={() => { cart.setSaleType(cart.saleType === 'wholesale' ? 'retail' : 'wholesale'); refocusSearch() }}
-              className={`relative h-[calc(2rem+2px)] w-44 shrink-0 rounded-full p-0 overflow-hidden transition-colors ${
-                cart.saleType === 'wholesale' ? 'bg-accent hover:bg-accent' : 'bg-primary hover:bg-primary'
+              className={`relative h-[calc(2rem+2px)] w-44 shrink-0 rounded-lg p-0 overflow-hidden transition-colors ${
+                cart.saleType === 'wholesale' ? 'bg-amber hover:bg-amber' : 'bg-primary hover:bg-primary'
               }`}>
               {/* white sliding capsule (h-8), behind the labels */}
               <span
                 aria-hidden
-                className={`absolute inset-y-0.5 w-[calc(50%-0.25rem)] rounded-full bg-card shadow-md transition-all duration-300 ${
-                  cart.saleType === 'wholesale' ? 'left-[calc(50%+0.125rem)]' : 'left-0.5'
+                className={`absolute inset-y-1 w-[calc(50%-0.5rem)] rounded-md bg-card shadow-md transition-all duration-300 ${
+                  cart.saleType === 'wholesale' ? 'left-[calc(50%+0.25rem)]' : 'left-1'
                 }`}
               />
               {/* both labels — active (on the white capsule) darkens, inactive
                   (on the coloured track) uses that track's on-colour */}
               <span className="absolute inset-0 z-10 flex items-center">
                 <span className={`flex-1 text-center text-sm font-semibold transition-colors duration-300 ${
-                  cart.saleType === 'wholesale' ? 'text-accent-foreground/70' : 'text-foreground'
+                  cart.saleType === 'wholesale' ? 'text-amber-foreground/70' : 'text-foreground'
                 }`}>ขายปลีก</span>
                 <span className={`flex-1 text-center text-sm font-semibold transition-colors duration-300 ${
                   cart.saleType === 'wholesale' ? 'text-foreground' : 'text-primary-foreground/70'
@@ -1277,7 +1277,8 @@ export default function POSPage() {
                 placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                 autoFocus
                 autoComplete="off"
-                className="h-8 py-2 pl-9 pr-3 text-sm rounded-full"/>
+                radius="lg"
+                className="h-8 py-2 pl-9 pr-3 text-sm"/>
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground pointer-events-none"/>
             </div>
             <Button variant="destructive" size="sm" disabled={cart.items.length === 0}
