@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { CountBadge } from '@/components/ui/count-badge'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
@@ -1169,25 +1170,19 @@ export default function POSPage() {
                   <span className={`absolute top-3 right-4 z-10 grid place-items-center w-11 h-11 rounded-xl shrink-0 ${iconBox}`}>
                     <Icon className="size-7" strokeWidth={2}/>
                   </span>
-                  {hasItems && (
-                    <Badge
-                      variant="accent"
-                      aria-label={`${lineCount} รายการ`}
-                      className="absolute bottom-3 right-4 z-10 h-5 min-w-5 px-1.5 justify-center font-semibold rounded-sm leading-none"
-                    >
-                      {lineCount > 99 ? '99+' : lineCount}
-                    </Badge>
-                  )}
                   <span className="relative z-10 text-sm font-semibold leading-none pr-12">รายการขาย {i + 1}</span>
                   <div className="relative z-10 flex flex-col w-full min-w-0 mt-auto">
                     <span className="text-3xl font-semibold leading-none truncate" style={{ fontFamily: "'Source Serif 4', serif" }}>
                       {formatCurrency(total)}
                     </span>
-                    <div className="flex items-center w-full">
+                    <div className="flex items-end w-full">
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant={isActive ? 'amber-soft' : 'amber'} className="text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant={isActive ? 'accent-soft' : 'accent'} className="text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
                         <Badge variant={isActive ? 'primary-soft' : 'default'} className="text-xs rounded-md">ขายปลีก</Badge>
+                      )}
+                      {hasItems && (
+                        <CountBadge count={lineCount} aria-label={`${lineCount} รายการ`} className="ml-auto mb-[2px]" />
                       )}
                     </div>
                   </div>
@@ -1248,7 +1243,7 @@ export default function POSPage() {
               aria-pressed={cart.saleType === 'wholesale'}
               onClick={() => { cart.setSaleType(cart.saleType === 'wholesale' ? 'retail' : 'wholesale'); refocusSearch() }}
               className={`relative h-[calc(2rem+2px)] w-44 shrink-0 rounded-lg p-0 overflow-hidden transition-colors ${
-                cart.saleType === 'wholesale' ? 'bg-amber hover:bg-amber' : 'bg-primary hover:bg-primary'
+                cart.saleType === 'wholesale' ? 'bg-accent hover:bg-accent' : 'bg-primary hover:bg-primary'
               }`}>
               {/* white sliding capsule (h-8), behind the labels */}
               <span
@@ -1261,7 +1256,7 @@ export default function POSPage() {
                   (on the coloured track) uses that track's on-colour */}
               <span className="absolute inset-0 z-10 flex items-center">
                 <span className={`flex-1 text-center text-sm font-semibold transition-colors duration-300 ${
-                  cart.saleType === 'wholesale' ? 'text-amber-foreground/70' : 'text-foreground'
+                  cart.saleType === 'wholesale' ? 'text-accent-foreground/70' : 'text-foreground'
                 }`}>ขายปลีก</span>
                 <span className={`flex-1 text-center text-sm font-semibold transition-colors duration-300 ${
                   cart.saleType === 'wholesale' ? 'text-foreground' : 'text-primary-foreground/70'

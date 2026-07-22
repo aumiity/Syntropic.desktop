@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/toast'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { CountBadge } from '@/components/ui/count-badge'
 import { InitialAvatar } from '@/components/ui/avatar'
 import { Input, SearchInput } from '@/components/ui/input'
 import { NumInput } from '@/components/ui/num-input'
@@ -583,6 +584,36 @@ export default function Theme() {
                   <div className="flex items-center gap-2 text-sm">
                     <span>ประเภท:</span>
                     <Badge variant="outline">ยาอันตราย</Badge>
+                  </div>
+                </DemoRow>
+              </Section>
+
+              {/* ── COUNT BADGE ── */}
+              <Section title="CountBadge — noti/count badge (SSOT)" path="src/components/ui/count-badge.tsx">
+                <DemoRow label="เลขหลักเดียว — วงกลมแดงขอบขาว (วางบนพื้นเข้ม bg-sidebar ให้เห็นขอบขาว)">
+                  <div className="flex flex-wrap items-center gap-3 rounded-lg bg-sidebar p-3">
+                    <CountBadge count={1} />
+                    <CountBadge count={3} />
+                    <CountBadge count={8} />
+                  </div>
+                </DemoRow>
+                <DemoRow label="เลข 2 หลัก / เกิน 99 = 99+ — (หมายเหตุ: base เป็น w-4 คงที่ → หลายหลักถูกตัด; เปลี่ยนเป็น min-w-4 ได้ในไฟล์เดียว)">
+                  <div className="flex flex-wrap items-center gap-3 rounded-lg bg-sidebar p-3">
+                    <CountBadge count={12} />
+                    <CountBadge count={99} />
+                    <CountBadge count={128} />
+                  </div>
+                </DemoRow>
+                <DemoRow label="In Context — บนไอคอน / ข้างหัวข้อ (positioning ผ่าน className)">
+                  <div className="flex flex-wrap items-center gap-4 rounded-lg bg-sidebar p-3 text-sidebar-foreground">
+                    <div className="relative inline-flex">
+                      <Package className="size-6" />
+                      <CountBadge count={4} className="absolute -top-2 -right-2" />
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span>ตะกร้า:</span>
+                      <CountBadge count={6} />
+                    </div>
                   </div>
                 </DemoRow>
               </Section>

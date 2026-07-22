@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { TabStrip } from '@/components/layout/TabStrip'
 import { MetricCard, type MetricTint } from '@/components/ui/card'
+import { CountBadge } from '@/components/ui/count-badge'
 import { Receipt, CalendarClock, PackagePlus, PackageX, PackageMinus, Wallet, Box, Boxes } from 'lucide-react'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useCan } from '@/hooks/useCan'
@@ -156,9 +157,7 @@ export default function ManageLayout() {
                   <span className="relative inline-block">
                     {label}
                     {showBadge && (
-                      <span className="absolute -top-2 -right-4 grid place-items-center min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold leading-none ring-2 ring-card">
-                        {negativeStockCount > 99 ? '99+' : negativeStockCount}
-                      </span>
+                      <CountBadge count={negativeStockCount} className="absolute -top-2 -right-4" />
                     )}
                   </span>
                 </TabsTrigger>
@@ -183,9 +182,7 @@ export default function ManageLayout() {
                     <span className="relative inline-block">
                       {label}
                       {showBadge && (
-                        <span className="absolute -top-2 -right-4 grid place-items-center min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold leading-none ring-2 ring-card">
-                          {negativeStockCount > 99 ? '99+' : negativeStockCount}
-                        </span>
+                        <CountBadge count={negativeStockCount} className="absolute -top-2 -right-4" />
                       )}
                     </span>
                   </TabsTrigger>

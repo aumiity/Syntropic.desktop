@@ -12,10 +12,11 @@ import { useThemeStore } from '@/stores/themeStore'
 import { useNegativeStockBadge } from '@/stores/negativeStockBadge'
 import { useGRDraftStore } from '@/stores/grDraftStore'
 import { useTagDraftStore } from '@/stores/tagDraftStore'
+import { useCartStore } from '@/stores/cartStore'
 import { usePermission } from '@/hooks/usePermission'
 import { useCan } from '@/hooks/useCan'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { Badge } from '@/components/ui/badge'
+import { CountBadge } from '@/components/ui/count-badge'
 import { LogoMark } from '@/components/ui/logo-mark'
 import { SidebarUser } from './SidebarUser'
 
@@ -103,18 +104,14 @@ function NavItem({ to, label, icon: Icon, exact, collapsed, countBadge }: NavIte
         {collapsed && !!countBadge && countBadge > 0 && (
           <span
             aria-hidden
-            className="absolute -top-1.5 -right-2 size-2.5 rounded-full bg-accent"
+            className="absolute -top-1.5 -right-2 size-2 rounded-full bg-destructive ring-2 ring-card"
           />
         )}
       </span>
       {!collapsed && (
         <span className="relative z-10 flex-1 flex items-center justify-between gap-2 min-w-0">
           <span className="text-sm leading-none whitespace-nowrap">{label}</span>
-          {!!countBadge && countBadge > 0 && (
-            <Badge variant="accent" className="h-5 min-w-5 px-1.5 justify-center font-semibold rounded-sm leading-none">
-              {countBadge > 99 ? '99+' : countBadge}
-            </Badge>
-          )}
+          {!!countBadge && countBadge > 0 && <CountBadge count={countBadge} />}
         </span>
       )}
     </NavLink>
@@ -166,6 +163,12 @@ export function Sidebar() {
   // In-progress price-tag list — red count badge on "สินค้า" (it lives at
   // /products/print). Survives navigating to the POS and back (tagDraftStore).
   const tagDraftCount = useTagDraftStore(s => s.priceItems.filter(Boolean).length)
+  // Total line items across every cart basket — red count badge on "การขาย".
+  // The active basket's live items sit at the store root; inactive baskets are
+  // snapshotted in `slots`, so read per index to avoid the stale active snapshot.
+  const cartItemCount = useCartStore(s =>
+    s.slots.reduce((sum, slot, i) => sum + (i === s.activeSlot ? s.items.length : slot.items.length), 0)
+  )
 
   const btnClass = cn(
     'group relative flex items-center justify-center h-10 w-full rounded-lg transition-colors',
@@ -237,7 +240,8 @@ export function Sidebar() {
             {...item}
             collapsed={collapsed}
             countBadge={
-              item.to === '/purchase' ? grDraftCount
+              item.to === '/' ? cartItemCount
+              : item.to === '/purchase' ? grDraftCount
               : item.to === '/products' ? tagDraftCount
               : item.to === '/manage' ? negativeStockCount
               : undefined
