@@ -17,9 +17,17 @@ interface Props {
   widthMm: number
   heightMm: number
   children: ReactNode
+  // When set (0–1), the label scales to occupy this fraction of the available
+  // box and MAY enlarge past 1:1 (still fit within both axes, never overflows).
+  // Omit to keep the default "fit and never upscale past real size" behaviour.
+  fill?: number
+  // 'fit' (default) scales to fit BOTH axes of a fixed-height box. 'width' scales
+  // by the available WIDTH only and lets the wrapper's height follow the label —
+  // use it when the container should hug the label instead of stretching tall.
+  mode?: 'fit' | 'width'
 }
 
-export function ScaledPaper({ widthMm, heightMm, children }: Props) {
+export function ScaledPaper({ widthMm, heightMm, children, fill, mode = 'fit' }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
 
@@ -31,17 +39,23 @@ export function ScaledPaper({ widthMm, heightMm, children }: Props) {
     if (!el) return
     const update = () => {
       const aw = el.clientWidth, ah = el.clientHeight
-      if (!aw || !ah) return
-      setScale(Math.min(1, aw / naturalW, ah / naturalH))
+      if (!aw) return
+      if (mode === 'width') {
+        setScale((aw / naturalW) * (fill ?? 1))
+        return
+      }
+      if (!ah) return
+      const fit = Math.min(aw / naturalW, ah / naturalH)
+      setScale(fill != null ? fit * fill : Math.min(1, fit))
     }
     update()
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [naturalW, naturalH])
+  }, [naturalW, naturalH, fill, mode])
 
   return (
-    <div ref={ref} className="flex h-full w-full items-center justify-center overflow-hidden">
+    <div ref={ref} className={`flex w-full items-center justify-center ${mode === 'width' ? '' : 'h-full overflow-hidden'}`}>
       {/* Outer box reserves the scaled footprint (transform doesn't affect
           layout); inner box renders at natural size and is shrunk to fit. */}
       <div style={{ width: naturalW * scale, height: naturalH * scale }}>

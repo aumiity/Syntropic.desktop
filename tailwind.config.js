@@ -160,6 +160,8 @@ export default {
       fontFamily: {
         sans: ['var(--font-latin)', 'var(--font-thai)', 'sans-serif'],
         brand: ['var(--font-brand)', 'sans-serif'],
+        // Prominent numeric readouts (POS slot totals, big money figures).
+        'serif-num': ["'Source Serif 4'", 'serif'],
         // Theme Lab only — serif comparison candidates + the picked-winner var.
         // Not used anywhere outside src/pages/ThemeLab.
         'lab-serif': ['var(--lab-font-serif)', 'serif'],

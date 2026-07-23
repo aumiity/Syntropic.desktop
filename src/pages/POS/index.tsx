@@ -1169,20 +1169,20 @@ export default function POSPage() {
                   )}
                   <span className={`absolute top-3 right-4 z-10 grid place-items-center w-11 h-11 rounded-xl shrink-0 ${iconBox}`}>
                     <Icon className="size-7" strokeWidth={2}/>
+                    {hasItems && (
+                      <CountBadge count={lineCount} aria-label={`${lineCount} รายการ`} className="absolute -top-1.5 -right-1.5" />
+                    )}
                   </span>
                   <span className="relative z-10 text-sm font-semibold leading-none pr-12">รายการขาย {i + 1}</span>
                   <div className="relative z-10 flex flex-col w-full min-w-0 mt-auto">
-                    <span className="text-3xl font-semibold leading-none truncate" style={{ fontFamily: "'Source Serif 4', serif" }}>
+                    <span className="text-3xl font-semibold leading-none truncate font-serif-num">
                       {formatCurrency(total)}
                     </span>
                     <div className="flex items-end w-full">
                       {slot.saleType === 'wholesale' ? (
-                        <Badge variant={isActive ? 'accent-soft' : 'accent'} className="text-xs rounded-md">ขายส่ง</Badge>
+                        <Badge variant={isActive ? 'accent-soft' : 'accent'} className="w-16 text-xs rounded-md">ขายส่ง</Badge>
                       ) : (
-                        <Badge variant={isActive ? 'primary-soft' : 'default'} className="text-xs rounded-md">ขายปลีก</Badge>
-                      )}
-                      {hasItems && (
-                        <CountBadge count={lineCount} aria-label={`${lineCount} รายการ`} className="ml-auto mb-[2px]" />
+                        <Badge variant={isActive ? 'primary-soft' : 'default'} className="w-16 text-xs rounded-md">ขายปลีก</Badge>
                       )}
                     </div>
                   </div>
@@ -1497,8 +1497,8 @@ export default function POSPage() {
           <div ref={totalCardRef} className="h-40 rounded-2xl bg-primary text-primary-foreground p-5 shadow-card shrink-0 overflow-hidden">
             <div className="text-right text-md font-medium opacity-80 tracking-wide">ยอดสุทธิ</div>
             <div ref={totalNumRef}
-              className="mt-6 text-right font-semibold leading-[1.05] tracking-tight whitespace-nowrap"
-              style={{ fontSize: `${totalFont}px`, letterSpacing: '-1.5px', fontFamily: "'Source Serif 4', serif" }}>
+              className="mt-6 text-right font-semibold leading-[1.05] tracking-tight whitespace-nowrap font-serif-num"
+              style={{ fontSize: `${totalFont}px`, letterSpacing: '-1.5px' }}>
               {formatCurrency(totalAmount)}
             </div>
           </div>

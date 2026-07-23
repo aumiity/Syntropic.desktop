@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -12,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
-import { CircleAlert, Edit, Languages, Minus, PenLine, Plus, Printer, Tag } from 'lucide-react'
+import { CircleAlert, Edit, Minus, PenLine, Plus, Printer, Tag } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
 import { soonestLot } from '@/pages/POS/cartAlerts'
 import type { Product, ProductLabel } from '@/types'
@@ -241,7 +240,6 @@ export function LabelPrintDialog({ open, onClose }: Props) {
   }, [open, blankSettings, shop])
 
   const labeledRows = useMemo(() => rows.filter(r => r.labels.length > 0), [rows])
-  const noLabelCount = rows.length - labeledRows.length
   const checkedCount = useMemo(() => labeledRows.filter(r => r.checked).length, [labeledRows])
   const totalCopies = useMemo(
     () => rows.reduce((sum, r) => sum + (r.checked && r.selectedLabelId != null ? copiesNum(r.copies) : 0), 0),
@@ -368,10 +366,9 @@ export function LabelPrintDialog({ open, onClose }: Props) {
       <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>
         <DialogContent
           size="full"
-          divided
-          className="h-[min(760px,calc(100vh-3rem))] max-w-[min(1240px,calc(100vw-3rem))] grid-rows-[auto_1fr_auto] gap-0 p-0"
+          className="h-[70vh] w-[66vw] max-w-[66vw] grid-rows-[auto_1fr_auto] gap-0 p-0"
         >
-          <DialogHeader className="px-4 pt-4">
+          <DialogHeader className="border-b border-border px-4 pt-4 pb-3">
             <DialogTitle>
               พิมพ์ฉลากยา
             </DialogTitle>
@@ -381,42 +378,16 @@ export function LabelPrintDialog({ open, onClose }: Props) {
             <div className="grid min-h-0 flex-1 grid-cols-[420px_minmax(0,1fr)] overflow-hidden max-[960px]:grid-cols-1">
 
               {/* ============ LEFT — live preview of the active product's label ============ */}
-              <aside className="flex min-h-0 flex-col border-r border-border bg-muted max-[960px]:hidden">
-                <div className="flex h-12 shrink-0 items-center border-b border-border bg-card px-4">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-foreground">
-                      {blankActive ? 'ฉลากเปล่า (เขียนเอง)' : activeRow ? productName(activeRow.product) : 'ตัวอย่างฉลาก'}
-                    </div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {blankActive
-                        ? 'พิมพ์ฟอร์มเปล่าสำหรับเขียน/วงเอง'
-                        : activeLabel
-                          ? `ฉลาก: ${activeLabel.label_name || 'ฉลากไม่มีชื่อ'}`
-                          : 'เลือกสินค้าที่มีฉลากเพื่อดูตัวอย่าง'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-4">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-foreground">
-                      <Languages className="size-4 text-muted-foreground" /> ภาษา
-                    </span>
-                    <Tabs value={lang} onValueChange={v => setLang(v as LabelLang)}>
-                      <TabsList variant="toggle">
-                        {LANG_OPTIONS.map(o => (
-                          <TabsTrigger key={o.value} value={o.value} className="px-2.5 text-sm" disabled={printing || blankActive}>
-                            {o.label}
-                          </TabsTrigger>
-                        ))}
-                      </TabsList>
-                    </Tabs>
+              <aside className="flex min-h-0 flex-col bg-card max-[960px]:hidden">
+                <div className="flex h-12 shrink-0 items-center justify-between gap-2 bg-card px-4">
+                  <div className="min-w-0 truncate text-sm font-semibold text-foreground">
+                    {blankActive ? 'ฉลากเปล่า (เขียนเอง)' : activeRow ? productName(activeRow.product) : 'ตัวอย่างฉลาก'}
                   </div>
                   <Button
                     variant="elevated"
                     size="lg"
                     className="h-8 w-8 shrink-0 p-0"
-                    title="แก้ไขฉลากนี้"
+                    tooltip="แก้ไขฉลากนี้"
                     disabled={!activeLabel || printing || blankActive}
                     onClick={() => activeRow && activeLabel && openEditLabel(activeRow.productId, activeLabel)}
                   >
@@ -424,9 +395,11 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                   </Button>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-hidden bg-muted/30 p-5">
+                <div className="min-h-0 flex-1 overflow-auto px-3 pb-3 pt-0">
+                 <div className="flex flex-col overflow-hidden rounded-card border border-border bg-muted">
+                  <div className="flex items-center justify-center p-3">
                   {blankActive ? (
-                    <ScaledPaper widthMm={blankSettings.width_mm} heightMm={blankSettings.height_mm}>
+                    <ScaledPaper widthMm={blankSettings.width_mm} heightMm={blankSettings.height_mm} fill={0.95} mode="width">
                       <iframe
                         title="ตัวอย่างฉลากเปล่า"
                         srcDoc={blankHtml}
@@ -440,41 +413,53 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                       />
                     </ScaledPaper>
                   ) : activeRow && activeLabel ? (
-                    <ScaledPaper widthMm={previewSettings.width_mm} heightMm={previewSettings.height_mm}>
+                    <ScaledPaper widthMm={previewSettings.width_mm} heightMm={previewSettings.height_mm} fill={0.95} mode="width">
                       <LabelPaper settings={previewSettings} content={previewContent} date={todayBE()} />
                     </ScaledPaper>
                   ) : (
-                    <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground">
                       <Tag className="size-10 opacity-30" />
                       <span className="text-sm">ไม่มีฉลากให้พรีวิว</span>
                     </div>
                   )}
+                  </div>
+
+                  <div className="flex h-12 shrink-0 items-center justify-center gap-2 px-3">
+                    <Tabs value={lang} onValueChange={v => setLang(v as LabelLang)}>
+                      <TabsList variant="toggle">
+                        {LANG_OPTIONS.map(o => (
+                          <TabsTrigger
+                            key={o.value}
+                            value={o.value}
+                            className="w-16 text-sm group-data-[variant=toggle]/tabs-list:flex-none group-data-[variant=toggle]/tabs-list:data-[state=active]:bg-primary group-data-[variant=toggle]/tabs-list:data-[state=active]:text-primary-foreground"
+                            disabled={printing || blankActive}
+                          >
+                            {o.label}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                 </div>
                 </div>
               </aside>
 
               {/* ============ RIGHT — cart products: pick label + copies per row ============ */}
               <section className="flex min-h-0 flex-col bg-card max-[960px]:col-span-full">
-                <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <Button
-                      variant="elevated"
-                      size="lg"
-                      onClick={handleSelectAll}
-                      disabled={labeledRows.length === 0 || printing}
-                    >
-                      เลือกทั้งหมด
-                    </Button>
-                    <span className="truncate text-sm text-muted-foreground">
-                      เลือก <strong className="text-foreground">{checkedCount}</strong>/{labeledRows.length} รายการ
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <Badge variant="success-outline">พร้อมพิมพ์ {labeledRows.length}</Badge>
-                    {noLabelCount > 0 ? <Badge variant="warning-outline">ไม่มีฉลาก {noLabelCount}</Badge> : null}
-                  </div>
+                <div className="flex h-12 shrink-0 items-center justify-between gap-2 px-4">
+                  <span className="truncate text-sm font-semibold text-foreground">รายการฉลาก</span>
+                  <Button
+                    variant="elevated"
+                    size="lg"
+                    onClick={handleSelectAll}
+                    disabled={labeledRows.length === 0 || printing}
+                  >
+                    เลือกทั้งหมด
+                  </Button>
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
+                <div className="min-h-0 flex-1 overflow-hidden px-3 pb-3 pt-0">
+                 <div className="h-full space-y-2 overflow-auto rounded-card border border-border bg-muted p-3">
                   {/* Blank write-your-own label — always available, even with an
                       empty cart. Own copies + own print action (separate job). */}
                   <div
@@ -485,16 +470,13 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setBlankActive(true) }
                     }}
                     className={cn(
-                      'grid grid-cols-[32px_minmax(0,1fr)_176px_140px] items-center gap-2.5 rounded-lg border-2 bg-card p-2.5 shadow-sm transition-colors',
-                      blankActive ? 'border-primary bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
+                      'grid grid-cols-[32px_minmax(0,1fr)_176px_140px] items-center gap-2.5 rounded-xl border border-border bg-card p-2.5 shadow-sm transition-colors',
+                      blankActive ? 'border-ring ring-[1px] ring-ring bg-primary-soft/40' : 'hover:bg-primary-soft/30',
                     )}
                   >
                     <PenLine className="size-5 justify-self-center text-primary" />
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-foreground">ฉลากเปล่า (เขียนเอง)</div>
-                      <div className="mt-0.5 flex h-[22px] items-center text-xs text-muted-foreground">
-                        <span className="truncate">พิมพ์ฟอร์มเปล่าสำหรับเขียน/วงเอง</span>
-                      </div>
                     </div>
                     <Button
                       variant="elevated"
@@ -520,7 +502,6 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                     rows.map(row => {
                       const hasLabel = row.labels.length > 0
                       const isActive = !blankActive && activeRow?.productId === row.productId
-                      const isDefaultSel = row.labels.some(l => l.id === row.selectedLabelId && (l as any).is_default)
                       return (
                         <div
                           key={row.productId}
@@ -531,8 +512,8 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveProductId(row.productId); setBlankActive(false) }
                           }}
                           className={cn(
-                            'grid grid-cols-[32px_minmax(0,1fr)_176px_140px] items-center gap-2.5 rounded-lg border-2 bg-card p-2.5 shadow-sm transition-colors',
-                            isActive ? 'border-primary bg-primary-soft/40' : 'border-border hover:bg-primary-soft/30',
+                            'grid grid-cols-[32px_minmax(0,1fr)_176px_140px] items-center gap-2.5 rounded-xl border border-border bg-card p-2.5 shadow-sm transition-colors',
+                            isActive ? 'border-ring ring-[1px] ring-ring bg-primary-soft/40' : 'hover:bg-primary-soft/30',
                           )}
                         >
                           {hasLabel ? (
@@ -550,18 +531,6 @@ export function LabelPrintDialog({ open, onClose }: Props) {
 
                           <div className="min-w-0">
                             <div className="truncate text-sm font-semibold text-foreground">{productName(row.product)}</div>
-                            {/* Fixed height = the "ค่าเริ่มต้น" badge height (22px) so the
-                                row doesn't grow/shrink when the badge appears or hides. */}
-                            <div className="mt-0.5 flex h-[22px] items-center gap-2 overflow-hidden text-xs text-muted-foreground">
-                              {hasLabel ? (
-                                <>
-                                  <span className="truncate">{row.labels.length > 1 ? `มี ${row.labels.length} ฉลาก` : 'มีฉลาก'}</span>
-                                  {isDefaultSel ? <Badge variant="success-outline" className="shrink-0">ค่าเริ่มต้น</Badge> : null}
-                                </>
-                              ) : (
-                                <span className="truncate">ยังไม่มีฉลากที่เปิดใช้งาน</span>
-                              )}
-                            </div>
                           </div>
 
                           {hasLabel ? (
@@ -585,7 +554,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                                   ))}
                                   <SelectSeparator />
                                   <SelectItem value={ADD_LABEL_VALUE} className="text-primary focus:text-primary">
-                                    <span className="flex items-center gap-1.5"><Plus className="size-4" /> เพิ่มฉลากใหม่</span>
+                                    <span className="flex items-center gap-1.5 whitespace-nowrap"><Plus className="size-4 shrink-0" /> เพิ่มฉลากใหม่</span>
                                   </SelectItem>
                                 </SelectContent>
                               </Select>
@@ -599,7 +568,7 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                             <Button
                               variant="elevated"
                               size="lg"
-                              className="col-span-2 w-full"
+                              className="col-span-2 justify-self-end"
                               onClick={e => { e.stopPropagation(); openAddLabel(row.productId) }}
                               disabled={printing}
                             >
@@ -610,12 +579,13 @@ export function LabelPrintDialog({ open, onClose }: Props) {
                       )
                     })
                   )}
+                 </div>
                 </div>
               </section>
             </div>
           </DialogBody>
 
-          <DialogFooter className="items-center justify-between px-4 pb-4 sm:justify-between">
+          <DialogFooter className="items-center justify-between border-t border-border px-4 pb-4 pt-3 sm:justify-between">
             <div className="text-sm font-medium text-muted-foreground">
               เลือก <strong className="text-foreground">{checkedCount}</strong> รายการ · รวม <strong className="text-foreground">{totalCopies}</strong> ดวง
             </div>
