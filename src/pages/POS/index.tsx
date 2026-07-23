@@ -2040,7 +2040,7 @@ export default function POSPage() {
       />
 
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
-        <DialogContent size="3xl" divided onClose={closeAdjust} className="h-[58vh] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="3xl" divided onClose={closeAdjust} className="h-[74vh] grid-rows-[auto_1fr_auto]">
           <DialogHeader>
             <DialogTitle>
               ตัดสต็อก
@@ -2195,7 +2195,7 @@ export default function POSPage() {
 
       {/* ── RETURN ITEMS DIALOG (cart-table) ── */}
       <Dialog open={showReturn} onOpenChange={(v) => { if (!v) closeReturn() }}>
-        <DialogContent size="4xl" divided onClose={closeReturn} className="h-[58vh] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="3xl" divided onClose={closeReturn} className="h-[74vh] grid-rows-[auto_1fr_auto] [&>[data-slot=dialog-header]]:-mx-4 [&>[data-slot=dialog-header]]:px-6 [&>[data-slot=dialog-footer]]:-mx-4 [&>[data-slot=dialog-footer]]:px-6">
           <DialogHeader>
             <DialogTitle>
               รับคืนสินค้า
@@ -2215,7 +2215,7 @@ export default function POSPage() {
                 onKeyDown={handleReturnMultiplierKey}
                 onFocus={() => { if (returnQuery.trim()) setReturnSearchOpen(true) }}
                 wrapperClassName="w-full"
-                className="h-11 text-base"
+                className="h-8 rounded-lg text-base"
                 autoComplete="off"
               />
             </div>
