@@ -148,7 +148,7 @@ export function Combobox<T>({
           disabled={disabled}
           variant={variant === 'elevated' ? 'elevated' : (hasValue ? 'primary-soft' : 'outline')}
           className={cn(
-            "h-9 w-full justify-between gap-2 px-3 rounded-md text-sm font-normal",
+            "h-8 w-full justify-between gap-2 px-3 rounded-md text-sm font-normal",
             triggerClassName
           )}
         >
@@ -209,7 +209,7 @@ export function Combobox<T>({
                   ref={active ? activeRowRef : undefined}
                   onClick={() => commit(null)}
                   className={cn(
-                    "group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors",
+                    "group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors",
                     active
                       ? "bg-primary-soft"
                       : "hover:bg-primary-soft/60",
@@ -255,7 +255,7 @@ export function Combobox<T>({
                   ref={active ? activeRowRef : undefined}
                   onClick={() => commit(item)}
                   className={cn(
-                    "group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors",
+                    "group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition-colors",
                     active ? "bg-primary-soft" : "hover:bg-primary-soft/60",
                     isSelected && "text-primary"
                   )}

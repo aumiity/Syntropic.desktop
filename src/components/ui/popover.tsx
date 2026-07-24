@@ -29,7 +29,7 @@ function PopoverContent({
         sideOffset={sideOffset}
         className={cn(
           "z-50 flex w-72 origin-[var(--radix-popover-content-transform-origin)]",
-          "flex-col gap-2.5 rounded-lg bg-popover p-2.5 text-sm",
+          "flex-col gap-2.5 rounded-md bg-popover p-2.5 text-sm",
           "text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none",
           "duration-100",
           "data-[side=bottom]:slide-in-from-top-2",

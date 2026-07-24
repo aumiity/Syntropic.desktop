@@ -91,7 +91,8 @@ function Pagination({
     <div className="flex items-center gap-1">
       <Button
         size="icon-sm"
-        variant="outline"
+        variant="elevated"
+        radius="sm"
         disabled={atFirst}
         onClick={() => onPageChange(1)}
         aria-label="หน้าแรก"
@@ -100,7 +101,8 @@ function Pagination({
       </Button>
       <Button
         size="icon-sm"
-        variant="outline"
+        variant="elevated"
+        radius="sm"
         disabled={atFirst}
         onClick={() => onPageChange(page - 1)}
         aria-label="หน้าก่อนหน้า"
@@ -111,7 +113,8 @@ function Pagination({
         <Button
           key={p}
           size="icon-sm"
-          variant={p === page ? "default" : "outline"}
+          variant={p === page ? "default" : "elevated"}
+          radius="sm"
           onClick={() => onPageChange(p)}
           aria-current={p === page ? "page" : undefined}
           aria-label={`หน้า ${p}`}
@@ -122,7 +125,8 @@ function Pagination({
       ))}
       <Button
         size="icon-sm"
-        variant="outline"
+        variant="elevated"
+        radius="sm"
         disabled={atLast}
         onClick={() => onPageChange(page + 1)}
         aria-label="หน้าถัดไป"
@@ -131,7 +135,8 @@ function Pagination({
       </Button>
       <Button
         size="icon-sm"
-        variant="outline"
+        variant="elevated"
+        radius="sm"
         disabled={atLast}
         onClick={() => onPageChange(totalPages)}
         aria-label="หน้าสุดท้าย"

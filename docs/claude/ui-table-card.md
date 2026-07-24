@@ -15,42 +15,44 @@ The card has four horizontal bands and the bg color is what tells them apart:
 1. **Section header bar** (description/count + Add button row): `bg-card` — **white, NO border**. This is the "title strip" sitting above the column headers. It flows into the muted column-header row below — the muted band itself is the visual separator, so don't add `border-b`.
 2. **Column header row** (`<thead>` with col names): `bg-muted text-foreground-subtle` — the **only** muted band. Sticky.
 3. **Body rows** (`<tbody>`): `bg-card` (default) — **white**.
-4. **Status / total bar** at the bottom of the card: `h-12 px-5 bg-card border-t border-border flex items-center justify-between` — **white WITH a top separator line**. Use this for "+ เพิ่มแถว / count / total" footers and pagination footers. NOT `bg-muted`. The `border-t border-border` is what visually divides it from the body — without it the strip disappears into the rows. This is the ONLY band that gets a border. **Bar = `h-12`; any button inside = `h-9` (Button `size="lg"`)** — same rule as the top header bar.
+4. **Status / total bar** at the bottom of the card: `h-12 px-5 bg-card border-t border-border flex items-center justify-between` — **white WITH a top separator line**. Use this for "+ เพิ่มแถว / count / total" footers and pagination footers. NOT `bg-muted`. The `border-t border-border` is what visually divides it from the body — without it the strip disappears into the rows. This is the ONLY band that gets a border. **Bottom bar = `h-12`** — deliberately shorter than the `h-14` top bar (see the LOCKED table-card bar-height spec below); **every control inside = `h-8`** (page-size Select, pagination buttons).
 
 Rule of thumb: only the column-header band is muted. The bottom status bar gets a top border. Top/title bar gets NO border (the muted column-header below it does the separation work).
 
 ### Inner header bar (top strip)
 
-`h-12 px-5 text-sm font-semibold text-muted-foreground flex items-center justify-between` — left = description/count, right = Add button. **The bar is `h-12`; any button inside is `h-9`** — use `<Button size="lg" className="px-2">` (lg = h-9 with proper text-sm). Do NOT hand-size with `h-9` className overrides on `size="sm"` (that gave us h-9 with small text).
+`h-14 px-4 flex items-center gap-3` — `px-4` (16px) matches the table's side inset so the filter controls line up with the column edges. Left = title (`h3 text-lg font-semibold` + a count `<Badge variant="outline">`), right = the filter-strip controls clustered via `ml-auto` on the first one (SearchInput → category Select → filter Popover → column Popover). **The top bar is `h-14`; every control inside is `h-8`** (`variant="elevated"`, icon-only = `h-8 w-8 p-0`). See the LOCKED bar-height spec below.
 
-**Leading icon (HARD):** a table-card header's `<TintIcon>` is always `tint="neutral"` + `bordered` (the elevated, colorless look) — NEVER a colored tint. Colored/role tints are for `SectionCard` headers only. Canonical: `Manage/Expenses.tsx` (รายการค่าใช้จ่าย header) and `Reports/NewDashboard.tsx` (สินค้าค้างสต็อก header).
+**Leading icon (IN TRANSITION 2026-07-24):** *when* a table-card header has a leading `<TintIcon>` it is always `tint="neutral"` + `bordered` (the elevated, colorless look) — NEVER a colored tint. Colored/role tints are for `SectionCard` headers only. **BUT whether the header carries a leading icon at all is being re-evaluated page-by-page:** the `/theme` "Standard Table-Card" mockup dropped its leading icon (title = `h3` + count `<Badge>` only), while existing pages still have one. Until the operator revisits each page, do NOT sweep either way — keep the neutral TintIcon on pages that have it, and don't re-add one to `/theme`. Canonical (still iconed): `Manage/Expenses.tsx` (รายการค่าใช้จ่าย header) and `Reports/NewDashboard.tsx` (สินค้าค้างสต็อก header).
 
-> **⏸️ SUSPENDED 2026-07-17 — the control-height rule is PAUSED during the UI redesign.** The operator is retuning control heights **`h-9 → h-8`** (primitive-by-primitive) to taste. While paused: **do NOT enforce `h-9`, do NOT revert `h-8` back to `h-9`.** Bars stay `h-12` unless the operator says otherwise. This whole section is kept as reference and will be re-fixed (possibly at `h-8`) once the redesign settles. Same "tune now, codify later" mode as the `radius` prop.
+### Standard table-card — bar heights are LOCKED (HARD, 2026-07-24)
 
-### ONE bar height rule (HARD): EVERY bar = `h-12`, EVERY control inside = `h-9` _(paused — see above)_
+The standard table-card has **two bars of intentionally DIFFERENT height** (operator decision 2026-07-24 — the asymmetry is on purpose; do NOT "fix" them to match):
 
-**There is no longer a separate "filter strip" height.** Whatever the bar holds — a title + count + Add button, OR a search field + a row of filters, OR a status/total footer — the bar is **`h-12`** and *every* control sitting in it is **`h-9`**. No exceptions, no `h-14`, no `h-10` in a bar. The old filter-strip split (`h-14` strip / `h-10` controls) is DEAD — do not reintroduce it.
+- **Top bar** (title + filter strip): **`h-14 px-4`**. `px-4` = 16px, matching the table's `border-l-[16px]/r-[16px]` side inset so the filter controls align with the column edges.
+- **Bottom bar** (status / total / pagination): **`h-12 px-5`** — deliberately shorter than the top bar. `bg-card border-t border-border`.
+- **Every control inside EITHER bar = `h-8`**, all `variant="elevated"`. The **field** primitives (Input/Select/Combobox/DateInput/DateRangePicker/NativeSelect + the StatusFilter icon button) default to `h-8` (set 2026-07-24, see `.claude/memory/control_height_h9_revert.md`), so a bare field lands at `h-8`. **Icon buttons** in the bar (filter/column triggers) use `size="lg"` + `className="h-8 w-8 p-0"` — Button `lg` is `h-9`, so the `h-8` override is required to keep them matching the fields.
 
-> **These heights are font-relative — do NOT convert them to fixed px.** `h-12`/`h-9` are Tailwind rem units, so they scale with the root font-size (`html { font-size: … }` in `src/index.css` — currently 18px, and the operator changes it up/down to taste until the real build). Bar and control grow together, so the bar/control ratio holds at *every* font size. The px figures you may see quoted in older notes ("`h-9` = 36px") are only true at a 16px root — they are illustrative, not the rule. **Never hardcode `h-[36px]`/`h-[48px]` (or any px) to "pin" a height back** — that one control would stop scaling and desync from everything around it. Always express bar/control sizing as rem tokens (`h-9`, `h-12`).
+This supersedes the earlier "EVERY bar = `h-12` / EVERY control = `h-9`" single-rule *for the table-card*. That older unified rule — and its dead `h-14`-strip / `h-10`-control predecessor — is history; this `h-14` top bar is a fresh, deliberate value, not a revival of the old filter strip.
 
-Every control in a bar is `h-9`:
+> **These heights are font-relative — do NOT convert them to fixed px.** `h-14`/`h-12`/`h-8` are Tailwind rem units, so they scale with the root font-size (`html { font-size: … }` in `src/index.css` — currently 18px, and the operator changes it up/down to taste until the real build). Bar and control grow together, so the bar/control ratio holds at *every* font size. The px figures you may see quoted in older notes ("`h-8` = 32px") are only true at a 16px root — they are illustrative, not the rule. **Never hardcode `h-[32px]`/`h-[48px]` (or any px) to "pin" a height back** — that one control would stop scaling and desync from everything around it. Always express bar/control sizing as rem tokens (`h-8`, `h-12`, `h-14`).
 
-- Input (`className="h-9 pl-9 rounded-lg text-sm bg-input"`)
-- Select / SelectTrigger (`h-9` — primitive default already)
-- Combobox (`h-9`)
-- DateInput / DateRangePicker (`h-9`)
-- Toggle `framed` / `framed="input"` (`h-9`)
-- NativeSelect (`h-9`)
-- Button (`size="lg"` — already `h-9`; add only `px-2 shrink-0`, never an `h-` override)
-- Icon-only button (`size="lg" className="h-9 w-9 p-0 shrink-0"` + a `title`)
+Field controls in a bar are `h-8` by default (set 2026-07-24, see `.claude/memory/control_height_h9_revert.md`); a bar's icon buttons pin `h-8` explicitly because Button keeps its own height ladder:
 
-**Primitive defaults must be `h-9`.** These primitives historically baked `h-10` for the old filter strip and must now read `h-9` so the rule holds without per-call overrides: `combobox.tsx`, `date-input.tsx` (incl. its inner calendar button so it doesn't desync), `date-range-picker.tsx`, `switch.tsx` (framed pills), `select.tsx` NativeSelect. After fixing the default, **never** pass an `h-` override to them in a bar.
+- Input / SearchInput (`h-8` — primitive default)
+- Select / SelectTrigger / NativeSelect (`h-8`)
+- Combobox (`h-8`)
+- DateInput / DateRangePicker (`h-8`)
+- Toggle `framed="input"` (`h-8`; the standard `framed` pill stays `h-12` — it's a full-bar pill, not a control-inside height)
+- Icon button in a bar (filter/column trigger): `size="lg" className="h-8 w-8 p-0"` — Button `lg` = `h-9`, so the `h-8` override is what keeps it dense
 
-Padding: bars use `px-5` (inner header / status bar) or `px-2` (filter strip with a leading search Input) — height is the invariant, horizontal padding follows the existing per-bar convention.
+**Field-primitive default height is `h-8`** across `input.tsx`, `select.tsx` (SelectTrigger + NativeSelect), `combobox.tsx`, `date-input.tsx` (incl. its inner calendar button), `date-range-picker.tsx`, and `status-filter.tsx`. **Button is separate — its ladder is `default` `h-8` / `lg` `h-9` / `xl` `h-10` (do NOT change `lg` to `h-8`).**
+
+Padding: table-card top bar = `px-4` (matches the 16px table inset so controls align with columns), bottom status/total bar = `px-5`.
 
 ### Table area
 
-`[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-8 border-r-8 border-card` (the side borders match the card bg = 8px inset effect without padding)
+`[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card` (the side borders match the card bg = a **16px** inset without padding, so the muted column-header band never touches the card edge; the vertical scrollbar therefore sits 16px in from the right edge — the operator tried a flush-right scrollbar and rejected it, so keep the 16px inset, do NOT collapse it to flush)
 
 ### Column widths use `min-w-` NEVER `w-`/`table-fixed` (HARD) — for *display / list* tables
 

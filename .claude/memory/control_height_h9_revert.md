@@ -1,22 +1,23 @@
 ---
 name: control-height-h9-revert
-description: 2026-07-24 operator reverted core control primitives h-8→h-9; do not auto-flip back
+description: 2026-07-24 field/input primitives = h-8; Button keeps its ladder (default h-8 / lg h-9 / xl h-10) — do NOT touch Button
 metadata:
   type: project
 ---
 
-**2026-07-24** — Operator explicitly reverted the core control primitives back to **`h-9`** (the old "ตามเดิม" height) by request, undoing the h-9→h-8 experiment for these specific primitives:
+**2026-07-24 — the FIELD / input primitives are `h-8`** (operator found `h-9` fields too big/clunky — "ดูใหญ่เกิน เทอะทะ"). These are now `h-8`:
 
-- `button.tsx` — `size="default"` and `size="lg"` = h-9
-- `input.tsx` — Input / SearchInput = h-9
-- `select.tsx` — SelectTrigger + NativeSelect = h-9
-- `date-input.tsx` = h-9
-- `date-range-picker.tsx` = h-9 (also `rounded-lg`→`rounded-md`)
-- `combobox.tsx` = h-9 (also `rounded-lg`→`rounded-md`)
-- `status-filter.tsx` = h-9 w-9
+- `input.tsx` — Input / SearchInput (SearchInput wraps Input)
+- `select.tsx` — SelectTrigger + NativeSelect
+- `date-input.tsx`
+- `date-range-picker.tsx`
+- `combobox.tsx`
+- `status-filter.tsx` — the filter icon button = `h-8 w-8` (a bar control, matches the fields beside it)
 
-radius `md` is already the base default on Button + all field primitives — nothing changed there except the two stray `rounded-lg` overrides above. `/theme` showcase demos + prose synced to h-9.
+**Button is NOT in this set — it keeps its own size ladder, UNCHANGED: `default` = `h-8`, `lg` = `h-9`, `xl` = `h-10`.** `lg` staying `h-9` is correct — it is the deliberate one-notch-bigger button. Do NOT collapse `lg`→`h-8` (I made that mistake once and the operator caught it — "button lg h-9 ก็ถูกแล้วดิ" — reverted same day).
 
-**Do NOT auto-revert these back to h-8.** This overrides the still-paused h-9→h-8 note in CLAUDE.md and [[feedback_read_doc_before_ui_edit]] — the operator chose h-9 for these primitives.
+`switch.tsx` `framed="input"` was already `h-8`; standard `framed` pill = `h-12` (full-bar pill, not a control-inside height). `textarea.tsx` = multi-line (`min-h`), untouched. radius unchanged (`md` base).
 
-**Still open (operator will do page-by-page while redesigning — don't sweep proactively):** ~33 app call sites hardcode `className="h-8"` (mostly filter-strip icon buttons `h-8 w-8 p-0` in list tables, plus POS dense cart, Dashboard mini-controls, CSS dev tool). These pin h-8 so they won't inherit the new h-9 base; they stay shorter than form fields until the operator retunes each page. POS/CSS h-8 are likely intentional (dense/dev contexts).
+**History (why the confusing filename):** the FIELD primitives went `h-9 → h-8` (experiment) earlier in the 2026-07 redesign; on 2026-07-24 morning the operator briefly reverted them to `h-9`; then — same day — reversed that and returned to `h-8`. So do NOT flip the FIELD primitives back to `h-9`. (Button was never part of this churn.)
+
+Related: [[table-card-bar-heights-locked]].

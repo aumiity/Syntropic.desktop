@@ -92,7 +92,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
     const invalid = (rawInvalid && (!focused || text.length === 10)) || !!error
 
     return (
-      <div className={cn("relative h-9", className)}>
+      <div className={cn("relative h-8", className)}>
         <Input
           ref={ref}
           type="text"
@@ -101,7 +101,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
           placeholder={placeholder}
           value={text}
           aria-invalid={invalid || undefined}
-          className="h-9 w-full pr-9"
+          className="h-8 w-full pr-9"
           onFocus={e => { setFocused(true); onFocus?.(e) }}
           onBlur={e => { setFocused(false); onBlur?.(e) }}
           onChange={e => {

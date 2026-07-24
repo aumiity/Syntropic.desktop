@@ -50,7 +50,7 @@ function SelectTrigger({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "group flex h-9 w-fit items-center justify-between gap-1.5",
+        "group flex h-8 w-fit items-center justify-between gap-1.5",
         fieldVariant(variant, radius),
         "hover:bg-muted",
         "py-2 pr-2 pl-2.5",
@@ -92,7 +92,7 @@ function SelectContent({
           "relative z-50 max-h-[var(--radix-select-content-available-height)] w-[var(--radix-select-trigger-width)]",
           "origin-[var(--radix-select-content-transform-origin)]",
           "overflow-x-hidden overflow-y-auto",
-          "rounded-lg bg-popover text-popover-foreground",
+          "rounded-md bg-popover text-popover-foreground",
           "shadow-card ring-1 ring-foreground/10",
           "p-2",
           "duration-100",
@@ -147,7 +147,7 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5",
-        "rounded-control py-2.5 pl-3 pr-9",
+        "rounded-control py-1.5 pl-3 pr-9",
         "text-sm outline-none select-none",
         "focus:bg-primary-soft focus:text-primary",
         "not-data-[variant=destructive]:focus:**:text-primary",
@@ -235,7 +235,7 @@ function NativeSelect({ value, onChange, children, className, selectClassName, v
     <div className={cn('relative', className)}>
       <select
         className={cn(
-          'w-full h-9 px-3 pr-9 text-sm appearance-none outline-none transition-colors',
+          'w-full h-8 px-3 pr-9 text-sm appearance-none outline-none transition-colors',
           'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
           fieldVariant(variant, radius),
           'hover:bg-muted dark:hover:bg-input/50',

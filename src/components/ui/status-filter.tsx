@@ -33,7 +33,7 @@ export function StatusFilterButton<T extends string = StatusFilterValue>({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button size="lg" variant="elevated" className={cn('h-9 w-9 p-0 shrink-0', className)} title="ตัวกรอง">
+        <Button size="lg" variant="elevated" className={cn('h-8 w-8 p-0 shrink-0', className)} title="ตัวกรอง">
           <Filter className="size-4" />
         </Button>
       </PopoverTrigger>

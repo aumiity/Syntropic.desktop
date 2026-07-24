@@ -1573,23 +1573,23 @@ export default function Theme() {
               {/* ── STANDARD TABLE-CARD ── */}
               <Section title="Standard Table-Card Layout" path="CLAUDE.md → UI Conventions" full>
                 <p className="text-sm text-muted-foreground">
-                  รูปแบบมาตรฐานของ Products list / EditProduct tabs — Card (bg-card + border-border + shadow-card + rounded-card) ครอบ 3 แถบ:
+                  รูปแบบมาตรฐานของ Products list / EditProduct tabs — Card (<code>bg-card + rounded-card + shadow-card + border-border</code> + <code>overflow-hidden</code>) ครอบ 3 แถบ:
                   <br />
-                  <strong>แถบบน (h-12 px-4)</strong> — px-4 ตรงกับ inset 16px ของตาราง:
-                  ซ้าย = <strong>title</strong> (icon-in-box: <code>size-8 rounded-lg border bg-card shadow-sm</code> + h3 text-lg + Badge <code>neutral</code> นับจำนวน) · ขวา (ชิดผ่าน <code>ml-auto</code>) = SearchInput + Select หมวด + <strong>ปุ่มตัวกรอง</strong> (icon-only Popover) + <strong>ปุ่มคอลัมน์</strong> (Settings2 Popover) — controls ทั้งหมดใช้ <strong>h-9</strong> + <code>variant="elevated"</code> (bg-card + border-border + shadow-sm)
+                  <strong>แถบบน (h-14 px-4)</strong> — px-4 ตรงกับ inset 16px ของตาราง:
+                  ซ้าย = <strong>title</strong> (<code>h3 text-lg font-semibold</code> + Badge <code>outline</code> นับจำนวน — ไม่มี icon-in-box) · ขวา (ชิดขวาผ่าน <code>ml-auto</code> ที่ control ตัวแรก) = SearchInput + Select หมวด + <strong>ปุ่มตัวกรอง</strong> (Filter, icon-only Popover) + <strong>ปุ่มจัดการตาราง</strong> (Settings2 Popover) — controls ทุกตัวใช้ <code>variant="elevated"</code> + <strong>h-8</strong> (ปุ่ม icon = <code>h-8 w-8 p-0</code>)
                   <br />
-                  <strong>ตาราง</strong> — wrap ด้วย <code>border-l-[16px] border-r-[16px] border-card</code> เพื่อ inset column header จากขอบ card · header แถบ muted + <code>border-b</code> + <code>text-foreground</code> · row hover = <code>bg-muted</code> (เดียวกับ header) · row divider = <code>border-border</code> · max-h-[440px] + <code>scrollbar-thin</code> (header sticky + 10 rows ≈ 40px แต่ละแถว)
+                  <strong>ตาราง</strong> — wrap ด้วย <code>border-l-[16px] border-r-[16px] border-card</code> เพื่อ inset column header จากขอบ card · header row <code>h-9</code> แถบ <code>bg-muted</code> + <code>border-b</code> + <code>text-foreground</code> · row hover = <code>bg-muted</code> (สีเดียวกับ header) · row divider = <code>border-border</code> · container <code>max-h-[440px]</code> + <code>scrollbar-thin</code> (header sticky, เกิน 10 แถวจึง scroll)
                   <br />
-                  <strong>แถบล่าง (h-12 px-5)</strong>: ซ้าย = "จำนวนแถว [Select] แสดง X-Y จาก N รายการ" · ขวา = Pagination (sliding window 5 หน้า ไม่มี ellipsis)
+                  <strong>แถบล่าง (h-12 px-5)</strong> <code>bg-card border-t border-border</code>: ซ้าย = "จำนวนแถว [Select h-8] แสดง X-Y" · ขวา = <code>Pagination</code> — ปุ่ม <code>variant="elevated"</code> + <code>radius="sm"</code> (มุมโค้งน้อย), sliding window 5 หน้า ไม่มี ellipsis, หน้าปัจจุบัน = <code>default</code> (teal)
                   <br />
-                  <strong>Row action</strong> = ปุ่มเดียว <code>icon-lg variant="ghost"</code> + MoreHorizontal → Popover (รายละเอียด/แก้ไข/ลบ ฯลฯ) — เกาะสีพื้นไม่เด่น
-                  <br />accent-outline
-                  <strong>Status badge</strong> = STATUS (soft + outline) family: <code>success-outline</code> / <code>warning-outline</code> / <code>destructive-outline</code> ฯลฯ — column alignment ใช้ <code>text-left</code> ทุกคอลัมน์ (รวม "จัดการ")
+                  <strong>Row action</strong> = ปุ่มเดียว <code>icon-lg variant="ghost"</code> + MoreHorizontal → Popover (แก้ไข/ดูรายละเอียด/เปิดดู ฯลฯ) — เกาะสีพื้นไม่เด่น
+                  <br />
+                  <strong>Status badge</strong> = STATUS outline family: <code>success-outline</code> / <code>warning-outline</code> / <code>destructive-outline</code> ฯลฯ — ทุกคอลัมน์ (รวม "จัดการ") ใช้ <code>text-left</code>
                 </p>
                 <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
                   {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px]
                       inset so filter-strip controls align with column edges. */}
-                  <div className="h-16 px-4 flex items-center gap-3">
+                  <div className="h-14 px-4 flex items-center gap-3">
                     {/* Table title (left): icon-in-box + title + count badge.
                         Filter strip controls cluster on the right via ml-auto
                         on the first control. */}
@@ -1665,7 +1665,7 @@ export default function Theme() {
                     {/* Column settings popover — visibility per column */}
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
+                        <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="จัดการตาราง">
                           <Settings2 className="size-4" />
                         </Button>
                       </PopoverTrigger>
@@ -1703,7 +1703,7 @@ export default function Theme() {
                       Beyond 10 rows the body scrolls (scrollbar-thin). */}
                   <Table containerClassName="max-h-[440px] scrollbar-thin">
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="h-9">
                         {showColName && <SortableTableHead field="name" sort={tableSort} onToggle={toggleTableSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>}
                         {showColCategory && <TableHead className="min-w-40">หมวดหมู่</TableHead>}
                         {showColPrice && <SortableTableHead field="price" sort={tableSort} onToggle={toggleTableSort} className="min-w-32">ราคา (฿)</SortableTableHead>}
