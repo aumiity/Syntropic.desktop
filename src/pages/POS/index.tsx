@@ -2054,7 +2054,7 @@ export default function POSPage() {
             <div className="px-4 pt-1 pb-3 shrink-0">
               <SearchInput
                 ref={adjustInputRef}
-                placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
+                placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                 value={adjustQuery}
                 onChange={e => handleAdjustSearch(e.target.value)}
                 onKeyDown={handleAdjustMultiplierKey}
@@ -2202,26 +2202,26 @@ export default function POSPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <DialogBody className="flex flex-col p-0 gap-0 overflow-hidden min-h-0">
+          <DialogBody className="flex flex-col gap-0 p-0 overflow-hidden min-h-0">
             {/* Add-product search bar — opens the shared ProductSearchDialog.
                 pt-1 (not pt-0) keeps the input's 1px focus ring from being
                 clipped by DialogBody's overflow-hidden top edge. */}
-            <div className="px-4 pt-1 pb-3 shrink-0">
+            <div className="px-4 pb-3 pt-1 shrink-0 w-96">
               <SearchInput
                 ref={returnInputRef}
-                placeholder="สแกนบาร์โค้ด หรือค้นหาชื่อ/รหัสสินค้าเพื่อเพิ่ม..."
+                placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
                 value={returnQuery}
                 onChange={e => handleReturnSearch(e.target.value)}
                 onKeyDown={handleReturnMultiplierKey}
                 onFocus={() => { if (returnQuery.trim()) setReturnSearchOpen(true) }}
                 wrapperClassName="w-full"
-                className="h-8 rounded-lg text-base"
+                className="h-8 rounded-lg text-sm"
                 autoComplete="off"
               />
             </div>
 
             {/* Cart-style table — the scroll zone */}
-            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[6px] border-card">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -2253,20 +2253,20 @@ export default function POSPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <Button variant="primary-soft" size="sm" onClick={() => setReturnUnitRowIdx(idx)}
-                            className="h-8 rounded-md">
+                            className="h-7 w-12 rounded-md">
                             {item.unit_name}
                           </Button>
                         </TableCell>
                         <TableCell className="text-center">
                           <Button variant="primary-soft" size="sm" onClick={() => setReturnQtyRowIdx(idx)}
-                            className="h-8 min-w-[3rem] rounded-md font-semibold">
+                            className="h-7 w-7 rounded-md font-semibold">
                             {item.qty}
                           </Button>
                         </TableCell>
                         <TableCell>
                           {multiLot ? (
                             <Button variant="primary-soft" size="sm" onClick={() => setReturnLotRowIdx(idx)}
-                              className="h-8 max-w-full gap-1 rounded-md">
+                              className="h-7 w-44 text-xs gap-1 rounded-md">
                               <span className="truncate">Lot {item.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}</span>
                             </Button>
                           ) : (
