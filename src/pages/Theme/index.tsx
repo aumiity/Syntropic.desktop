@@ -1589,25 +1589,24 @@ export default function Theme() {
                 <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
                   {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px]
                       inset so filter-strip controls align with column edges. */}
-                  <div className="h-12 px-4 flex items-center gap-3">
+                  <div className="h-16 px-4 flex items-center gap-3">
                     {/* Table title (left): icon-in-box + title + count badge.
                         Filter strip controls cluster on the right via ml-auto
                         on the first control. */}
                     <div className="flex items-center gap-3 shrink-0">
-                      <TintIcon icon={Package} tint="elevated" size="sm" />
                       <h3 className="text-lg font-semibold text-foreground">รายการสินค้า</h3>
-                      <Badge variant="neutral">{PRODUCTS.length * 3}</Badge>
+                      <Badge variant="outline">{PRODUCTS.length * 3}</Badge>
                     </div>
                     <SearchInput
                       variant="elevated"
-                      className="h-9"
+                      className="h-8"
                       wrapperClassName="w-72 shrink-0 ml-auto"
                       value={tableQ}
                       onChange={e => setTableQ(e.target.value)}
                       placeholder="ค้นหาชื่อสินค้า, บาร์โค้ด, รหัส..."
                     />
                     <Select defaultValue="all">
-                      <SelectTrigger variant="elevated" className="h-9 w-44 shrink-0"><SelectValue /></SelectTrigger>
+                      <SelectTrigger variant="elevated" className="h-8 w-44 shrink-0"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
                         <SelectItem value="1">ยาต้านเชื้อ</SelectItem>
@@ -1618,7 +1617,7 @@ export default function Theme() {
                     {/* Filter popover — secondary filters (status, show disabled) */}
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
+                        <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="ตัวกรอง">
                           <Filter className="size-4" />
                         </Button>
                       </PopoverTrigger>
@@ -1774,7 +1773,7 @@ export default function Theme() {
                             value={String(pageSize)}
                             onValueChange={v => setPageSize(v === 'all' ? 'all' : Number(v))}
                           >
-                            <SelectTrigger variant="elevated" className="h-9 min-w-20">
+                            <SelectTrigger variant="elevated" className="h-8 w-20">
                               <SelectValue>{pageSize === 'all' ? 'ทั้งหมด' : String(pageSize)}</SelectValue>
                             </SelectTrigger>
                             <SelectContent className="min-w-28">
