@@ -147,7 +147,7 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5",
-        "rounded-control py-1.5 pl-3 pr-9",
+        "rounded-md py-1.5 pl-3 pr-9",
         "text-sm outline-none select-none",
         "focus:bg-primary-soft focus:text-primary",
         "not-data-[variant=destructive]:focus:**:text-primary",
