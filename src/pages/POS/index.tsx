@@ -1279,7 +1279,7 @@ export default function POSPage() {
             <Button variant="destructive" size="sm" disabled={cart.items.length === 0}
               tooltip="ลบรายการทั้งหมด"
               onClick={() => { cart.clearCart(); setExpandedBundles(new Set()); setSelectedRowIdx(null); refocusSearch() }}
-              className="h-8 w-8 p-0 rounded-lg shrink-0 ml-auto mr-2">
+              className="h-8 w-8 p-0 rounded-md shrink-0 ml-auto mr-2">
               <Trash2 className="size-4" />
             </Button>
           </div>
