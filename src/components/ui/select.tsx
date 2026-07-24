@@ -50,7 +50,7 @@ function SelectTrigger({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "group flex h-8 w-fit items-center justify-between gap-1.5",
+        "group flex h-9 w-fit items-center justify-between gap-1.5",
         fieldVariant(variant, radius),
         "hover:bg-muted",
         "py-2 pr-2 pl-2.5",
@@ -235,7 +235,7 @@ function NativeSelect({ value, onChange, children, className, selectClassName, v
     <div className={cn('relative', className)}>
       <select
         className={cn(
-          'w-full h-8 px-3 pr-9 text-sm appearance-none outline-none transition-colors',
+          'w-full h-9 px-3 pr-9 text-sm appearance-none outline-none transition-colors',
           'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
           fieldVariant(variant, radius),
           'hover:bg-muted dark:hover:bg-input/50',

@@ -897,7 +897,7 @@ export default function Theme() {
                     />
                   </div>
                 </DemoRow>
-                <DemoRow label="With empty/all row (filter mode) — h-8 เท่ากับ Input / DateInput / DateRangePicker">
+                <DemoRow label="With empty/all row (filter mode) — h-9 เท่ากับ Input / DateInput / DateRangePicker">
                   <div className="w-72">
                     <Combobox
                       items={comboItems}
@@ -1101,18 +1101,18 @@ export default function Theme() {
                     )}
                   </div>
                 </DemoRow>
-                <DemoRow label='Elevated (bg-card + border + shadow, h-8) — สำหรับ filter strip'>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip'>
                   <DateInput
                     variant="elevated"
                     value={dateVal}
                     onChange={setDateVal}
-                    className="h-8 w-44"
+                    className="h-9 w-44"
                   />
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
                   รับ / ส่งค่าเป็น ISO <code>yyyy-mm-dd</code>.
                   แสดงผลเป็น <code>dd/mm/yyyy</code>. มี calendar picker ในตัว.
-                  filter strip ใช้ <code>variant="elevated" className="h-8"</code> ให้แมตช์ SearchInput/Select/DateRangePicker.
+                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์ SearchInput/Select/DateRangePicker.
                 </p>
               </Section>
 
@@ -1134,13 +1134,13 @@ export default function Theme() {
                     )}
                   </div>
                 </DemoRow>
-                <DemoRow label='Elevated (bg-card + border + shadow, h-8) — สำหรับ filter strip ของ list table'>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip ของ list table'>
                   <DateRangePicker
                     variant="elevated"
                     from={rangeFrom}
                     to={rangeTo}
                     onChange={(f, t) => { setRangeFrom(f); setRangeTo(t) }}
-                    className="h-8 w-60"
+                    className="h-9 w-60"
                   />
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
@@ -1618,7 +1618,7 @@ export default function Theme() {
                     {/* Filter popover — secondary filters (status, show disabled) */}
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="ตัวกรอง">
+                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="ตัวกรอง">
                           <Filter className="size-4" />
                         </Button>
                       </PopoverTrigger>
@@ -1666,7 +1666,7 @@ export default function Theme() {
                     {/* Column settings popover — visibility per column */}
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button size="lg" variant="elevated" className="h-8 w-8 p-0 shrink-0" title="จัดการตาราง">
+                        <Button size="lg" variant="elevated" className="h-9 w-9 p-0 shrink-0" title="จัดการตาราง">
                           <Settings2 className="size-4" />
                         </Button>
                       </PopoverTrigger>
@@ -1805,7 +1805,7 @@ export default function Theme() {
                   </span>
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  ปุ่ม <code className="bg-muted px-1 rounded">elevated</code> icon (h-8 w-8) เปิด popover เลือกอย่างเดียว —
+                  ปุ่ม <code className="bg-muted px-1 rounded">elevated</code> icon (h-9 w-9) เปิด popover เลือกอย่างเดียว —
                   ค่าเริ่มต้น <code className="bg-muted px-1 rounded">'all'</code> (โชว์ทั้งหมด) แล้วเลือกแคบเป็น{' '}
                   <code className="bg-muted px-1 rounded">'enabled'</code> /{' '}
                   <code className="bg-muted px-1 rounded">'disabled'</code> ได้. ใช้ทุกตาราง list ที่มีสถานะเปิด/ปิด

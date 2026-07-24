@@ -224,7 +224,18 @@ export default function ReviewOverlay() {
   }, [noting, route])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setEditing(null); setNoting(false) } }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setEditing(null); setNoting(false); return }
+      // Global hotkeys so the tool is reachable even while a modal covers the
+      // TitleBar launcher (this listens at the window level — z-index doesn't
+      // apply). e.code (physical key) sidesteps the macOS Option dead-key issue
+      // where Alt+N yields a combining char instead of 'n'. Alt (alone):
+      //   +N → toggle note mode   ·   +L → toggle the list panel
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        if (e.code === 'KeyN') { e.preventDefault(); useReviewOverlayStore.getState().toggleNoting(); return }
+        if (e.code === 'KeyL') { e.preventDefault(); useReviewOverlayStore.getState().togglePanel(); return }
+      }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])

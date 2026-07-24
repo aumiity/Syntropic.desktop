@@ -285,7 +285,7 @@ export function TitleBar() {
             <button
               type="button"
               onClick={toggleNoting}
-              title="เปิด/ปิดโหมดปักโน้ต"
+              title="เปิด/ปิดโหมดปักโน้ต (Alt + N — ใช้ได้แม้เปิดโมดอลอยู่)"
               className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-xs transition-colors ${
                 noting
                   ? 'text-accent-soft-foreground bg-accent-soft'
@@ -298,7 +298,7 @@ export function TitleBar() {
             <button
               type="button"
               onClick={togglePanel}
-              title="รายการโน้ตรีวิว UI"
+              title="รายการโน้ตรีวิว UI (Alt + L)"
               className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors"
             >
               <List className="size-3.5" />

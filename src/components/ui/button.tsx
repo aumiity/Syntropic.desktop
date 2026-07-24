@@ -151,7 +151,7 @@ const buttonVariants = cva(
       },
       size: {
         default: [
-          "h-8 gap-1.5 px-2.5",
+          "h-9 gap-1.5 px-2.5",
           "has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         ].join(" "),
         xs: [
@@ -167,7 +167,7 @@ const buttonVariants = cva(
           "[&_svg:not([class*='size-'])]:size-3.5",
         ].join(" "),
         lg: [
-          "h-8 gap-1.5 px-2.5",
+          "h-9 gap-1.5 px-2.5",
           "has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         ].join(" "),
         xl: "h-10 gap-2 rounded-lg px-10 text-base",
