@@ -1368,7 +1368,7 @@ export default function POSPage() {
                               <TooltipContent>{alert.reason}</TooltipContent>
                             </Tooltip>
                           )}
-                          <span className={`truncate ${alert?.level === 'low_stock' ? 'text-destructive' : ''}`}>{item.item_name}</span>
+                          <span className={`truncate ${(alert?.level === 'low_stock' || alert?.level === 'expired') ? alertColorClass(alert.level) : ''}`}>{item.item_name}</span>
                         </div>
                       </TableCell>
 
@@ -1464,16 +1464,16 @@ export default function POSPage() {
                 </div>
                 <div className="flex-1 flex items-center justify-center gap-4 text-xs text-foreground-subtle">
                   <span className="inline-flex items-center gap-1">
-                    <PackageX className="size-3.5 text-destructive" /> สต๊อกไม่พอ
+                    <PackageX className={`size-3.5 ${alertColorClass('low_stock')}`} /> สต๊อกไม่พอ
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <ClockAlert className="size-3.5 text-destructive" /> หมดอายุ
+                    <ClockAlert className={`size-3.5 ${alertColorClass('expired')}`} /> หมดอายุ
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <ClockAlert className="size-3.5 text-amber-strong" /> อายุต่ำกว่า {EXPIRY_DANGER_MONTHS} เดือน
+                    <ClockAlert className={`size-3.5 ${alertColorClass('danger')}`} /> อายุต่ำกว่า {EXPIRY_DANGER_MONTHS} เดือน
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <ClockAlert className="size-3.5 text-warning" /> อายุต่ำกว่า {EXPIRY_WARN_MONTHS} เดือน
+                    <ClockAlert className={`size-3.5 ${alertColorClass('warn')}`} /> อายุต่ำกว่า {EXPIRY_WARN_MONTHS} เดือน
                   </span>
                 </div>
                 {cart.totalDiscount() > 0 && (

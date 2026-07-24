@@ -158,11 +158,12 @@ export function getProductExpiryLevel(
 export function alertColorClass(level: AlertLevel): string {
   switch (level) {
     case 'expired':
-    case 'low_stock':
       return 'text-destructive'
+    case 'low_stock':
+      return 'text-violet'
     case 'danger':
-      return 'text-amber-strong'
-    case 'warn':
       return 'text-warning'
+    case 'warn':
+      return 'text-amber'
   }
 }
