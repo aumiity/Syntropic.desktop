@@ -57,7 +57,7 @@
 | `feedback_modal_behavior` | no outside-click; Esc ปิด; Enter = OK |
 | `feedback_button_icon_size` | icon ใน Button ใช้ `size-N` |
 | `feedback_text_size` | min = text-sm |
-| `feedback_scrollbar_thin` | scrollbar 6px |
+| `feedback_scrollbar_thin` | scrollbar 10px |
 | `feedback_confirm_dialog_content_pattern` | confirm dialog ใช้ info-card ใน content slot |
 | `feedback_tsc_discipline` | ไม่ต้อง tsc ทุก edit |
 | `feedback_read_doc_before_ui_edit` | อ่าน docs/claude/ui-*.md ก่อนแตะ UI + กฎ h-12/h-9 |

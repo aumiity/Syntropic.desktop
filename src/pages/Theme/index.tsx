@@ -1573,19 +1573,43 @@ export default function Theme() {
               {/* ── STANDARD TABLE-CARD ── */}
               <Section title="Standard Table-Card Layout" path="CLAUDE.md → UI Conventions" full>
                 <p className="text-sm text-muted-foreground">
-                  รูปแบบมาตรฐานของ Products list / EditProduct tabs — Card (<code>bg-card + rounded-card + shadow-card + border-border</code> + <code>overflow-hidden</code>) ครอบ 3 แถบ:
-                  <br />
-                  <strong>แถบบน (h-14 px-4)</strong> — px-4 ตรงกับ inset 16px ของตาราง:
-                  ซ้าย = <strong>title</strong> (<code>h3 text-lg font-semibold</code> + Badge <code>outline</code> นับจำนวน — ไม่มี icon-in-box) · ขวา (ชิดขวาผ่าน <code>ml-auto</code> ที่ control ตัวแรก) = SearchInput + Select หมวด + <strong>ปุ่มตัวกรอง</strong> (Filter, icon-only Popover) + <strong>ปุ่มจัดการตาราง</strong> (Settings2 Popover) — controls ทุกตัวใช้ <code>variant="elevated"</code> + <strong>h-8</strong> (ปุ่ม icon = <code>h-8 w-8 p-0</code>)
-                  <br />
-                  <strong>ตาราง</strong> — wrap ด้วย <code>border-l-[16px] border-r-[16px] border-card</code> เพื่อ inset column header จากขอบ card · header row <code>h-9</code> แถบ <code>bg-muted</code> + <code>border-b</code> + <code>text-foreground</code> · row hover = <code>bg-muted</code> (สีเดียวกับ header) · row divider = <code>border-border</code> · container <code>max-h-[440px]</code> + <code>scrollbar-thin</code> (header sticky, เกิน 10 แถวจึง scroll)
-                  <br />
-                  <strong>แถบล่าง (h-12 px-5)</strong> <code>bg-card border-t border-border</code>: ซ้าย = "จำนวนแถว [Select h-8] แสดง X-Y" · ขวา = <code>Pagination</code> — ปุ่ม <code>variant="elevated"</code> + <code>radius="sm"</code> (มุมโค้งน้อย), sliding window 5 หน้า ไม่มี ellipsis, หน้าปัจจุบัน = <code>default</code> (teal)
-                  <br />
-                  <strong>Row action</strong> = ปุ่มเดียว <code>icon-lg variant="ghost"</code> + MoreHorizontal → Popover (แก้ไข/ดูรายละเอียด/เปิดดู ฯลฯ) — เกาะสีพื้นไม่เด่น
-                  <br />
-                  <strong>Status badge</strong> = STATUS outline family: <code>success-outline</code> / <code>warning-outline</code> / <code>destructive-outline</code> ฯลฯ — ทุกคอลัมน์ (รวม "จัดการ") ใช้ <code>text-left</code>
+                  รูปแบบมาตรฐานของหน้า Products list และ EditProduct tabs — การ์ด
+                  (<code>bg-card rounded-card shadow-card border-border overflow-hidden</code>) ครอบ 3 แถบ
+                  ตามนี้ค่ะ:
                 </p>
+                <ul className="mt-3 space-y-3 text-sm text-muted-foreground">
+                  <li>
+                    <strong className="text-foreground">แถบบน — <code>h-14 px-4</code></strong>
+                    <span className="text-xs"> (px-4 = 16px ให้ตรงกับ inset ซ้ายของตาราง)</span>
+                    <div className="mt-1 space-y-0.5 pl-3">
+                      <div>· <strong>ซ้าย:</strong> title (<code>h3 text-lg font-semibold</code>) + Badge <code>outline</code> นับจำนวน</div>
+                      <div>· <strong>ขวา</strong> (ชิดขวาด้วย <code>ml-auto</code> ที่ control ตัวแรก): SearchInput → Select หมวด → ปุ่มตัวกรอง (Filter, Popover) → ปุ่มจัดการตาราง (Settings2, Popover)</div>
+                      <div>· ทุก control = <code>variant="elevated"</code> + <code>h-8</code> (ปุ่ม icon = <code>h-8 w-8 p-0</code>)</div>
+                    </div>
+                  </li>
+                  <li>
+                    <strong className="text-foreground">ตาราง</strong>
+                    <div className="mt-1 space-y-0.5 pl-3">
+                      <div>· border สี card อยู่บน <code>&lt;table&gt;</code> = <code>border-l-[16px] border-r-[6px]</code> → เนื้อหา inset จากขอบ ส่วน scrollbar อยู่ริมขอบนอก</div>
+                      <div>· หัวคอลัมน์: <code>h-9</code> · <code>bg-muted</code> · <code>border-b</code> · <code>text-foreground</code> · sticky (เกิน 10 แถวจึง scroll)</div>
+                      <div>· แถว: hover = <code>bg-muted</code> · เส้นคั่น = <code>border-border</code> · container <code>max-h-[440px] scrollbar-thin</code></div>
+                    </div>
+                  </li>
+                  <li>
+                    <strong className="text-foreground">แถบล่าง — <code>h-12 px-5</code></strong>
+                    <span className="text-xs"> (<code>bg-card border-t border-border</code>)</span>
+                    <div className="mt-1 space-y-0.5 pl-3">
+                      <div>· <strong>ซ้าย:</strong> "จำนวนแถว [Select h-8] แสดง X-Y"</div>
+                      <div>· <strong>ขวา:</strong> <code>Pagination</code> — ปุ่ม <code>variant="elevated" radius="sm"</code>, sliding window 5 หน้า ไม่มี ellipsis, หน้าปัจจุบัน = <code>default</code> (teal)</div>
+                    </div>
+                  </li>
+                  <li>
+                    <strong className="text-foreground">ปุ่ม action ต่อแถว</strong> = ปุ่มเดียว <code>icon-lg variant="ghost"</code> + MoreHorizontal → Popover (แก้ไข / ดูรายละเอียด / เปิดดู) — เกาะสีพื้น ไม่เด่น
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Badge สถานะ</strong> = ตระกูล outline (<code>success-outline</code> / <code>warning-outline</code> / <code>destructive-outline</code>) — ทุกคอลัมน์ (รวม "จัดการ") จัด <code>text-left</code>
+                  </li>
+                </ul>
                 <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
                   {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px]
                       inset so filter-strip controls align with column edges. */}

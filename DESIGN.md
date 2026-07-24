@@ -19,7 +19,7 @@ The full design system lives in **three places, each authoritative for its layer
 | **Deep prose** (the "why + failure mode") | **`docs/claude/ui-*.md`** | The real reference. See map below. |
 
 ### docs/claude/ui-*.md — what each covers
-- **`ui-theming.md`** — Tailwind-v3 CSS-var syntax trap; semantic-token-only rule + how to add a token; raw-HTML ban; ELEVATED-default inputs; **full color palette + Button/Badge variants by role**; dialog footer button roles; modal contract; icon `size-N` rule; text-size hierarchy (rule 9); 6px scrollbar; canonical primitive defaults (Table/Select/Dialog/DateInput/Card radius).
+- **`ui-theming.md`** — Tailwind-v3 CSS-var syntax trap; semantic-token-only rule + how to add a token; raw-HTML ban; ELEVATED-default inputs; **full color palette + Button/Badge variants by role**; dialog footer button roles; modal contract; icon `size-N` rule; text-size hierarchy (rule 9); 10px scrollbar; canonical primitive defaults (Table/Select/Dialog/DateInput/Card radius).
 - **`ui-components.md`** — `/theme` showcase-is-truth rule; Card components (Section/Metric/Stat); Tabs variants; **Typography & fonts** (full stack, light/dark defaults, Thai alternates, print=Sarabun); frameless window.
 - **`ui-table-card.md`** — table-card 4-zone layout, filter strip (`h-14`/`h-10`), row-action buttons, sortable mode, sticky headers, column-width rules.
 - **`pos.md`** — POS search-modal focus/highlight invariants, unit-selection ordering.

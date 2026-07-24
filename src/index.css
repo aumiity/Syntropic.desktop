@@ -288,7 +288,7 @@
   }
   ::selection { background: var(--selection-bg); }
   html { font-size: 18px; }
-  /* Thin (7px) is the ONE scrollbar size across the whole app — global default
+  /* 10px is the ONE scrollbar size across the whole app — global default
      matches the .scrollbar-thin utility. Never define a different width anywhere. */
   ::-webkit-scrollbar {
     @apply w-[10px] h-[10px];
