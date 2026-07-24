@@ -1696,12 +1696,14 @@ export default function Theme() {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  {/* Side padding via card-colored border so the muted column
-                      header doesn't touch the card edge (matches ProductsList). */}
-                  <div className="border-l-[16px] border-r-[16px] border-card">
+                  {/* Side padding via card-colored border on the <table> so the
+                      scrollbar sits at the card's outer edge while the muted column
+                      header stays inset (matches POS cart). */}
+                <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+                  <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
                   {/* Fixed height = header (h-10 = 40px) + 10 rows (~40px each).
                       Beyond 10 rows the body scrolls (scrollbar-thin). */}
-                  <Table containerClassName="max-h-[440px] scrollbar-thin">
+                  <Table containerClassName="max-h-[440px]" className="border-l-[16px] border-r-[6px] border-card">
                     <TableHeader>
                       <TableRow className="h-9">
                         {showColName && <SortableTableHead field="name" sort={tableSort} onToggle={toggleTableSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>}
@@ -1792,6 +1794,7 @@ export default function Theme() {
                     })()}
                     <Pagination page={page} totalPages={10} onPageChange={setPage} className="w-auto" />
                   </div>
+                </div>
                 </div>
               </Section>
 

@@ -1279,14 +1279,14 @@ export default function POSPage() {
             <Button variant="destructive" size="sm" disabled={cart.items.length === 0}
               tooltip="ลบรายการทั้งหมด"
               onClick={() => { cart.clearCart(); setExpandedBundles(new Set()); setSelectedRowIdx(null); refocusSearch() }}
-              className="h-8 w-8 p-0 rounded-md shrink-0 ml-auto mr-2">
+              className="h-8 w-8 p-0 rounded-md shrink-0 ml-auto">
               <Trash2 className="size-4" />
             </Button>
           </div>
 
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <div ref={cartScrollRef} className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
-              <table className="w-full caption-bottom text-base table-fixed border-l-[16px] border-r-[16px] border-card">
+              <table className="w-full caption-bottom text-base table-fixed border-l-[16px] border-r-[6px] border-card">
                 <colgroup>
                   <col style={{ width: 36 }} />
                   <col style={{ width: '35%' }} />
@@ -1368,7 +1368,7 @@ export default function POSPage() {
                               <TooltipContent>{alert.reason}</TooltipContent>
                             </Tooltip>
                           )}
-                          <span className="truncate">{item.item_name}</span>
+                          <span className={`truncate ${alert?.level === 'low_stock' ? 'text-destructive' : ''}`}>{item.item_name}</span>
                         </div>
                       </TableCell>
 
@@ -1503,26 +1503,26 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Quick actions (vertical stack) */}
-          <div className="flex flex-col gap-1.5 flex-1 min-h-0">
+          {/* Quick actions (2×2 grid, packed to top — leftover space stays empty) */}
+          <div className="grid grid-cols-2 gap-1.5 flex-1 min-h-0 content-start">
             <Button variant="elevated" onClick={openCashDrawer}
-              className="relative w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
-              <Banknote className="size-6 text-info" /> เปิดลิ้นชัก
+              className="relative flex-col justify-center gap-1.5 rounded-xl px-2 h-20 text-base font-medium shadow-card">
+              <Banknote className="size-7 text-info" /> เปิดลิ้นชัก
               <span className="absolute right-2 top-2 inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-xs font-semibold text-border-strong">F10</span>
             </Button>
             <Button variant="elevated" disabled={cart.items.length === 0}
               onClick={() => setShowLabelPrint(true)}
-              className="relative w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
-              <Tag className="size-6 text-info-soft-foreground" /> พิมพ์ฉลาก
+              className="relative flex-col justify-center gap-1.5 rounded-xl px-2 h-20 text-base font-medium shadow-card">
+              <Tag className="size-7 text-info-soft-foreground" /> พิมพ์ฉลาก
               <span className="absolute right-2 top-2 inline-flex items-center rounded-md border border-border px-1.5 py-0.5 text-xs font-semibold text-border-strong">F4</span>
             </Button>
             <Button variant="elevated" onClick={() => setShowAdjust(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
-              <PackageMinus className="size-6 text-accent" /> ตัดสต็อก
+              className="flex-col justify-center gap-1.5 rounded-xl px-2 h-20 text-base font-medium shadow-card">
+              <PackageMinus className="size-7 text-accent" /> ตัดสต็อก
             </Button>
             <Button variant="elevated" onClick={() => setShowReturn(true)}
-              className="w-full justify-center gap-3 rounded-xl px-4 flex-1 min-h-9 h-auto text-xl font-medium shadow-card">
-              <RotateCcw className="size-6 text-primary" /> รับคืนสินค้า
+              className="flex-col justify-center gap-1.5 rounded-xl px-2 h-20 text-base font-medium shadow-card">
+              <RotateCcw className="size-7 text-primary" /> รับคืนสินค้า
             </Button>
           </div>
 
