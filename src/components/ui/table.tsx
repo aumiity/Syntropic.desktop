@@ -56,23 +56,29 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   )
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
-  return (
-    <tr
-      data-slot="table-row"
-      className={cn(
-        "border-b transition-colors",
-        "hover:bg-muted has-aria-expanded:bg-muted",
-        // Empty/loading rows use a colSpan'd cell — they're not real data, so
-        // suppress the hover highlight (and the cursor that comes with it).
-        "has-[td[colspan]]:hover:bg-transparent",
-        "data-[state=selected]:bg-primary-soft",
-        className
-      )}
-      {...props}
-    />
-  )
-}
+// forwardRef (unlike its siblings here) so a caller can scroll/focus one row —
+// e.g. the keyboard cursor in `lot-picker-dialog.tsx`. React 18 drops `ref` on
+// a plain function component, so this wrapper is what makes that work.
+const TableRow = React.forwardRef<
+  HTMLTableRowElement,
+  React.ComponentPropsWithoutRef<"tr">
+>(({ className, ...props }, ref) => (
+  <tr
+    ref={ref}
+    data-slot="table-row"
+    className={cn(
+      "border-b transition-colors",
+      "hover:bg-muted has-aria-expanded:bg-muted",
+      // Empty/loading rows use a colSpan'd cell — they're not real data, so
+      // suppress the hover highlight (and the cursor that comes with it).
+      "has-[td[colspan]]:hover:bg-transparent",
+      "data-[state=selected]:bg-primary-soft",
+      className
+    )}
+    {...props}
+  />
+))
+TableRow.displayName = "TableRow"
 
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
