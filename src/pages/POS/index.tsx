@@ -2206,7 +2206,7 @@ export default function POSPage() {
             {/* Add-product search bar — opens the shared ProductSearchDialog.
                 pt-1 (not pt-0) keeps the input's 1px focus ring from being
                 clipped by DialogBody's overflow-hidden top edge. */}
-            <div className="px-4 pb-3 pt-1 shrink-0 w-96">
+            <div className="px-1 pb-3 pt-1 shrink-0 w-96">
               <SearchInput
                 ref={returnInputRef}
                 placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
@@ -2221,7 +2221,7 @@ export default function POSPage() {
             </div>
 
             {/* Cart-style table — the scroll zone */}
-            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[6px] border-card">
+            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[px] border-r-[px] border-card">
               <Table>
                 <TableHeader>
                   <TableRow>
