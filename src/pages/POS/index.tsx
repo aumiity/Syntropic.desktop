@@ -2221,7 +2221,7 @@ export default function POSPage() {
             </div>
 
             {/* Cart-style table — the scroll zone */}
-            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[px] border-r-[px] border-card">
+            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin">
               <Table>
                 <TableHeader>
                   <TableRow>
