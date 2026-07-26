@@ -734,7 +734,7 @@ export default function POSPage() {
     setReturnSearchOpen(false)
     setReturnQuery(''); setReturnResults([]); setReturnMultiplier(null)
     setReturnList([]); setReturnReason('')
-    setReturnUnitRowIdx(null); setReturnQtyRowIdx(null)
+    setReturnUnitRowIdx(null); setReturnQtyRowIdx(null); setReturnLotRowIdx(null)
   }
 
   const closeAdjust = () => {
@@ -868,8 +868,19 @@ export default function POSPage() {
       })
       return
     }
-    const lots = await (window.api.products as any).getLots(product.id) as ProductLot[]
-    if (!lots || lots.length === 0) { toast('ไม่พบล็อตสำหรับสินค้านี้', 'error'); return }
+    const allLots = await (window.api.products as any).getLots(product.id) as ProductLot[]
+    // ล็อตที่ถูกยกเลิก (GR ถูก void) ไม่ใช่เป้าหมายของการรับคืน — ตัดออกทั้งจากค่าตั้งต้น
+    // และจากรายการที่ให้เลือกใน LotPickerDialog.
+    //
+    // Default lot = ล็อตที่ "รับเข้าล่าสุด" เสมอ — เรียง created_at DESC เองที่นี่
+    // แทนการพึ่งลำดับที่ IPC ส่งมา (ค่าตั้งต้นจะไม่เปลี่ยนถ้าใครแก้ ORDER BY ฝั่ง main)
+    // และ tie-break ด้วย id DESC เพราะล็อตที่รับเข้าในบิลเดียวกันได้ created_at
+    // ค่าเดียวกัน. ล็อตที่ขายหมด/ปิดแล้วยังเป็นค่าตั้งต้นได้ — การคืนของจะดัน
+    // qty กลับข้าม 0 แล้ว reopen ล็อตให้เอง.
+    const lots = (allLots ?? [])
+      .filter(l => l.is_cancelled !== 1)
+      .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '') || b.id - a.id)
+    if (lots.length === 0) { toast('ไม่พบล็อตสำหรับสินค้านี้', 'error'); return }
     const lot = lots[0]
     const unitPrice = product.price_retail ?? 0
     const mult = returnMultiplier ?? 1 // ตัวคูณ single-use; closeReturnSearch() จะรีเซ็ตหลังเพิ่มเสร็จ
@@ -2229,7 +2240,8 @@ export default function POSPage() {
                     <TableHead className="min-w-[280px]">รายการ</TableHead>
                     <TableHead className="text-center min-w-10">หน่วย</TableHead>
                     <TableHead className="text-center min-w-10">จำนวน</TableHead>
-                    <TableHead className="min-w-14">ล็อต / วันหมดอายุ</TableHead>
+                    <TableHead className="w-20">ล็อต</TableHead>
+                    <TableHead className="text-center min-w-14">วันหมดอายุ</TableHead>
                     <TableHead className="text-right min-w-10">รวม</TableHead>
                     <TableHead className="text-center w-12" />
                   </TableRow>
@@ -2237,7 +2249,7 @@ export default function POSPage() {
                 <TableBody>
                   {returnList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-16">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
                         <PackageX className="size-10 mx-auto mb-2 opacity-30" />
                         ยังไม่มีรายการคืน — สแกนหรือค้นหาสินค้าด้านบนเพื่อเพิ่ม
                       </TableCell>
@@ -2266,15 +2278,15 @@ export default function POSPage() {
                         <TableCell>
                           {multiLot ? (
                             <Button variant="primary-soft" size="sm" onClick={() => setReturnLotRowIdx(idx)}
-                              className="h-7 w-44 text-xs gap-1 rounded-md">
-                              <span className="truncate">Lot {item.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}</span>
+                              className="h-7 w-16 px-1 text-xs rounded-md">
+                              <span className="truncate">{item.lot_number || '—'}</span>
                             </Button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                              <ClockAlert className="size-3 shrink-0" />
-                              Lot {item.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}
-                            </span>
+                            <span className="text-xs text-muted-foreground">{item.lot_number || '—'}</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-center text-sm text-muted-foreground">
+                          {expiry ?? '—'}
                         </TableCell>
                         <TableCell className="text-right text-sm font-bold text-foreground">{formatCurrency(item.line_total)}</TableCell>
                         <TableCell>
@@ -2292,7 +2304,7 @@ export default function POSPage() {
             </div>
 
             {/* Footer status bar — count + total */}
-            <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+            <div className="px-5 h-10 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
               <span className="text-muted-foreground">{returnList.length.toLocaleString()} รายการ</span>
               <span className="text-muted-foreground">
                 ยอดคืนรวม
