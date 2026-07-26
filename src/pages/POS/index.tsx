@@ -2051,7 +2051,7 @@ export default function POSPage() {
       />
 
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
-        <DialogContent size="3xl" divided onClose={closeAdjust} className="h-[74vh] grid-rows-[auto_1fr_auto]">
+        <DialogContent size="3xl" divided onClose={closeAdjust} className="h-[74vh] grid-rows-[auto_1fr_auto] [&>[data-slot=dialog-header]]:-mx-4 [&>[data-slot=dialog-header]]:px-6 [&>[data-slot=dialog-footer]]:-mx-4 [&>[data-slot=dialog-footer]]:px-6">
           <DialogHeader>
             <DialogTitle>
               ตัดสต็อก
@@ -2062,7 +2062,7 @@ export default function POSPage() {
             {/* Add-product search bar — opens the shared ProductSearchDialog.
                 pt-1 (not pt-0) keeps the input's 1px focus ring from being
                 clipped by DialogBody's overflow-hidden top edge. */}
-            <div className="px-4 pt-1 pb-3 shrink-0">
+            <div className="px-1 pb-3 pt-1 shrink-0 w-96">
               <SearchInput
                 ref={adjustInputRef}
                 placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
@@ -2071,21 +2071,22 @@ export default function POSPage() {
                 onKeyDown={handleAdjustMultiplierKey}
                 onFocus={() => { if (adjustQuery.trim()) setAdjustSearchOpen(true) }}
                 wrapperClassName="w-full"
-                className="h-11 text-base"
+                className="h-8 rounded-lg text-sm"
                 autoComplete="off"
               />
             </div>
 
             {/* Cart-style table — the scroll zone */}
-            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-center w-10">#</TableHead>
-                    <TableHead className="min-w-[260px]">รายการ</TableHead>
+                    <TableHead className="min-w-[280px]">รายการ</TableHead>
                     <TableHead className="text-center min-w-10">หน่วย</TableHead>
                     <TableHead className="text-center min-w-10">จำนวน</TableHead>
-                    <TableHead className="min-w-12">ล็อต</TableHead>
+                    <TableHead className="w-20">ล็อต</TableHead>
+                    <TableHead className="text-center min-w-14">วันหมดอายุ</TableHead>
                     <TableHead className="text-right min-w-10">มูลค่าทุน</TableHead>
                     <TableHead className="text-center w-12" />
                   </TableRow>
@@ -2093,7 +2094,7 @@ export default function POSPage() {
                 <TableBody>
                   {adjustList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-16">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
                         <PackageMinus className="size-10 mx-auto mb-2 opacity-30" />
                         ยังไม่มีรายการตัด — สแกนหรือค้นหาสินค้าด้านบนเพื่อเพิ่ม
                       </TableCell>
@@ -2103,17 +2104,17 @@ export default function POSPage() {
                     const firstAlloc = item.allocations[0]
                     const expiry = firstAlloc?.expiry_date ? dayjs(firstAlloc.expiry_date).format('DD/MM/YYYY') : null
                     return (
-                      <TableRow key={`${item.product_id}-${item.unit_id}`} className="[&_td]:py-1">
+                      <TableRow key={`${item.product_id}-${item.unit_id}`} className="[&_td]:py-1.5">
                         <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
                         <TableCell className="max-w-0">
                           <div className="font-semibold text-sm text-foreground whitespace-nowrap overflow-x-clip overflow-y-visible" title={item.product_name}>{item.product_name}</div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center h-8 px-2 text-sm text-muted-foreground">{item.unit_name}</span>
+                          <span className="inline-flex items-center justify-center h-7 px-2 text-sm text-muted-foreground">{item.unit_name}</span>
                         </TableCell>
                         <TableCell className="text-center">
                           <Button variant="primary-soft" size="sm" onClick={() => setAdjustQtyRowIdx(idx)}
-                            className="h-8 min-w-[3rem] rounded-md font-semibold">
+                            className="h-7 min-w-7 px-1.5 rounded-md font-semibold">
                             {item.qty}
                           </Button>
                         </TableCell>
@@ -2123,7 +2124,7 @@ export default function POSPage() {
                           {multiLot ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-default">
+                                <span className="text-xs text-muted-foreground cursor-default">
                                   FEFO · {item.allocations.length} ล็อต
                                 </span>
                               </TooltipTrigger>
@@ -2136,10 +2137,15 @@ export default function POSPage() {
                               </TooltipContent>
                             </Tooltip>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                              Lot {firstAlloc?.lot_number || '—'}{expiry ? ` · ${expiry}` : ''}
-                            </span>
+                            <span className="text-sm text-muted-foreground">{firstAlloc?.lot_number || '—'}</span>
                           )}
+                        </TableCell>
+                        {/* allocations are FEFO-ordered (earliest expiry first), so
+                            firstAlloc is the lot being consumed first — that's the one
+                            date worth surfacing. Multi-lot rows carry the full
+                            per-lot breakdown in the ล็อต tooltip beside this cell. */}
+                        <TableCell className="text-center text-sm text-muted-foreground">
+                          {expiry ?? '—'}
                         </TableCell>
                         <TableCell className="text-right text-sm font-bold text-foreground">{formatCurrency(item.line_total)}</TableCell>
                         <TableCell>
@@ -2157,7 +2163,7 @@ export default function POSPage() {
             </div>
 
             {/* Footer status bar — count + total cost */}
-            <div className="px-5 h-12 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
+            <div className="px-5 h-10 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
               <span className="text-muted-foreground">{adjustList.length.toLocaleString()} รายการ</span>
               <span className="text-muted-foreground">
                 มูลค่าทุนรวม
@@ -2271,7 +2277,7 @@ export default function POSPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <Button variant="primary-soft" size="sm" onClick={() => setReturnQtyRowIdx(idx)}
-                            className="h-7 w-7 rounded-md font-semibold">
+                            className="h-7 min-w-7 px-1.5 rounded-md font-semibold">
                             {item.qty}
                           </Button>
                         </TableCell>
