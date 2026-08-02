@@ -74,7 +74,7 @@ export function QtyDialog({
             <div className="space-y-1.5">
               <Label>จำนวน ({unitName})</Label>
               <div className="flex items-center gap-2 pt-2">
-                <Button variant="elevated" size="icon-xl" onClick={() => bump(-1)} className="shrink-0 h-12 w-12">
+                <Button variant="elevated" size="icon-xl" radius="lg" onClick={() => bump(-1)} className="shrink-0 h-12 w-12">
                   <Minus className="size-5" />
                 </Button>
                 <Input
@@ -88,9 +88,10 @@ export function QtyDialog({
                   onChange={e => setQtyInput(toIntegerInput(e.target.value))}
                   onKeyDown={e => { if (e.key === 'Enter') apply() }}
                   placeholder={String(minQty)}
+                  radius="lg"
                   className="h-12 flex-1 text-center text-3xl font-bold"
                 />
-                <Button variant="elevated" size="icon-xl" onClick={() => bump(1)} className="shrink-0 h-12 w-12">
+                <Button variant="elevated" size="icon-xl" radius="lg" onClick={() => bump(1)} className="shrink-0 h-12 w-12">
                   <Plus className="size-5" />
                 </Button>
               </div>
@@ -103,12 +104,12 @@ export function QtyDialog({
               {presets.map(n => {
                 const active = (parseFloat(qtyInput) || 0) === n
                 return (
-                  <Button key={n} variant="ghost" size="sm"
+                  <Button key={n} variant="ghost" size="sm" radius="lg"
                     onClick={() => setQtyInput(String(n))}
-                    className={`relative w-full h-10 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${active ? 'hover:text-primary-foreground text-primary-foreground' : 'text-foreground'}`}>
+                    className={`relative w-full h-9 text-sm font-semibold hover:bg-transparent active:scale-100 active:translate-y-0 ${active ? 'hover:text-primary-foreground text-primary-foreground' : 'text-foreground'}`}>
                     {active && (
                       <motion.div layoutId="qty-preset-pill" aria-hidden
-                        className="absolute inset-0 rounded-md bg-primary shadow-sm"
+                        className="absolute inset-0 rounded-lg bg-primary shadow-sm"
                         transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
                     )}
                     <span className="relative z-10">{n}</span>

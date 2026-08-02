@@ -90,11 +90,11 @@ export function DiscountDialog({
               {[3, 5, 10, 15, 20].map(p => {
                 const isActive = totalPrice > 0 && Math.abs(d - totalPrice * p / 100) < 0.01
                 return (
-                  <Button key={p} variant="ghost" size="sm" onClick={() => applyPercent(p)}
-                    className={`relative w-full h-8 rounded-md text-sm font-medium transition-colors hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'text-destructive-foreground hover:text-destructive-foreground' : 'text-foreground/60 hover:text-foreground'}`}>
+                  <Button key={p} variant="ghost" size="sm" radius="lg" onClick={() => applyPercent(p)}
+                    className={`relative w-full h-9 text-sm font-medium transition-colors hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'text-destructive-foreground hover:text-destructive-foreground' : 'text-foreground/60 hover:text-foreground'}`}>
                     {isActive && (
                       <motion.div layoutId="discount-pct-pill" aria-hidden
-                        className="absolute inset-0 rounded-md bg-destructive shadow-md"
+                        className="absolute inset-0 rounded-lg bg-destructive shadow-md"
                         transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
                     )}
                     <span className="relative z-10">{p}%</span>
@@ -186,9 +186,12 @@ export function DiscountDialog({
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="destructive-soft" size="lg" className="mr-auto w-24 h-8" onClick={() => { setBaht('0'); apply(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
-            <Button className="w-24 h-8" variant="elevated" size="lg" onClick={onClose}>ยกเลิก</Button>
-            <Button className="w-24 h-8" variant="destructive" size="lg" onClick={() => apply(d)}>ตกลง</Button>
+            {/* px-6 overrides the px-10 that ships with size="xl" — three buttons
+                at full xl padding overflow the sm dialog. Height stays h-10 so the
+                footer matches every other dialog. */}
+            <Button variant="destructive-soft" size="xl" className="mr-auto px-6" onClick={() => { setBaht('0'); apply(0) }}><RotateCcw className="size-4" /> ล้าง</Button>
+            <Button variant="elevated" size="xl" className="px-6" onClick={onClose}>ยกเลิก</Button>
+            <Button variant="destructive" size="xl" className="px-6" onClick={() => apply(d)}>ตกลง</Button>
           </DialogFooter>
         </DialogContent>
       )}

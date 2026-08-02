@@ -1263,16 +1263,16 @@ export default function PurchasePage() {
                 const sur = parseFloat(surchargeBaht) || 0
                 const isActive = surchargeBase > 0 && Math.abs(sur - surchargeBase * p / 100) < 0.01
                 return (
-                  <Button key={p} variant="ghost" size="sm"
+                  <Button key={p} variant="ghost" size="sm" radius="lg"
                     onClick={() => {
                       const baht = parseFloat((surchargeBase * p / 100).toFixed(2))
                       setSurchargeBaht(String(baht)); setSurchargePct(String(p))
                       setSurTotalInput(String(parseFloat((surchargeBase + baht).toFixed(2))))
                     }}
-                    className={`relative w-full h-8 rounded-md text-sm font-medium transition-colors hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'text-primary-foreground hover:text-primary-foreground' : 'text-foreground/60 hover:text-foreground'}`}>
+                    className={`relative w-full h-9 text-sm font-medium transition-colors hover:bg-transparent active:scale-100 active:translate-y-0 ${isActive ? 'text-primary-foreground hover:text-primary-foreground' : 'text-foreground/60 hover:text-foreground'}`}>
                     {isActive && (
                       <motion.div layoutId="surcharge-pct-pill" aria-hidden
-                        className="absolute inset-0 rounded-md bg-primary shadow-md"
+                        className="absolute inset-0 rounded-lg bg-primary shadow-md"
                         transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />
                     )}
                     <span className="relative z-10">{p}%</span>
