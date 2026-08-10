@@ -52,7 +52,20 @@ Padding: table-card top bar = `px-4` (matches the 16px table inset so controls a
 
 ### Table area
 
-`[&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card` (the side borders match the card bg = a **16px** inset without padding, so the muted column-header band never touches the card edge; the vertical scrollbar therefore sits 16px in from the right edge — the operator tried a flush-right scrollbar and rejected it, so keep the 16px inset, do NOT collapse it to flush)
+**The inset border lives on the `<table>`, NOT on the wrapper (HARD, current since 2026-07-24 `c8f6189`):**
+
+```
+wrapper  …[&>[data-slot=table-container]]:overflow-auto
+         …[&>[data-slot=table-container]]:scrollbar-thin
+         …[&>[data-slot=table-container]]:[scrollbar-gutter:stable]
+<Table>  className="border-l-[16px] border-r-[6px] border-card"
+```
+
+The side borders match the card bg = an inset without padding, so the muted column-header band never touches the card edge. **The scrollbar sits flush at the card's outer edge**, and the `6px` right border + the `10px` scrollbar lane add up to the same **16px** as the left. This is why `border-r` is `6` and not `16` — do NOT "correct" it to 16, that makes the right gap 26px whenever the scrollbar shows.
+
+**`[scrollbar-gutter:stable]` on the scroll container is mandatory, not optional.** Without it the 10px lane only exists while the table actually overflows, so a short table silently drops to a 6px right inset against a 16px left one — visibly off-centre. The gutter reserves the lane in both states, so the geometry is identical whether the table scrolls or not.
+
+> **Superseded rule — do not restore.** Until 2026-07-24 the border sat on the *wrapper* as `border-l-[16px] border-r-[16px] border-card`, which put the scrollbar 16px in from the card edge. That shape has the same defect mirrored: a classic scrollbar takes layout width, so as soon as the table scrolled the content box shrank 10px and the band landed 16px from the left but 26px from the right. The operator moved both POS and the `/theme` showcase off it in `c8f6189`; the remaining 23 pages were swept to match on 2026-08-10. An older note here claimed a flush-right scrollbar had been "tried and rejected" — that was reversed the same evening; ignore it.
 
 ### Column widths use `min-w-` NEVER `w-`/`table-fixed` (HARD) — for *display / list* tables
 

@@ -294,8 +294,8 @@ export default function ManageLowStockPage() {
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
-          <Table>
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin [&>[data-slot=table-container]]:[scrollbar-gutter:stable]">
+          <Table className="border-l-[16px] border-r-[6px] border-card">
             <TableHeader>
               <TableRow>
                 <SortableTableHead field="trade_name" sort={sort} onToggle={toggleSort} className="min-w-[160px]">ชื่อสินค้า</SortableTableHead>

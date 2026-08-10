@@ -408,8 +408,8 @@ export default function ManageSalesPage() {
 
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
-          <Table>
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin [&>[data-slot=table-container]]:[scrollbar-gutter:stable]">
+          <Table className="border-l-[16px] border-r-[6px] border-card">
             <TableHeader>
               <TableRow>
                 {showColDate && <SortableTableHead field="sold_at" sort={sort} onToggle={toggleSort} className="min-w-24">เวลา</SortableTableHead>}

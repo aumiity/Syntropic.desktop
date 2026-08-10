@@ -845,7 +845,7 @@ export default function PurchasePage() {
 
                     {/* Line items */}
                     <div className="bg-card rounded-card shadow-card border border-border overflow-hidden flex-1 min-h-0 flex flex-col">
-                      {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px] inset
+                      {/* px-4 = 16px, matches the table's border-l-[16px] left inset
                           so strip controls align with column edges. */}
                       <div className="px-4 h-12 shrink-0 flex items-center gap-3">
                         <div className="flex items-center gap-3 shrink-0">
@@ -883,8 +883,8 @@ export default function PurchasePage() {
                         </div>
                       </div>
 
-                      <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
-                      <Table className="table-fixed">
+                      <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin [&>[data-slot=table-container]]:[scrollbar-gutter:stable]">
+                      <Table className="table-fixed border-l-[16px] border-r-[6px] border-card">
                         <TableHeader>
                           <TableRow className="border-0 hover:bg-transparent">
                             <TableHead className="px-3 text-center w-10">#</TableHead>

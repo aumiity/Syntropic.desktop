@@ -173,8 +173,8 @@ export default function ManageExpensesPage() {
         </div>
 
         {/* Table */}
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
-          <Table className="table-fixed">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin [&>[data-slot=table-container]]:[scrollbar-gutter:stable]">
+          <Table className="table-fixed border-l-[16px] border-r-[6px] border-card">
             <TableHeader>
               <TableRow>
                 <SortableTableHead field="expense_date" sort={sort} onToggle={toggleSort} className="w-[16%]">วันที่</SortableTableHead>

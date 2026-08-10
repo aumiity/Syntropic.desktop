@@ -171,8 +171,8 @@ export function ComponentsTab({ productId, controlledItems, onControlledItemsCha
           </Button>
         </div>
 
-        <div className="[&>[data-slot=table-container]]:max-h-[420px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
-        <Table>
+        <div className="[&>[data-slot=table-container]]:max-h-[420px] [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin [&>[data-slot=table-container]]:[scrollbar-gutter:stable]">
+        <Table className="border-l-[16px] border-r-[6px] border-card">
           <TableHeader>
             <TableRow>
               <TableHead className="text-center w-14">#</TableHead>

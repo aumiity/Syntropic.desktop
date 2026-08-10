@@ -1591,6 +1591,7 @@ export default function Theme() {
                     <strong className="text-foreground">ตาราง</strong>
                     <div className="mt-1 space-y-0.5 pl-3">
                       <div>· border สี card อยู่บน <code>&lt;table&gt;</code> = <code>border-l-[16px] border-r-[6px]</code> → เนื้อหา inset จากขอบ ส่วน scrollbar อยู่ริมขอบนอก</div>
+                      <div>· container ต้องมี <code>[scrollbar-gutter:stable]</code> ด้วย → จองรางกว้าง 10px ไว้เสมอ ขวาจึงเป็น 6+10 = 16px เท่าซ้ายทั้งตอนมีและไม่มี scrollbar (ถ้าไม่จอง ตารางที่แถวไม่ล้นจะเหลือขวาแค่ 6px)</div>
                       <div>· หัวคอลัมน์: <code>h-9</code> · <code>bg-muted</code> · <code>border-b</code> · <code>text-foreground</code> · sticky (เกิน 10 แถวจึง scroll)</div>
                       <div>· แถว: hover = <code>bg-muted</code> · เส้นคั่น = <code>border-border</code> · container <code>max-h-[440px] scrollbar-thin</code></div>
                     </div>
@@ -1611,8 +1612,8 @@ export default function Theme() {
                   </li>
                 </ul>
                 <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
-                  {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px]
-                      inset so filter-strip controls align with column edges. */}
+                  {/* px-4 = 16px, matches the table's border-l-[16px] left inset
+                      so filter-strip controls align with column edges. */}
                   <div className="h-14 px-4 flex items-center gap-3">
                     {/* Table title (left): icon-in-box + title + count badge.
                         Filter strip controls cluster on the right via ml-auto
@@ -1727,7 +1728,7 @@ export default function Theme() {
                   <div className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
                   {/* Fixed height = header (h-10 = 40px) + 10 rows (~40px each).
                       Beyond 10 rows the body scrolls (scrollbar-thin). */}
-                  <Table containerClassName="max-h-[440px]" className="border-l-[16px] border-r-[6px] border-card">
+                  <Table containerClassName="max-h-[440px] [scrollbar-gutter:stable]" className="border-l-[16px] border-r-[6px] border-card">
                     <TableHeader>
                       <TableRow className="h-9">
                         {showColName && <SortableTableHead field="name" sort={tableSort} onToggle={toggleTableSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>}

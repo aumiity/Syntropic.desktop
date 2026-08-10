@@ -416,13 +416,13 @@ export default function KhorYorSaleLedger({ formCode, title, cardTitle, flag }: 
         </div>
 
         {/* Table body — scrolls internally; sticky header from the Table primitive. */}
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin [&>[data-slot=table-container]]:[scrollbar-gutter:stable]">
           {loading ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด…</div>
           ) : isEmpty ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">ไม่มีรายการขายยาในเดือนนี้</div>
           ) : (
-            <Table>
+            <Table className="border-l-[16px] border-r-[6px] border-card">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12 text-center">ลำดับ</TableHead>

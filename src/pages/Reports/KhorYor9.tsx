@@ -318,7 +318,7 @@ export default function KhorYor9Page() {
     <div className="flex flex-1 flex-col min-h-0">
       {/* Review table card — full height, internal scroll (mirrors ProductsList). */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px] inset. */}
+        {/* px-4 = 16px, matches the table's border-l-[16px] left inset. */}
         <div className="no-print px-4 h-12 shrink-0 flex items-center gap-3">
           <div className="flex items-center gap-3 shrink-0">
             <TintIcon icon={FileText} tint="elevated" size="sm" />
@@ -381,7 +381,7 @@ export default function KhorYor9Page() {
         </div>
 
         {/* Table body — scrolls internally; sticky header from the Table primitive. */}
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin [&>[data-slot=table-container]]:[scrollbar-gutter:stable]">
           {loading ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">กำลังโหลด…</div>
           ) : isEmpty ? (
@@ -389,7 +389,7 @@ export default function KhorYor9Page() {
           ) : includedRows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">กรองผู้จำหน่ายออกหมดแล้ว — ไม่มีรายการให้แสดง</div>
           ) : (
-            <Table>
+            <Table className="border-l-[16px] border-r-[6px] border-card">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12 text-center">ลำดับ</TableHead>

@@ -7,7 +7,7 @@ metadata:
 
 **LOCKED 2026-07-24** — the standard table-card (Products list / EditProduct tabs pattern) has **two bars of intentionally DIFFERENT height** — the operator confirmed the asymmetry is on purpose, do NOT "fix" them to match:
 
-- **Top bar** (title + filter strip) = **`h-14 px-4`** (`px-4` = 16px, matches the table's `border-l-[16px]/r-[16px]` side inset)
+- **Top bar** (title + filter strip) = **`h-14 px-4`** (`px-4` = 16px, matches the table's 16px left inset — see [[table-card-scrollbar-inset]])
 - **Bottom bar** (status / total / pagination) = **`h-12 px-5`** — deliberately shorter
 - **Every control inside either bar = `h-8`**, all `variant="elevated"` (icon-only = `h-8 w-8 p-0`)
 
@@ -16,7 +16,7 @@ The bar's fields (search Input, category Select) default to `h-8` ([[control-hei
 Supersedes the old "EVERY bar = h-12 / control = h-9" single-rule *for the table-card*. The dead `h-14`-strip / `h-10`-control filter-strip predecessor stays dead — this `h-14` top bar is a fresh deliberate value, not a revival.
 
 Other locked details of this pattern (all in `docs/claude/ui-table-card.md`, synced 2026-07-24):
-- Table side inset = `border-l-[16px] border-r-[16px] border-card` (16px). The vertical scrollbar sits 16px in from the card's right edge — operator TRIED a flush-right scrollbar and rejected it, so keep the inset, don't collapse to flush.
+- ~~Table side inset = `border-l-[16px] border-r-[16px] border-card`, scrollbar 16px in from the card edge, flush-right "tried and rejected".~~ **OUTDATED — reversed the same evening (2026-07-24 `c8f6189`) and swept app-wide 2026-08-10.** Border now lives on the `<table>` as `border-l-[16px] border-r-[6px] border-card` with the scrollbar flush at the card's outer edge, plus a mandatory `[scrollbar-gutter:stable]` on the scroll container. See [[table-card-scrollbar-inset]].
 - Count badge = `Badge variant="outline"`.
 - Pagination buttons = `variant="elevated"` + `radius="sm"` (current page stays `default` teal) — see `src/components/ui/pagination.tsx`.
 

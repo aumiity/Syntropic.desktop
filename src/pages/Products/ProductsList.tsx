@@ -178,7 +178,7 @@ export default function ProductsList() {
     <div className="flex flex-col flex-1 min-h-0">
       {/* List card */}
       <div className="flex flex-1 flex-col min-h-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
-        {/* px-4 = 16px, matches the table's border-l-[16px]/r-[16px] inset
+        {/* px-4 = 16px, matches the table's border-l-[16px] left inset
             so filter-strip controls align with column edges. */}
         <div className="px-4 h-12 shrink-0 flex items-center gap-3">
           {/* Title cluster (left): icon-in-box + heading + count badge */}
@@ -245,8 +245,8 @@ export default function ProductsList() {
           </Popover>
         </div>
 
-        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin border-l-[16px] border-r-[16px] border-card">
-          <Table>
+        <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin [&>[data-slot=table-container]]:[scrollbar-gutter:stable]">
+          <Table className="border-l-[16px] border-r-[6px] border-card">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8">#</TableHead>

@@ -1296,7 +1296,11 @@ export default function POSPage() {
           </div>
 
           <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-            <div ref={cartScrollRef} className="flex-1 overflow-y-auto scrollbar-thin" tabIndex={-1}>
+            {/* scrollbar-gutter:stable reserves the 10px scrollbar lane even when the
+                cart is short enough not to scroll — without it the right inset drops
+                to the bare border-r-[6px] and the table sits visibly off-centre
+                against the 16px left inset. */}
+            <div ref={cartScrollRef} className="flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable]" tabIndex={-1}>
               <table className="w-full caption-bottom text-base table-fixed border-l-[16px] border-r-[6px] border-card">
                 <colgroup>
                   <col style={{ width: 36 }} />
@@ -1926,7 +1930,7 @@ export default function POSPage() {
                         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                         placeholder="0.00"
                         disabled={cart.items.length === 0 || subtotal <= 0}
-                        className="text-right w-52 h-12 text-4xl font-semibold text-destructive focus-visible:ring-destructive/30"
+                        className="text-right w-52 h-12 text-4xl font-semibold text-destructive focus-visible:ring-destructive/30 focus-visible:border-destructive/30"
                       />
                     </div>
 
@@ -1978,7 +1982,7 @@ export default function POSPage() {
                         handleCompleteSale()
                       }}
                       placeholder="0.00"
-                      className="text-right w-52 h-12 text-4xl font-semibold focus-visible:ring-success/30"
+                      className="text-right w-52 h-12 text-4xl font-semibold focus-visible:ring-success/30 focus-visible:border-success/30"
                       autoFocus
                     />
                   </div>
