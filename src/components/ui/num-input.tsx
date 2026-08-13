@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { ChevronUp, ChevronDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, Minus, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Press-and-hold auto-repeat. `bind(fn)` returns pointer handlers for a button:
@@ -35,9 +35,14 @@ export function NumInput({
 }: {
   value: number
   onChange: (n: number) => void
-  // `stepper` overlays chevron ▲▼ buttons inside the field for fine adjustment;
-  // they step by the `step` prop (default 1), clamped to min/max.
-  stepper?: boolean
+  // `stepper` overlays step buttons inside the field; they step by the `step`
+  // prop (default 1), clamped to min/max. Two layouts:
+  //   true      — stacked chevrons ▲▼ on the right. Compact; for fine tuning a
+  //               value the user mostly types (font size, margins).
+  //   'split'   — big − / + on the LEFT and RIGHT of a centred value. Use where
+  //               ±1 is the main interaction and typing is the fallback (qty
+  //               columns), e.g. the POS adjust-stock rows.
+  stepper?: boolean | 'split'
 } & Omit<React.ComponentProps<typeof Input>, 'value' | 'onChange' | 'type'>) {
   const [text, setText] = React.useState(String(value))
   const [focused, setFocused] = React.useState(false)
@@ -67,7 +72,11 @@ export function NumInput({
       type="number"
       variant={rest.variant ?? 'elevated'}
       {...rest}
-      className={stepper ? cn('w-full pr-6', className) : className}
+      className={
+        stepper === 'split' ? cn('w-full px-7 text-center', className)
+        : stepper           ? cn('w-full pr-6', className)
+        : className
+      }
       value={text}
       onFocus={e => { setFocused(true); rest.onFocus?.(e) }}
       onChange={e => {
@@ -88,6 +97,28 @@ export function NumInput({
   )
 
   if (!stepper) return input
+
+  // − / + flanking the value. `inset-y-1` sizes both buttons to the field height
+  // minus the 4px inset, so the pair reads as one control at any field height.
+  if (stepper === 'split') {
+    return (
+      <div className={cn('relative', className)}>
+        {input}
+        <Button type="button" variant="ghost" size="icon-xs" tabIndex={-1} disabled={rest.disabled}
+          className="absolute inset-y-1 left-1 h-auto w-6 min-h-0 rounded-sm px-0 text-muted-foreground hover:text-foreground"
+          {...bindHold(() => bump(-1))}
+          tooltip="ลด">
+          <Minus />
+        </Button>
+        <Button type="button" variant="ghost" size="icon-xs" tabIndex={-1} disabled={rest.disabled}
+          className="absolute inset-y-1 right-1 h-auto w-6 min-h-0 rounded-sm px-0 text-muted-foreground hover:text-foreground"
+          {...bindHold(() => bump(1))}
+          tooltip="เพิ่ม">
+          <Plus />
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className={cn('relative', className)}>

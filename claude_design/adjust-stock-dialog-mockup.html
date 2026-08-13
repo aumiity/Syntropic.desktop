@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตัดสต็อก — ข้อเสนอออกแบบใหม่ 3 แบบ</title>
+<style>
+/* ─────────────────────────────────────────────────────────────
+   FONTS — ตรงกับแอปจริง (Inter สำหรับ Latin/ตัวเลข + Anuphan สำหรับไทย)
+   ───────────────────────────────────────────────────────────── */
+@font-face{font-family:'Inter';src:url('../src/assets/fonts/Inter_18pt-Regular.ttf') format('truetype');font-weight:400}
+@font-face{font-family:'Inter';src:url('../src/assets/fonts/Inter_18pt-Medium.ttf') format('truetype');font-weight:500}
+@font-face{font-family:'Inter';src:url('../src/assets/fonts/Inter_18pt-SemiBold.ttf') format('truetype');font-weight:600}
+@font-face{font-family:'Inter';src:url('../src/assets/fonts/Inter_18pt-Bold.ttf') format('truetype');font-weight:700}
+@font-face{font-family:'Inter';src:url('../src/assets/fonts/Inter_18pt-ExtraBold.ttf') format('truetype');font-weight:800}
+@font-face{font-family:'Anuphan';src:url('../src/assets/fonts/Anuphan-Regular.ttf') format('truetype-variations');font-weight:100 700}
+
+/* ─────────────────────────────────────────────────────────────
+   TOKENS — ยกมาจาก src/index.css ตรง ๆ (light + dark)
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --radius:.5rem; --radius-card:1rem; --radius-control:.5rem;
+  --background:158 14% 89%;
+  --foreground:0 0% 12%;
+  --foreground-subtle:0 0% 40%;
+  --card:0 0% 100%;
+  --popover:0 0% 100%;
+  --surface-hover:240 6% 90%;
+  --border:0 0% 85%;
+  --border-strong:0 0% 50%;
+  --ring:152 40% 30%;
+  --primary:156 40% 30%; --primary-foreground:0 0% 99%; --primary-hover:152 40% 25%;
+  --primary-soft:180 20% 90%; --primary-soft-hover:180 20% 83%; --primary-soft-border:175 35% 70%;
+  --accent:48 96% 53%; --accent-foreground:0 0% 12%;
+  --muted:0 0% 96%; --muted-hover:0 0% 89%;
+  --success:142 71% 36%; --success-soft:138 76% 95%; --success-strong:142 71% 26%;
+  --warning:27 100% 47%; --warning-soft:19 100% 90%; --warning-soft-foreground:19 95% 42%;
+  --destructive:3 100% 59%; --destructive-soft:2 84% 93%; --destructive-strong:0 70% 35%;
+  --info:201 98% 41%; --info-soft:219 100% 94%; --info-soft-foreground:219 30% 38%;
+  --amber:38 95% 48%; --amber-soft:45 100% 91%; --amber-strong:32 88% 36%;
+  --sand-soft:36 44% 94%; --sand-strong:28 30% 38%;
+  --shadow-card:0 1px 2px rgba(20,32,29,.16);
+  --shadow-dialog:0 24px 60px -12px rgba(15,40,36,.34), 0 4px 14px rgba(15,40,36,.14);
+  --scrim:rgba(18,28,26,.42);
+}
+:root[data-theme="dark"]{
+  --background:0 0% 10%;
+  --foreground:0 0% 100%;
+  --foreground-subtle:215 14% 65%;
+  --card:0 0% 20%;
+  --popover:0 0% 20%;
+  --surface-hover:215 25% 22%;
+  --border:0 0% 27%;
+  --border-strong:215 25% 45%;
+  --ring:175 35% 60%;
+  --primary:173 58% 40%; --primary-foreground:165 50% 5%; --primary-hover:173 58% 46%;
+  --primary-soft:173 24% 16%; --primary-soft-hover:173 24% 22%; --primary-soft-border:173 30% 30%;
+  --accent:43 100% 64%; --accent-foreground:44 100% 8%;
+  --muted:0 0% 16%; --muted-hover:0 0% 24%;
+  --success:142 60% 48%; --success-soft:142 30% 18%; --success-strong:142 60% 70%;
+  --warning:35 100% 60%; --warning-soft:30 30% 18%; --warning-soft-foreground:32 95% 72%;
+  /* หมายเหตุ: ในแอปจริง --destructive-soft/--info-soft ฝั่ง .dark ยังเป็นค่าของ light อยู่ (บั๊กค้าง) — ตรงนี้ใส่ค่ามืดที่ถูกต้องให้ดู */
+  --destructive:3 90% 62%; --destructive-soft:3 40% 20%; --destructive-strong:3 90% 76%;
+  --info:221 83% 60%; --info-soft:219 40% 20%; --info-soft-foreground:219 80% 80%;
+  --amber:40 92% 58%; --amber-soft:40 32% 17%; --amber-strong:43 90% 76%;
+  --sand-soft:30 14% 18%; --sand-strong:34 40% 78%;
+  --shadow-card:0 1px 2px rgba(0,0,0,.45);
+  --shadow-dialog:0 24px 60px -12px rgba(0,0,0,.7), 0 4px 14px rgba(0,0,0,.4);
+  --scrim:rgba(0,0,0,.55);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{font-size:16px}
+body{
+  margin:0; min-height:100vh;
+  font-family:'Inter','Anuphan',system-ui,sans-serif;
+  font-size:.875rem; line-height:1.55;
+  color:hsl(var(--foreground));
+  background:hsl(var(--background));
+  -webkit-font-smoothing:antialiased;
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+svg{width:1em;height:1em;flex:none}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid hsl(var(--ring));outline-offset:2px}
+::selection{background:hsl(175 60% 60% / .4)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:hsl(var(--border-strong)/.45);border-radius:99px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:hsl(var(--border-strong)/.7);background-clip:content-box;border:3px solid transparent}
+
+/* ── แถบเครื่องมือของหน้า mockup (ไม่ใช่ส่วนของแอป) ─────────── */
+.toolbar{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  padding:.75rem 1.25rem;
+  background:hsl(var(--card));border-bottom:1px solid hsl(var(--border));
+  box-shadow:var(--shadow-card);
+}
+.toolbar .brand{font-weight:700;font-size:.9375rem;letter-spacing:-.01em}
+.toolbar .brand span{color:hsl(var(--foreground-subtle));font-weight:500}
+.tabs{display:flex;gap:.375rem;padding:.25rem;background:hsl(var(--muted));border-radius:99px}
+.tabs button{
+  padding:.4rem 1rem;border-radius:99px;font-size:.8125rem;font-weight:600;
+  color:hsl(var(--foreground-subtle));transition:background .18s cubic-bezier(.22,1,.36,1),color .18s;
+}
+.tabs button:hover{color:hsl(var(--foreground))}
+.tabs button[aria-selected="true"]{background:hsl(var(--card));color:hsl(var(--foreground));box-shadow:var(--shadow-card)}
+.tool-right{margin-left:auto;display:flex;align-items:center;gap:.5rem}
+.ghost-btn{
+  display:inline-flex;align-items:center;gap:.4rem;height:2rem;padding:0 .75rem;
+  border:1px solid hsl(var(--border));border-radius:var(--radius-control);
+  background:hsl(var(--card));font-size:.8125rem;font-weight:500;
+  transition:background .16s,border-color .16s;
+}
+.ghost-btn:hover{background:hsl(var(--surface-hover))}
+.ghost-btn svg{width:1rem;height:1rem}
+.caption{
+  padding:.875rem 1.25rem 0;max-width:78ch;margin:0 auto;text-align:center;
+  color:hsl(var(--foreground-subtle));font-size:.8125rem;
+}
+.caption b{color:hsl(var(--foreground));font-weight:600}
+
+/* ── เวทีจำลองหน้าจอแอป ───────────────────────────────────── */
+.stage{position:relative;padding:1.5rem 1.25rem 3rem;display:flex;justify-content:center}
+.stage::before{
+  content:"";position:absolute;inset:1.5rem 1.25rem 3rem;border-radius:var(--radius-card);
+  background:
+    linear-gradient(hsl(var(--card)),hsl(var(--card))) padding-box,
+    hsl(var(--background));
+  opacity:.5;
+}
+.scrim{position:absolute;inset:1.5rem 1.25rem 3rem;border-radius:var(--radius-card);background:var(--scrim)}
+
+/* ── โครง dialog ร่วม ─────────────────────────────────────── */
+.mock{position:relative;display:none;flex-direction:column;
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:var(--radius-card);box-shadow:var(--shadow-dialog);overflow:hidden;
+  animation:pop .26s cubic-bezier(.22,1,.36,1);
+}
+.mock.active{display:flex}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+
+.dlg-head{display:flex;align-items:center;gap:.875rem;padding:1rem 1.25rem;border-bottom:1px solid hsl(var(--border))}
+.dlg-icon{
+  display:grid;place-items:center;width:2.5rem;height:2.5rem;flex:none;border-radius:.75rem;
+  background:hsl(var(--amber-soft));color:hsl(var(--amber-strong));
+}
+.dlg-icon svg{width:1.375rem;height:1.375rem}
+.dlg-title{font-size:1.125rem;font-weight:700;letter-spacing:-.01em;line-height:1.3}
+.dlg-sub{font-size:.8125rem;color:hsl(var(--foreground-subtle));line-height:1.35}
+.dlg-close{
+  margin-left:auto;display:grid;place-items:center;width:2.25rem;height:2.25rem;flex:none;
+  border-radius:var(--radius-control);border:1px solid hsl(var(--border));background:hsl(var(--card));
+  color:hsl(var(--foreground-subtle));box-shadow:var(--shadow-card);transition:background .16s,color .16s;
+}
+.dlg-close:hover{background:hsl(var(--surface-hover));color:hsl(var(--foreground))}
+.dlg-close svg{width:1.125rem;height:1.125rem}
+
+/* ── ปุ่ม ─────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  height:2.5rem;padding:0 1.125rem;border-radius:var(--radius-control);
+  font-size:.875rem;font-weight:600;white-space:nowrap;
+  transition:background .16s,border-color .16s,box-shadow .16s,transform .12s;
+}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:1.0625rem;height:1.0625rem;flex:none}
+.btn-primary{background:hsl(var(--primary));color:hsl(var(--primary-foreground));box-shadow:var(--shadow-card)}
+.btn-primary:hover{background:hsl(var(--primary-hover))}
+.btn-elev{background:hsl(var(--card));border:1px solid hsl(var(--border));box-shadow:var(--shadow-card)}
+.btn-elev:hover{background:hsl(var(--surface-hover))}
+.btn[disabled]{opacity:.45;pointer-events:none;box-shadow:none}
+.btn-lg{height:2.75rem;padding:0 1.5rem;font-size:.9375rem}
+
+/* ── ช่องสแกน ─────────────────────────────────────────────── */
+.scan{position:relative;display:flex;align-items:center}
+.scan svg.lead{position:absolute;left:.875rem;width:1.125rem;height:1.125rem;color:hsl(var(--foreground-subtle));pointer-events:none}
+.scan input{
+  width:100%;height:2.75rem;padding:0 6.5rem 0 2.75rem;
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:var(--radius-control);box-shadow:var(--shadow-card);
+  font-size:.9375rem;transition:border-color .16s,box-shadow .16s;
+}
+.scan input::placeholder{color:hsl(var(--foreground-subtle))}
+.scan input:focus{outline:none;border-color:hsl(var(--ring));box-shadow:0 0 0 3px hsl(var(--ring)/.16)}
+.scan .kbd-slot{position:absolute;right:.6rem;display:flex;align-items:center;gap:.3rem;pointer-events:none}
+kbd{
+  display:inline-block;min-width:1.5rem;text-align:center;
+  padding:.1rem .4rem;border-radius:.375rem;
+  border:1px solid hsl(var(--border));border-bottom-width:2px;
+  background:hsl(var(--muted));color:hsl(var(--foreground-subtle));
+  font-family:'Inter',monospace;font-size:.6875rem;font-weight:600;line-height:1.4;
+}
+.hint{display:flex;align-items:center;gap:.4rem;font-size:.75rem;color:hsl(var(--foreground-subtle))}
+.hint svg{width:.875rem;height:.875rem;flex:none}
+
+/* ── ตาราง ───────────────────────────────────────────────── */
+.tbl-wrap{flex:1;min-height:0;overflow:auto;scrollbar-gutter:stable}
+table{width:100%;border-collapse:separate;border-spacing:0}
+thead th{
+  position:sticky;top:0;z-index:2;
+  background:hsl(var(--muted));
+  padding:.5rem .625rem;text-align:left;
+  font-size:.75rem;font-weight:600;color:hsl(var(--foreground-subtle));
+  border-bottom:1px solid hsl(var(--border));white-space:nowrap;
+}
+tbody td{padding:.5rem .625rem;border-bottom:1px solid hsl(var(--border)/.7);vertical-align:middle}
+tbody tr{transition:background .14s}
+tbody tr:hover{background:hsl(var(--surface-hover)/.5)}
+.num{font-variant-numeric:tabular-nums}
+.t-right{text-align:right}
+.t-center{text-align:center}
+.p-name{font-weight:600;font-size:.875rem;line-height:1.35}
+.p-meta{display:flex;align-items:center;gap:.4rem;font-size:.75rem;color:hsl(var(--foreground-subtle));margin-top:.1rem}
+.dot{width:3px;height:3px;border-radius:99px;background:hsl(var(--border-strong));flex:none}
+
+/* ── ป้าย/ชิป ─────────────────────────────────────────────── */
+.chip{
+  display:inline-flex;align-items:center;gap:.3rem;height:1.375rem;padding:0 .5rem;
+  border-radius:.375rem;font-size:.75rem;font-weight:600;white-space:nowrap;
+}
+.chip svg{width:.8125rem;height:.8125rem}
+.chip-soft{background:hsl(var(--muted));color:hsl(var(--foreground-subtle))}
+.chip-amber{background:hsl(var(--amber-soft));color:hsl(var(--amber-strong))}
+.chip-red{background:hsl(var(--destructive-soft));color:hsl(var(--destructive-strong))}
+.chip-info{background:hsl(var(--info-soft));color:hsl(var(--info-soft-foreground))}
+.chip-teal{background:hsl(var(--primary-soft));color:hsl(var(--primary))}
+
+/* ── ตัวปรับจำนวน (stepper) ───────────────────────────────── */
+.stepper{
+  display:inline-flex;align-items:center;height:2rem;
+  border:1px solid hsl(var(--border));border-radius:var(--radius-control);
+  background:hsl(var(--card));box-shadow:var(--shadow-card);overflow:hidden;
+}
+.stepper button{
+  display:grid;place-items:center;width:1.75rem;height:100%;
+  color:hsl(var(--foreground-subtle));transition:background .14s,color .14s;
+}
+.stepper button:hover{background:hsl(var(--surface-hover));color:hsl(var(--foreground))}
+.stepper button svg{width:.875rem;height:.875rem}
+.stepper input{
+  width:2.75rem;height:100%;border:none;background:none;text-align:center;
+  font-size:.875rem;font-weight:700;font-variant-numeric:tabular-nums;
+  border-left:1px solid hsl(var(--border));border-right:1px solid hsl(var(--border));
+}
+.stepper input:focus{outline:none;background:hsl(var(--primary-soft)/.6)}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+/* ── สต็อกก่อน→หลัง ───────────────────────────────────────── */
+.stock{display:inline-flex;align-items:center;gap:.375rem;font-size:.8125rem;font-variant-numeric:tabular-nums}
+.stock .before{color:hsl(var(--foreground-subtle))}
+.stock svg{width:.875rem;height:.875rem;color:hsl(var(--border-strong))}
+.stock .after{font-weight:700}
+.meter{height:.3125rem;border-radius:99px;background:hsl(var(--muted));overflow:hidden;margin-top:.3rem;width:5.5rem}
+.meter i{display:block;width:100%;height:100%;border-radius:99px;background:hsl(var(--primary));transform-origin:left center;transition:transform .22s cubic-bezier(.22,1,.36,1)}
+tr.warn .meter i{background:hsl(var(--amber))}
+tr.warn .after{color:hsl(var(--amber-strong))}
+tr.err{background:hsl(var(--destructive-soft)/.55)}
+tr.err:hover{background:hsl(var(--destructive-soft)/.75)}
+tr.err .meter i{background:hsl(var(--destructive))}
+tr.err .after{color:hsl(var(--destructive-strong))}
+tr.err .stepper{border-color:hsl(var(--destructive))}
+
+.icon-btn{
+  display:grid;place-items:center;width:2rem;height:2rem;border-radius:var(--radius-control);
+  border:1px solid hsl(var(--border));background:hsl(var(--card));box-shadow:var(--shadow-card);
+  color:hsl(var(--destructive-strong));transition:background .16s;
+}
+.icon-btn:hover{background:hsl(var(--destructive-soft))}
+.icon-btn svg{width:1rem;height:1rem}
+
+/* ── ตัวเลือกสาเหตุ ───────────────────────────────────────── */
+.reason-row{
+  display:flex;align-items:center;gap:.625rem;width:100%;
+  padding:.5rem .625rem;border-radius:var(--radius-control);
+  border:1px solid hsl(var(--border));background:hsl(var(--card));
+  text-align:left;transition:background .16s,border-color .16s,box-shadow .16s;
+}
+.reason-row:hover{background:hsl(var(--surface-hover))}
+.reason-row .ic{display:grid;place-items:center;width:1.875rem;height:1.875rem;flex:none;border-radius:.5rem;background:hsl(var(--muted));color:hsl(var(--foreground-subtle));transition:background .16s,color .16s}
+.reason-row .ic svg{width:1rem;height:1rem}
+.reason-row .lb{display:block;font-size:.8125rem;font-weight:600;line-height:1.3}
+.reason-row .ds{display:block;font-size:.6875rem;color:hsl(var(--foreground-subtle));line-height:1.3}
+.reason-row .tick{margin-left:auto;display:grid;place-items:center;width:1.125rem;height:1.125rem;border-radius:99px;border:1px solid hsl(var(--border-strong));color:transparent;flex:none;transition:background .16s,border-color .16s,color .16s}
+.reason-row .tick svg{width:.75rem;height:.75rem;stroke-width:3}
+.reason-row[aria-pressed="true"]{background:hsl(var(--primary-soft));border-color:hsl(var(--primary-soft-border))}
+.reason-row[aria-pressed="true"] .ic{background:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+.reason-row[aria-pressed="true"] .tick{background:hsl(var(--primary));border-color:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+
+.reason-tile{
+  display:flex;flex-direction:column;align-items:flex-start;gap:.375rem;flex:1 1 0;min-width:9rem;
+  padding:.75rem .875rem;border-radius:var(--radius-control);
+  border:1px solid hsl(var(--border));background:hsl(var(--card));box-shadow:var(--shadow-card);
+  text-align:left;transition:background .16s,border-color .16s,transform .16s;
+}
+.reason-tile:hover{background:hsl(var(--surface-hover));transform:translateY(-1px)}
+.reason-tile .ic{display:grid;place-items:center;width:2rem;height:2rem;border-radius:.5rem;background:hsl(var(--muted));color:hsl(var(--foreground-subtle));transition:background .16s,color .16s}
+.reason-tile .ic svg{width:1.0625rem;height:1.0625rem}
+.reason-tile .lb{font-size:.875rem;font-weight:600}
+.reason-tile .ds{font-size:.6875rem;color:hsl(var(--foreground-subtle));line-height:1.3}
+.reason-tile[aria-pressed="true"]{background:hsl(var(--primary-soft));border-color:hsl(var(--primary))}
+.reason-tile[aria-pressed="true"] .ic{background:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+
+.reason-seg{
+  display:inline-flex;align-items:center;gap:.4rem;height:2.25rem;padding:0 .75rem;
+  border-radius:var(--radius-control);border:1px solid hsl(var(--border));
+  background:hsl(var(--card));box-shadow:var(--shadow-card);
+  font-size:.8125rem;font-weight:600;transition:background .16s,border-color .16s;
+}
+.reason-seg svg{width:.9375rem;height:.9375rem;color:hsl(var(--foreground-subtle));transition:color .16s}
+.reason-seg:hover{background:hsl(var(--surface-hover))}
+.reason-seg[aria-pressed="true"]{background:hsl(var(--primary));border-color:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+.reason-seg[aria-pressed="true"] svg{color:hsl(var(--primary-foreground))}
+
+.txt{
+  height:2.25rem;padding:0 .75rem;width:100%;
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:var(--radius-control);box-shadow:var(--shadow-card);font-size:.8125rem;
+  transition:border-color .16s,box-shadow .16s;
+}
+.txt::placeholder{color:hsl(var(--foreground-subtle))}
+.txt:focus{outline:none;border-color:hsl(var(--ring));box-shadow:0 0 0 3px hsl(var(--ring)/.16)}
+
+.req{color:hsl(var(--destructive));font-weight:700}
+.sec-label{display:flex;align-items:center;gap:.375rem;font-size:.75rem;font-weight:700;letter-spacing:.01em;color:hsl(var(--foreground-subtle))}
+
+/* ── สถานะว่าง ────────────────────────────────────────────── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;padding:2.5rem 1rem;text-align:center}
+.empty .ring{display:grid;place-items:center;width:3.25rem;height:3.25rem;border-radius:99px;background:hsl(var(--muted));color:hsl(var(--foreground-subtle))}
+.empty .ring svg{width:1.5rem;height:1.5rem}
+.empty h4{margin:.25rem 0 0;font-size:.9375rem;font-weight:600}
+.empty p{margin:0;font-size:.8125rem;color:hsl(var(--foreground-subtle));max-width:34ch}
+
+/* ── บล็อกเกอร์ / คำเตือน ─────────────────────────────────── */
+.blocker{
+  display:flex;align-items:flex-start;gap:.5rem;padding:.5rem .625rem;border-radius:var(--radius-control);
+  background:hsl(var(--amber-soft));color:hsl(var(--amber-strong));font-size:.75rem;font-weight:600;line-height:1.4;
+}
+.blocker.ok{background:hsl(var(--success-soft));color:hsl(var(--success-strong))}
+.blocker.bad{background:hsl(var(--destructive-soft));color:hsl(var(--destructive-strong))}
+.blocker svg{width:.9375rem;height:.9375rem;flex:none;margin-top:.1rem}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   แบบ 1 — แผงสรุปด้านขวา
+   ══════════════════════════════════════════════════════════════ */
+#v1{width:min(72rem,100%);height:42rem}
+#v1 .body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 20rem}
+#v1 .left{display:flex;flex-direction:column;min-width:0;border-right:1px solid hsl(var(--border))}
+#v1 .left .scanbar{padding:.875rem 1rem}
+#v1 .rail{display:flex;flex-direction:column;background:hsl(var(--muted)/.55)}
+#v1 .rail .sec{padding:.875rem 1rem;border-bottom:1px solid hsl(var(--border))}
+#v1 .rail .sec:last-of-type{border-bottom:none}
+#v1 .rail .opts{display:flex;flex-direction:column;gap:.375rem;margin-top:.625rem}
+#v1 .rail .foot{margin-top:auto;padding:1rem;border-top:1px solid hsl(var(--border));display:flex;flex-direction:column;gap:.625rem;background:hsl(var(--card))}
+#v1 .sum-line{display:flex;align-items:baseline;justify-content:space-between;font-size:.8125rem;color:hsl(var(--foreground-subtle))}
+#v1 .sum-line b{font-weight:700;color:hsl(var(--foreground));font-variant-numeric:tabular-nums;font-size:.875rem}
+#v1 .sum-total{display:flex;align-items:baseline;justify-content:space-between;margin-top:.5rem;padding-top:.5rem;border-top:1px dashed hsl(var(--border))}
+#v1 .sum-total .v{font-size:1.375rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* ══════════════════════════════════════════════════════════════
+   แบบ 2 — ไล่ตามขั้นตอน
+   ══════════════════════════════════════════════════════════════ */
+#v2{width:min(60rem,100%);height:43rem}
+#v2 .body{flex:1;min-height:0;display:flex;flex-direction:column;gap:.875rem;padding:1rem 1.25rem;overflow:auto}
+#v2 .step{border:1px solid hsl(var(--border));border-radius:var(--radius-card);background:hsl(var(--card));box-shadow:var(--shadow-card)}
+#v2 .step.flexed{display:flex;flex-direction:column;min-height:0;flex:1}
+#v2 .step-head{display:flex;align-items:center;gap:.625rem;padding:.75rem .875rem}
+#v2 .step-no{
+  display:grid;place-items:center;width:1.5rem;height:1.5rem;flex:none;border-radius:99px;
+  background:hsl(var(--muted));color:hsl(var(--foreground-subtle));
+  font-size:.75rem;font-weight:700;font-variant-numeric:tabular-nums;transition:background .18s,color .18s;
+}
+#v2 .step.done .step-no{background:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+#v2 .step.done .step-no svg{width:.8125rem;height:.8125rem;stroke-width:3}
+#v2 .step-title{font-size:.875rem;font-weight:700}
+#v2 .step-note{font-size:.75rem;color:hsl(var(--foreground-subtle))}
+#v2 .step-body{padding:0 .875rem .875rem}
+#v2 .step.flexed .step-body{display:flex;flex-direction:column;min-height:0;flex:1;padding-bottom:0}
+#v2 .tiles{display:flex;gap:.5rem;flex-wrap:wrap}
+#v2 .collapsed-val{margin-left:auto;display:flex;align-items:center;gap:.5rem}
+#v2 .link{font-size:.75rem;font-weight:600;color:hsl(var(--primary));text-decoration:underline;text-underline-offset:2px}
+#v2 .list{flex:1;min-height:0;overflow:auto;margin:0 -.875rem;padding:0 .25rem;scrollbar-gutter:stable}
+#v2 .row{
+  display:grid;grid-template-columns:1.75rem 1fr auto auto auto 2rem;align-items:center;gap:.75rem;
+  padding:.5rem .625rem;border-radius:var(--radius-control);transition:background .14s;
+}
+#v2 .row + .row{border-top:1px solid hsl(var(--border)/.7)}
+#v2 .row:hover{background:hsl(var(--surface-hover)/.6)}
+#v2 .row.warn .after{color:hsl(var(--amber-strong))}
+#v2 .row-no{display:grid;place-items:center;width:1.75rem;height:1.75rem;border-radius:.5rem;background:hsl(var(--muted));font-size:.75rem;font-weight:700;color:hsl(var(--foreground-subtle));font-variant-numeric:tabular-nums}
+#v2 .rowtotal{font-weight:700;font-variant-numeric:tabular-nums;min-width:5rem;text-align:right}
+#v2 .dlg-foot{display:flex;align-items:center;gap:1rem;padding:.875rem 1.25rem;border-top:1px solid hsl(var(--border));background:hsl(var(--card))}
+#v2 .foot-sum{display:flex;flex-direction:column;line-height:1.25}
+#v2 .foot-sum .k{font-size:.75rem;color:hsl(var(--foreground-subtle))}
+#v2 .foot-sum .v{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* ══════════════════════════════════════════════════════════════
+   แบบ 3 — ตารางเดียว หนาแน่น คีย์บอร์ดนำ
+   ══════════════════════════════════════════════════════════════ */
+#v3{width:min(67rem,100%);height:40rem}
+#v3 thead th:nth-child(3){width:8rem}
+#v3 thead th:nth-child(4){width:11rem}
+#v3 thead th:nth-child(5){width:8.5rem}
+#v3 thead th:nth-child(6){width:7rem}
+#v3 .dlg-head{padding:.75rem 1rem}
+#v3 .kbdlegend{margin-left:auto;display:flex;align-items:center;gap:.875rem}
+#v3 .kbdlegend .k{display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:hsl(var(--foreground-subtle))}
+#v3 .scanbar{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-bottom:1px solid hsl(var(--border));background:hsl(var(--muted)/.4)}
+#v3 .scanbar .scan{flex:1;max-width:34rem}
+#v3 .statusbar{display:flex;align-items:center;gap:1.25rem;padding:0 1rem;height:2.75rem;border-top:1px solid hsl(var(--border));font-size:.8125rem;color:hsl(var(--foreground-subtle))}
+#v3 .statusbar .v{font-weight:700;color:hsl(var(--foreground));font-variant-numeric:tabular-nums}
+#v3 .statusbar .total{font-size:1.0625rem;font-weight:800;letter-spacing:-.02em}
+#v3 .actionbar{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-top:1px solid hsl(var(--border));background:hsl(var(--muted)/.4)}
+#v3 .actionbar .reasons{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+#v3 .actionbar .right{margin-left:auto;display:flex;align-items:center;gap:.625rem}
+#v3 .lotcell{display:flex;flex-direction:column;line-height:1.3}
+#v3 .lotcell .l1{font-size:.8125rem;font-weight:600;font-variant-numeric:tabular-nums}
+#v3 .lotcell .l2{font-size:.6875rem;color:hsl(var(--foreground-subtle));font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+
+<!-- ไอคอนทั้งหมด (lucide outline) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-package-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 16h6"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l1-.5"/><path d="m7.5 4.27 9 5.15"/><path d="M3.29 7 12 12l8.71-5"/><path d="M12 22V12"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-search-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+    <symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m6.08 10.37-3.5 1.59a1 1 0 0 0 0 1.83l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9a1 1 0 0 0 0-1.83l-3.5-1.6"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  </defs>
+</svg>
+
+<div class="toolbar">
+  <div class="brand">ตัดสต็อก <span>ข้อเสนอออกแบบใหม่</span></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true"  data-tab="v1">แบบ 1 · แผงสรุปด้านขวา</button>
+    <button role="tab" aria-selected="false" data-tab="v2">แบบ 2 · ไล่ตามขั้นตอน</button>
+    <button role="tab" aria-selected="false" data-tab="v3">แบบ 3 · ตารางเดียว หนาแน่น</button>
+  </div>
+  <div class="tool-right">
+    <button class="ghost-btn" id="themeBtn"><svg><use href="#i-sun"/></svg>สลับธีม</button>
+  </div>
+</div>
+
+<p class="caption" id="caption"></p>
+
+<div class="stage">
+  <div class="scrim"></div>
+
+  <!-- ═══════════════════════ แบบ 1 ═══════════════════════ -->
+  <section class="mock active" id="v1" data-panel>
+    <header class="dlg-head">
+      <div class="dlg-icon"><svg><use href="#i-package-minus"/></svg></div>
+      <div>
+        <div class="dlg-title">ตัดสต็อก</div>
+        <div class="dlg-sub">ตัดสินค้าออกจากคลัง พร้อมบันทึกสาเหตุไว้ตรวจสอบย้อนหลัง</div>
+      </div>
+      <button class="dlg-close" aria-label="ปิด"><svg><use href="#i-x"/></svg></button>
+    </header>
+
+    <div class="body">
+      <!-- ซ้าย: สแกน + ตาราง -->
+      <div class="left">
+        <div class="scanbar">
+          <div class="scan">
+            <svg class="lead"><use href="#i-scan"/></svg>
+            <input placeholder="สแกนบาร์โค้ด หรือพิมพ์ชื่อ / รหัสสินค้า" aria-label="ค้นหาสินค้า">
+            <span class="kbd-slot"><kbd>5</kbd><kbd>*</kbd><span style="font-size:.6875rem;color:hsl(var(--foreground-subtle))">= คูณจำนวน</span></span>
+          </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:100%">รายการ</th>
+                <th class="t-center" style="white-space:nowrap">จำนวนที่ตัด</th>
+                <th style="white-space:nowrap">คงเหลือหลังตัด</th>
+                <th class="t-right" style="white-space:nowrap">มูลค่าทุน</th>
+                <th style="width:2.5rem"></th>
+              </tr>
+            </thead>
+            <tbody data-rows>
+              <tr data-row data-cost="9" data-stock="48">
+                <td>
+                  <div class="p-name">พาราเซตามอล 500 มก. (GPO)</div>
+                  <div class="p-meta"><span>P-1042</span><i class="dot"></i><span>ล็อต A2417</span><i class="dot"></i><span>หมดอายุ 12/06/2027</span></div>
+                </td>
+                <td class="t-center">
+                  <div class="stepper" data-stepper>
+                    <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                    <input class="qty" value="3" inputmode="numeric" aria-label="จำนวน">
+                    <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+                  </div>
+                  <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">แผง</div>
+                </td>
+                <td>
+                  <div class="stock"><span class="before num">48</span><svg><use href="#i-arrow-right"/></svg><span class="after num">45</span><span style="font-size:.75rem;color:hsl(var(--foreground-subtle))">แผง</span></div>
+                  <div class="meter"><i style="transform:scaleX(0.94)"></i></div>
+                </td>
+                <td class="t-right"><span class="rowtotal num" style="font-weight:700">27.00</span></td>
+                <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+              </tr>
+
+              <tr data-row data-cost="185" data-stock="6">
+                <td>
+                  <div class="p-name">อะม็อกซี่ซิลลิน 500 มก. แคปซูล</div>
+                  <div class="p-meta"><span>P-2210</span><i class="dot"></i><span class="chip chip-info"><svg><use href="#i-layers"/></svg>FEFO 2 ล็อต</span><span>B0031 · 04/2026 และ B0044 · 09/2026</span></div>
+                </td>
+                <td class="t-center">
+                  <div class="stepper" data-stepper>
+                    <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                    <input class="qty" value="1" inputmode="numeric" aria-label="จำนวน">
+                    <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+                  </div>
+                  <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">กระปุก</div>
+                </td>
+                <td>
+                  <div class="stock"><span class="before num">6</span><svg><use href="#i-arrow-right"/></svg><span class="after num">5</span><span style="font-size:.75rem;color:hsl(var(--foreground-subtle))">กระปุก</span></div>
+                  <div class="meter"><i style="transform:scaleX(0.83)"></i></div>
+                </td>
+                <td class="t-right"><span class="rowtotal num" style="font-weight:700">185.00</span></td>
+                <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+              </tr>
+
+              <tr data-row data-cost="22" data-stock="11">
+                <td>
+                  <div class="p-name">ยาน้ำแก้ไอมะแว้ง 120 มล.</div>
+                  <div class="p-meta"><span>P-3388</span><i class="dot"></i><span>ล็อต B0912</span><i class="dot"></i><span class="chip chip-amber"><svg><use href="#i-alert"/></svg>หมดอายุ 03/03/2026</span></div>
+                </td>
+                <td class="t-center">
+                  <div class="stepper" data-stepper>
+                    <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                    <input class="qty" value="2" inputmode="numeric" aria-label="จำนวน">
+                    <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+                  </div>
+                  <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">ขวด</div>
+                </td>
+                <td>
+                  <div class="stock"><span class="before num">11</span><svg><use href="#i-arrow-right"/></svg><span class="after num">9</span><span style="font-size:.75rem;color:hsl(var(--foreground-subtle))">ขวด</span></div>
+                  <div class="meter"><i style="transform:scaleX(0.82)"></i></div>
+                </td>
+                <td class="t-right"><span class="rowtotal num" style="font-weight:700">44.00</span></td>
+                <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+              </tr>
+
+              <tr data-row data-cost="23" data-stock="6">
+                <td>
+                  <div class="p-name">แอลกอฮอล์ 70% 450 มล.</div>
+                  <div class="p-meta"><span>P-5501</span><i class="dot"></i><span>ล็อต C1180</span><i class="dot"></i><span>หมดอายุ 28/11/2028</span></div>
+                </td>
+                <td class="t-center">
+                  <div class="stepper" data-stepper>
+                    <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                    <input class="qty" value="6" inputmode="numeric" aria-label="จำนวน">
+                    <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+                  </div>
+                  <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">ขวด</div>
+                </td>
+                <td>
+                  <div class="stock"><span class="before num">6</span><svg><use href="#i-arrow-right"/></svg><span class="after num">0</span><span style="font-size:.75rem;color:hsl(var(--foreground-subtle))">ขวด</span></div>
+                  <div class="meter"><i style="transform:scaleX(0.00)"></i></div>
+                </td>
+                <td class="t-right"><span class="rowtotal num" style="font-weight:700">138.00</span></td>
+                <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+              </tr>
+
+              <tr data-row data-cost="12.5" data-stock="23">
+                <td>
+                  <div class="p-name">สำลีก้อน 50 กรัม</div>
+                  <div class="p-meta"><span>P-7710</span><i class="dot"></i><span>ล็อต D2205</span><i class="dot"></i><span>ไม่ระบุวันหมดอายุ</span></div>
+                </td>
+                <td class="t-center">
+                  <div class="stepper" data-stepper>
+                    <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                    <input class="qty" value="1" inputmode="numeric" aria-label="จำนวน">
+                    <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+                  </div>
+                  <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">ห่อ</div>
+                </td>
+                <td>
+                  <div class="stock"><span class="before num">23</span><svg><use href="#i-arrow-right"/></svg><span class="after num">22</span><span style="font-size:.75rem;color:hsl(var(--foreground-subtle))">ห่อ</span></div>
+                  <div class="meter"><i style="transform:scaleX(0.96)"></i></div>
+                </td>
+                <td class="t-right"><span class="rowtotal num" style="font-weight:700">12.50</span></td>
+                <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="empty" data-empty hidden>
+            <div class="ring"><svg><use href="#i-scan"/></svg></div>
+            <h4>ยังไม่มีรายการที่จะตัด</h4>
+            <p>สแกนบาร์โค้ดที่ช่องด้านบนได้เลย หรือพิมพ์ชื่อสินค้าเพื่อค้นหา ระบบจะเลือกล็อตที่หมดอายุก่อนให้อัตโนมัติ (FEFO)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ขวา: สาเหตุ + สรุป + ยืนยัน -->
+      <aside class="rail">
+        <div class="sec">
+          <div class="sec-label">สาเหตุการตัด <span class="req">*</span></div>
+          <div class="opts" data-reasons>
+            <button class="reason-row" aria-pressed="false" data-reason="ใช้ภายใน">
+              <span class="ic"><svg><use href="#i-house"/></svg></span>
+              <span><span class="lb">ใช้ภายในร้าน</span><span class="ds">เบิกใช้เอง / ตัวอย่าง</span></span>
+              <span class="tick"><svg><use href="#i-check"/></svg></span>
+            </button>
+            <button class="reason-row" aria-pressed="false" data-reason="เสียหาย/แตกหัก">
+              <span class="ic"><svg><use href="#i-alert"/></svg></span>
+              <span><span class="lb">เสียหาย / แตกหัก</span><span class="ds">ชำรุด เสื่อมสภาพ หมดอายุ</span></span>
+              <span class="tick"><svg><use href="#i-check"/></svg></span>
+            </button>
+            <button class="reason-row" aria-pressed="false" data-reason="สูญหาย">
+              <span class="ic"><svg><use href="#i-search-x"/></svg></span>
+              <span><span class="lb">สูญหาย</span><span class="ds">นับไม่ครบ / หาไม่พบ</span></span>
+              <span class="tick"><svg><use href="#i-check"/></svg></span>
+            </button>
+            <input class="txt" data-reason-custom placeholder="หรือพิมพ์สาเหตุเอง..." style="margin-top:.125rem">
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-label">สรุป</div>
+          <div style="margin-top:.5rem">
+            <div class="sum-line">จำนวนรายการ <b data-count>5</b></div>
+            <div class="sum-line" style="margin-top:.25rem">รวมหน่วยที่ตัด <b data-units>13</b></div>
+            <div class="sum-total">
+              <span style="font-size:.8125rem;color:hsl(var(--foreground-subtle))">มูลค่าทุนรวม</span>
+              <span class="v" data-total>406.50</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="foot">
+          <div class="blocker" data-blocker><svg><use href="#i-info"/></svg><span>เลือกสาเหตุก่อน จึงจะยืนยันได้</span></div>
+          <button class="btn btn-primary btn-lg" data-confirm disabled style="width:100%">ยืนยันตัดสต็อก</button>
+          <button class="btn btn-elev" style="width:100%">ยกเลิก</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ แบบ 2 ═══════════════════════ -->
+  <section class="mock" id="v2" data-panel>
+    <header class="dlg-head">
+      <div class="dlg-icon"><svg><use href="#i-package-minus"/></svg></div>
+      <div>
+        <div class="dlg-title">ตัดสต็อก</div>
+        <div class="dlg-sub">ทำตามลำดับ: เลือกสาเหตุ แล้วค่อยเพิ่มรายการ</div>
+      </div>
+      <button class="dlg-close" aria-label="ปิด"><svg><use href="#i-x"/></svg></button>
+    </header>
+
+    <div class="body">
+      <!-- ขั้น 1 -->
+      <section class="step" data-step1>
+        <div class="step-head">
+          <span class="step-no" data-step1-no>1</span>
+          <span class="step-title">เลือกสาเหตุการตัด <span class="req">*</span></span>
+          <span class="step-note" data-step1-note>ใช้กับทุกรายการในครั้งนี้</span>
+          <span class="collapsed-val" data-step1-val hidden>
+            <span class="chip chip-teal" data-step1-chip></span>
+            <button class="link" data-step1-edit>เปลี่ยน</button>
+          </span>
+        </div>
+        <div class="step-body" data-step1-body>
+          <div class="tiles" data-reasons>
+            <button class="reason-tile" aria-pressed="false" data-reason="ใช้ภายใน">
+              <span class="ic"><svg><use href="#i-house"/></svg></span>
+              <span class="lb">ใช้ภายในร้าน</span>
+              <span class="ds">เบิกใช้เอง / ตัวอย่าง</span>
+            </button>
+            <button class="reason-tile" aria-pressed="false" data-reason="เสียหาย/แตกหัก">
+              <span class="ic"><svg><use href="#i-alert"/></svg></span>
+              <span class="lb">เสียหาย / แตกหัก</span>
+              <span class="ds">ชำรุด เสื่อมสภาพ หมดอายุ</span>
+            </button>
+            <button class="reason-tile" aria-pressed="false" data-reason="สูญหาย">
+              <span class="ic"><svg><use href="#i-search-x"/></svg></span>
+              <span class="lb">สูญหาย</span>
+              <span class="ds">นับไม่ครบ / หาไม่พบ</span>
+            </button>
+            <button class="reason-tile" aria-pressed="false" data-reason="__custom" data-custom-tile>
+              <span class="ic"><svg><use href="#i-pencil"/></svg></span>
+              <span class="lb">ระบุเอง</span>
+              <span class="ds">พิมพ์สาเหตุอื่น</span>
+            </button>
+          </div>
+          <input class="txt" data-reason-custom placeholder="พิมพ์สาเหตุ เช่น ส่งคืนผู้แทน..." hidden style="margin-top:.5rem;max-width:24rem">
+        </div>
+      </section>
+
+      <!-- ขั้น 2 -->
+      <section class="step flexed" data-step2>
+        <div class="step-head">
+          <span class="step-no" data-step2-no>2</span>
+          <span class="step-title">เพิ่มรายการที่จะตัด</span>
+          <span class="step-note" data-count-note>5 รายการ</span>
+        </div>
+        <div class="step-body">
+          <div class="scan" style="margin-bottom:.625rem">
+            <svg class="lead"><use href="#i-scan"/></svg>
+            <input placeholder="สแกนบาร์โค้ด หรือพิมพ์ชื่อ / รหัสสินค้า" aria-label="ค้นหาสินค้า">
+            <span class="kbd-slot"><kbd>5</kbd><kbd>*</kbd><span style="font-size:.6875rem;color:hsl(var(--foreground-subtle))">= คูณจำนวน</span></span>
+          </div>
+
+          <div class="list" data-rows>
+            <div class="row" data-row data-cost="9" data-stock="48">
+              <span class="row-no">1</span>
+              <div style="min-width:0">
+                <div class="p-name">พาราเซตามอล 500 มก. (GPO)</div>
+                <div class="p-meta"><span class="chip chip-soft">แผง</span><span>ล็อต A2417 · หมดอายุ 12/06/2027</span></div>
+              </div>
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="3" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div class="stock"><span class="before num">48</span><svg><use href="#i-arrow-right"/></svg><span class="after num">45</span></div>
+              <span class="rowtotal num">27.00</span>
+              <button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button>
+            </div>
+
+            <div class="row" data-row data-cost="185" data-stock="6">
+              <span class="row-no">2</span>
+              <div style="min-width:0">
+                <div class="p-name">อะม็อกซี่ซิลลิน 500 มก. แคปซูล</div>
+                <div class="p-meta"><span class="chip chip-soft">กระปุก</span><span class="chip chip-info"><svg><use href="#i-layers"/></svg>FEFO 2 ล็อต</span><span>B0031 · 04/2026</span></div>
+              </div>
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="1" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div class="stock"><span class="before num">6</span><svg><use href="#i-arrow-right"/></svg><span class="after num">5</span></div>
+              <span class="rowtotal num">185.00</span>
+              <button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button>
+            </div>
+
+            <div class="row" data-row data-cost="22" data-stock="11">
+              <span class="row-no">3</span>
+              <div style="min-width:0">
+                <div class="p-name">ยาน้ำแก้ไอมะแว้ง 120 มล.</div>
+                <div class="p-meta"><span class="chip chip-soft">ขวด</span><span class="chip chip-amber"><svg><use href="#i-alert"/></svg>ใกล้หมดอายุ 03/03/2026</span></div>
+              </div>
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="2" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div class="stock"><span class="before num">11</span><svg><use href="#i-arrow-right"/></svg><span class="after num">9</span></div>
+              <span class="rowtotal num">44.00</span>
+              <button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button>
+            </div>
+
+            <div class="row" data-row data-cost="23" data-stock="6">
+              <span class="row-no">4</span>
+              <div style="min-width:0">
+                <div class="p-name">แอลกอฮอล์ 70% 450 มล.</div>
+                <div class="p-meta"><span class="chip chip-soft">ขวด</span><span>ล็อต C1180 · หมดอายุ 28/11/2028</span></div>
+              </div>
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="6" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div class="stock"><span class="before num">6</span><svg><use href="#i-arrow-right"/></svg><span class="after num">0</span></div>
+              <span class="rowtotal num">138.00</span>
+              <button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button>
+            </div>
+
+            <div class="row" data-row data-cost="12.5" data-stock="23">
+              <span class="row-no">5</span>
+              <div style="min-width:0">
+                <div class="p-name">สำลีก้อน 50 กรัม</div>
+                <div class="p-meta"><span class="chip chip-soft">ห่อ</span><span>ล็อต D2205 · ไม่ระบุวันหมดอายุ</span></div>
+              </div>
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="1" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div class="stock"><span class="before num">23</span><svg><use href="#i-arrow-right"/></svg><span class="after num">22</span></div>
+              <span class="rowtotal num">12.50</span>
+              <button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button>
+            </div>
+          </div>
+
+          <div class="empty" data-empty hidden>
+            <div class="ring"><svg><use href="#i-scan"/></svg></div>
+            <h4>ยังไม่มีรายการที่จะตัด</h4>
+            <p>สแกนบาร์โค้ดที่ช่องด้านบนได้เลย ระบบจะเลือกล็อตที่หมดอายุก่อนให้อัตโนมัติ (FEFO)</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="dlg-foot">
+      <span class="step-no" data-step3-no style="width:1.5rem;height:1.5rem;display:grid;place-items:center;border-radius:99px;background:hsl(var(--muted));font-size:.75rem;font-weight:700;color:hsl(var(--foreground-subtle))">3</span>
+      <div class="foot-sum">
+        <span class="k"><span data-count>5</span> รายการ · <span data-units>13</span> หน่วย · มูลค่าทุนรวม</span>
+        <span class="v"><span data-total>406.50</span> บาท</span>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:.75rem">
+        <div class="blocker" data-blocker><svg><use href="#i-info"/></svg><span>ยังไม่ได้เลือกสาเหตุ</span></div>
+        <button class="btn btn-elev btn-lg">ยกเลิก</button>
+        <button class="btn btn-primary btn-lg" data-confirm disabled>ยืนยันตัดสต็อก</button>
+      </div>
+    </footer>
+  </section>
+
+  <!-- ═══════════════════════ แบบ 3 ═══════════════════════ -->
+  <section class="mock" id="v3" data-panel>
+    <header class="dlg-head">
+      <div class="dlg-icon"><svg><use href="#i-package-minus"/></svg></div>
+      <div>
+        <div class="dlg-title">ตัดสต็อก</div>
+        <div class="dlg-sub">ตัดสินค้าออกจากคลัง พร้อมบันทึกสาเหตุไว้ตรวจสอบย้อนหลัง</div>
+      </div>
+      <div class="kbdlegend">
+        <span class="k"><kbd>F2</kbd> ช่องค้นหา</span>
+        <span class="k"><kbd>5</kbd><kbd>*</kbd> คูณจำนวน</span>
+        <span class="k"><kbd>Del</kbd> ลบแถว</span>
+        <span class="k"><kbd>Esc</kbd> ปิด</span>
+      </div>
+      <button class="dlg-close" aria-label="ปิด" style="margin-left:.875rem"><svg><use href="#i-x"/></svg></button>
+    </header>
+
+    <div class="scanbar">
+      <div class="scan">
+        <svg class="lead"><use href="#i-scan"/></svg>
+        <input placeholder="สแกนบาร์โค้ด หรือพิมพ์ชื่อ / รหัสสินค้า" aria-label="ค้นหาสินค้า">
+        <span class="kbd-slot"><kbd>F2</kbd></span>
+      </div>
+      <span class="hint"><svg><use href="#i-info"/></svg>ระบบเลือกล็อตที่หมดอายุก่อนให้อัตโนมัติ (FEFO) แก้ล็อตเองได้ที่คอลัมน์ล็อต</span>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="t-center" style="width:2.5rem">#</th>
+            <th style="width:100%">สินค้า</th>
+            <th class="t-center" style="white-space:nowrap">จำนวน</th>
+            <th style="white-space:nowrap">คงเหลือ → หลังตัด</th>
+            <th style="white-space:nowrap">ล็อต / หมดอายุ</th>
+            <th class="t-right" style="white-space:nowrap">มูลค่าทุน</th>
+            <th style="width:2.5rem"></th>
+          </tr>
+        </thead>
+        <tbody data-rows>
+          <tr data-row data-cost="9" data-stock="48">
+            <td class="t-center num" style="color:hsl(var(--foreground-subtle));font-size:.8125rem">1</td>
+            <td><div class="p-name">พาราเซตามอล 500 มก. (GPO)</div><div class="p-meta"><span>P-1042</span><i class="dot"></i><span>8851234567890</span></div></td>
+            <td class="t-center">
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="3" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">แผง</div>
+            </td>
+            <td>
+              <div class="stock"><span class="before num">48</span><svg><use href="#i-arrow-right"/></svg><span class="after num">45</span></div>
+              <div class="meter"><i style="transform:scaleX(0.94)"></i></div>
+            </td>
+            <td><div class="lotcell"><span class="l1">A2417</span><span class="l2">12/06/2027</span></div></td>
+            <td class="t-right"><span class="rowtotal num" style="font-weight:700">27.00</span></td>
+            <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+          </tr>
+
+          <tr data-row data-cost="185" data-stock="6">
+            <td class="t-center num" style="color:hsl(var(--foreground-subtle));font-size:.8125rem">2</td>
+            <td><div class="p-name">อะม็อกซี่ซิลลิน 500 มก. แคปซูล</div><div class="p-meta"><span>P-2210</span><i class="dot"></i><span>8859876543210</span></div></td>
+            <td class="t-center">
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="1" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">กระปุก</div>
+            </td>
+            <td>
+              <div class="stock"><span class="before num">6</span><svg><use href="#i-arrow-right"/></svg><span class="after num">5</span></div>
+              <div class="meter"><i style="transform:scaleX(0.83)"></i></div>
+            </td>
+            <td><div class="lotcell"><span class="l1">B0031 <span class="chip chip-info" style="height:1.125rem"><svg><use href="#i-layers"/></svg>2</span></span><span class="l2">04/2026 · 09/2026</span></div></td>
+            <td class="t-right"><span class="rowtotal num" style="font-weight:700">185.00</span></td>
+            <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+          </tr>
+
+          <tr data-row data-cost="22" data-stock="11">
+            <td class="t-center num" style="color:hsl(var(--foreground-subtle));font-size:.8125rem">3</td>
+            <td><div class="p-name">ยาน้ำแก้ไอมะแว้ง 120 มล.</div><div class="p-meta"><span>P-3388</span><i class="dot"></i><span>8853344556677</span></div></td>
+            <td class="t-center">
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="2" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">ขวด</div>
+            </td>
+            <td>
+              <div class="stock"><span class="before num">11</span><svg><use href="#i-arrow-right"/></svg><span class="after num">9</span></div>
+              <div class="meter"><i style="transform:scaleX(0.82)"></i></div>
+            </td>
+            <td><div class="lotcell"><span class="l1">B0912</span><span class="l2" style="color:hsl(var(--amber-strong));font-weight:600">03/03/2026</span></div></td>
+            <td class="t-right"><span class="rowtotal num" style="font-weight:700">44.00</span></td>
+            <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+          </tr>
+
+          <tr data-row data-cost="23" data-stock="6">
+            <td class="t-center num" style="color:hsl(var(--foreground-subtle));font-size:.8125rem">4</td>
+            <td><div class="p-name">แอลกอฮอล์ 70% 450 มล.</div><div class="p-meta"><span>P-5501</span><i class="dot"></i><span>8855566778899</span></div></td>
+            <td class="t-center">
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="6" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">ขวด</div>
+            </td>
+            <td>
+              <div class="stock"><span class="before num">6</span><svg><use href="#i-arrow-right"/></svg><span class="after num">0</span></div>
+              <div class="meter"><i style="transform:scaleX(0.00)"></i></div>
+            </td>
+            <td><div class="lotcell"><span class="l1">C1180</span><span class="l2">28/11/2028</span></div></td>
+            <td class="t-right"><span class="rowtotal num" style="font-weight:700">138.00</span></td>
+            <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+          </tr>
+
+          <tr data-row data-cost="6.5" data-stock="12">
+            <td class="t-center num" style="color:hsl(var(--foreground-subtle));font-size:.8125rem">5</td>
+            <td><div class="p-name">คลอเฟนิรามีน 4 มก.</div><div class="p-meta"><span>P-6120</span><i class="dot"></i><span>8851122334455</span></div></td>
+            <td class="t-center">
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="20" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">แผง</div>
+            </td>
+            <td>
+              <div class="stock"><span class="before num">12</span><svg><use href="#i-arrow-right"/></svg><span class="after num">-8</span></div>
+              <div class="meter"><i style="transform:scaleX(0.00)"></i></div>
+            </td>
+            <td><div class="lotcell"><span class="l1">E0330</span><span class="l2">17/08/2027</span></div></td>
+            <td class="t-right"><span class="rowtotal num" style="font-weight:700">130.00</span></td>
+            <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+          </tr>
+
+          <tr data-row data-cost="12.5" data-stock="23">
+            <td class="t-center num" style="color:hsl(var(--foreground-subtle));font-size:.8125rem">6</td>
+            <td><div class="p-name">สำลีก้อน 50 กรัม</div><div class="p-meta"><span>P-7710</span><i class="dot"></i><span>8857788990011</span></div></td>
+            <td class="t-center">
+              <div class="stepper" data-stepper>
+                <button aria-label="ลด"><svg><use href="#i-minus"/></svg></button>
+                <input class="qty" value="1" inputmode="numeric" aria-label="จำนวน">
+                <button aria-label="เพิ่ม"><svg><use href="#i-plus"/></svg></button>
+              </div>
+              <div style="font-size:.6875rem;color:hsl(var(--foreground-subtle));margin-top:.15rem">ห่อ</div>
+            </td>
+            <td>
+              <div class="stock"><span class="before num">23</span><svg><use href="#i-arrow-right"/></svg><span class="after num">22</span></div>
+              <div class="meter"><i style="transform:scaleX(0.96)"></i></div>
+            </td>
+            <td><div class="lotcell"><span class="l1">D2205</span><span class="l2">ไม่ระบุ</span></div></td>
+            <td class="t-right"><span class="rowtotal num" style="font-weight:700">12.50</span></td>
+            <td><button class="icon-btn" data-del aria-label="ลบรายการ"><svg><use href="#i-trash"/></svg></button></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="empty" data-empty hidden>
+        <div class="ring"><svg><use href="#i-scan"/></svg></div>
+        <h4>ยังไม่มีรายการที่จะตัด</h4>
+        <p>สแกนบาร์โค้ดที่ช่องด้านบนได้เลย หรือกด <kbd>F2</kbd> เพื่อไปที่ช่องค้นหา</p>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span><span class="v" data-count>6</span> รายการ</span>
+      <span><span class="v" data-units>33</span> หน่วย</span>
+      <span style="margin-left:auto">มูลค่าทุนรวม <span class="v total" data-total>536.50</span> บาท</span>
+    </div>
+
+    <div class="actionbar">
+      <span class="sec-label" style="white-space:nowrap">สาเหตุ <span class="req">*</span></span>
+      <div class="reasons" data-reasons>
+        <button class="reason-seg" aria-pressed="false" data-reason="ใช้ภายใน"><svg><use href="#i-house"/></svg>ใช้ภายใน</button>
+        <button class="reason-seg" aria-pressed="false" data-reason="เสียหาย/แตกหัก"><svg><use href="#i-alert"/></svg>เสียหาย / แตกหัก</button>
+        <button class="reason-seg" aria-pressed="false" data-reason="สูญหาย"><svg><use href="#i-search-x"/></svg>สูญหาย</button>
+        <input class="txt" data-reason-custom placeholder="ระบุเอง..." style="width:11rem;height:2.25rem">
+      </div>
+      <div class="right">
+        <div class="blocker" data-blocker><svg><use href="#i-info"/></svg><span>เลือกสาเหตุก่อน</span></div>
+        <button class="btn btn-elev">ยกเลิก</button>
+        <button class="btn btn-primary" data-confirm disabled>ยืนยันตัดสต็อก</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const CAPTIONS = {
+  v1:'<b>แบบ 1 · แผงสรุปด้านขวา</b> เหมือน POS: ซ้ายคือ "ตะกร้า" ขวาคือแผงตัดสินใจที่ไม่เลื่อนหาย สาเหตุ · ยอดรวม · ปุ่มยืนยัน อยู่ในสายตาตลอด',
+  v2:'<b>แบบ 2 · ไล่ตามขั้นตอน</b> เลือกสาเหตุก่อนเป็นขั้นที่ 1 พอเลือกแล้วขั้นนั้นยุบเหลือบรรทัดเดียว คืนพื้นที่ให้รายการ ไม่มีทางกดยืนยันแล้วติดว่า "ยังไม่ได้เลือกสาเหตุ"',
+  v3:'<b>แบบ 3 · ตารางเดียว หนาแน่น</b> จอเดียวจบ ทุกอย่างอยู่ในตาราง เห็นสต็อกก่อน/หลัง ล็อต วันหมดอายุครบ สาเหตุอยู่ติดปุ่มยืนยันด้านล่าง เหมาะกับคนใช้คีย์บอร์ด/สแกนเนอร์เร็ว ๆ (แถวที่ 5 = ตัวอย่างสถานะจำนวนเกินสต็อก)'
+};
+const money = n => n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+/* ── สลับแบบ ─────────────────────────────────────────────── */
+const caption = document.getElementById('caption');
+document.querySelectorAll('.tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected', String(b===btn)));
+    document.querySelectorAll('[data-panel]').forEach(p=>p.classList.toggle('active', p.id===btn.dataset.tab));
+    caption.innerHTML = CAPTIONS[btn.dataset.tab];
+  });
+});
+caption.innerHTML = CAPTIONS.v1;
+
+/* ── ธีม ─────────────────────────────────────────────────── */
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const r=document.documentElement;
+  r.dataset.theme = r.dataset.theme==='dark' ? 'light' : 'dark';
+});
+
+/* ── ตรรกะร่วมของทุกแบบ ──────────────────────────────────── */
+function recalc(panel){
+  const rows=[...panel.querySelectorAll('[data-row]')];
+  let total=0, units=0, over=0;
+  rows.forEach(row=>{
+    const cost=parseFloat(row.dataset.cost), stock=parseInt(row.dataset.stock,10);
+    const input=row.querySelector('.qty');
+    let qty=parseInt(input.value,10); if(!Number.isFinite(qty)||qty<1) qty=1;
+    const after=stock-qty;
+    row.querySelector('.after').textContent=after;
+    const meter=row.querySelector('.meter i');
+    if(meter) meter.style.transform='scaleX('+Math.max(0,Math.min(1,after/stock)).toFixed(3)+')';
+    row.querySelector('.rowtotal').textContent=money(qty*cost);
+    row.classList.toggle('warn', after===0);
+    row.classList.toggle('err', after<0);
+    if(after<0) over++;
+    total+=qty*cost; units+=qty;
+  });
+  panel.querySelectorAll('[data-count]').forEach(el=>el.textContent=rows.length);
+  panel.querySelectorAll('[data-units]').forEach(el=>el.textContent=units);
+  panel.querySelectorAll('[data-total]').forEach(el=>el.textContent=money(total));
+  const note=panel.querySelector('[data-count-note]'); if(note) note.textContent=rows.length+' รายการ';
+
+  const empty=panel.querySelector('[data-empty]');
+  const tbody=panel.querySelector('[data-rows]');
+  if(empty){ empty.hidden=rows.length>0; if(tbody) tbody.style.display=rows.length?'':'none'; }
+  const table=panel.querySelector('table'); if(table&&empty) table.style.display=rows.length?'':'none';
+
+  /* สถานะปุ่มยืนยัน + ข้อความบอกว่าติดอะไร */
+  const reason=panel.dataset.reason||'';
+  const confirm=panel.querySelector('[data-confirm]');
+  const blocker=panel.querySelector('[data-blocker]');
+  let msg='', cls='ok', ok=true;
+  if(rows.length===0){ msg='ยังไม่มีรายการ'; cls=''; ok=false; }
+  else if(over>0){ msg='มี '+over+' รายการเกินสต็อกคงเหลือ'; cls='bad'; ok=false; }
+  else if(!reason.trim()){ msg=panel.id==='v3'?'เลือกสาเหตุก่อน':'เลือกสาเหตุก่อน จึงจะยืนยันได้'; cls=''; ok=false; }
+  else { msg='พร้อมยืนยัน · '+reason; cls='ok'; }
+  confirm.disabled=!ok;
+  blocker.className='blocker '+cls;
+  blocker.querySelector('span').textContent=msg;
+  blocker.querySelector('use').setAttribute('href', ok?'#i-check':(cls==='bad'?'#i-alert':'#i-info'));
+}
+
+document.querySelectorAll('[data-panel]').forEach(panel=>{
+  /* stepper */
+  panel.addEventListener('click',e=>{
+    const st=e.target.closest('[data-stepper] button');
+    if(st){
+      const input=st.parentElement.querySelector('.qty');
+      const dir=st.getAttribute('aria-label')==='เพิ่ม'?1:-1;
+      input.value=Math.max(1,(parseInt(input.value,10)||1)+dir);
+      recalc(panel); return;
+    }
+    const del=e.target.closest('[data-del]');
+    if(del){ del.closest('[data-row]').remove(); renumber(panel); recalc(panel); return; }
+  });
+  panel.addEventListener('input',e=>{
+    if(e.target.classList.contains('qty')) recalc(panel);
+    if(e.target.matches('[data-reason-custom]')){
+      panel.dataset.reason=e.target.value;
+      if(e.target.value.trim()) panel.querySelectorAll('[data-reason]').forEach(b=>b.setAttribute('aria-pressed','false'));
+      recalc(panel);
+    }
+  });
+
+  /* เลือกสาเหตุ */
+  panel.addEventListener('click',e=>{
+    const b=e.target.closest('[data-reason]');
+    if(!b) return;
+    const custom=panel.querySelector('[data-reason-custom]');
+    const isCustomTile=b.hasAttribute('data-custom-tile');
+    const on=b.getAttribute('aria-pressed')==='true';
+    panel.querySelectorAll('[data-reason]').forEach(x=>x.setAttribute('aria-pressed','false'));
+    if(!on) b.setAttribute('aria-pressed','true');
+    if(isCustomTile){
+      custom.hidden=on; panel.dataset.reason= on?'':(custom.value||'');
+      if(!on) setTimeout(()=>custom.focus(),0);
+    }else{
+      if(custom){ custom.value=''; if(panel.id==='v2') custom.hidden=true; }
+      panel.dataset.reason= on?'':b.dataset.reason;
+    }
+    if(panel.id==='v2') syncStep1(panel);
+    recalc(panel);
+  });
+
+  recalc(panel);
+});
+
+function renumber(panel){
+  panel.querySelectorAll('.row-no').forEach((el,i)=>el.textContent=i+1);
+  panel.querySelectorAll('tbody [data-row]').forEach((tr,i)=>{
+    const c=tr.querySelector('td'); if(c&&c.classList.contains('num')) c.textContent=i+1;
+  });
+}
+
+/* ── แบบ 2: ยุบขั้นที่ 1 เมื่อเลือกสาเหตุแล้ว ───────────── */
+function syncStep1(panel){
+  const step=panel.querySelector('[data-step1]');
+  const reason=(panel.dataset.reason||'').trim();
+  const picked=!!reason;
+  step.classList.toggle('done',picked);
+  panel.querySelector('[data-step1-body]').hidden=picked;
+  panel.querySelector('[data-step1-val]').hidden=!picked;
+  panel.querySelector('[data-step1-note]').hidden=picked;
+  panel.querySelector('[data-step1-chip]').textContent=reason;
+  panel.querySelector('[data-step1-no]').innerHTML=picked?'<svg style="width:.8125rem;height:.8125rem"><use href="#i-check"/></svg>':'1';
+  const s3=panel.querySelector('[data-step3-no]');
+  const ok=picked&&panel.querySelectorAll('[data-row]').length>0;
+  s3.style.background=ok?'hsl(var(--primary))':'hsl(var(--muted))';
+  s3.style.color=ok?'hsl(var(--primary-foreground))':'hsl(var(--foreground-subtle))';
+}
+const v2=document.getElementById('v2');
+v2.querySelector('[data-step1-edit]').addEventListener('click',()=>{
+  v2.querySelector('[data-step1-body]').hidden=false;
+  v2.querySelector('[data-step1-val]').hidden=true;
+  v2.querySelector('[data-step1-note]').hidden=false;
+});
+syncStep1(v2);
+</script>
+</body>
+</html>

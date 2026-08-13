@@ -786,6 +786,9 @@ export default function Theme() {
               {/* ── PRICE INPUT ── */}
               <Section title="PriceInput" path="src/components/ui/price-input.tsx">
                 <DemoRow label="Currency (decimals=2) — ชิดขวา,, ว่าง→0 เมื่อ blur">
+                <DemoRow label='stepper="split" — − / + ขนาบค่าที่จัดกลาง; ใช้เมื่อ ±1 คือการกระทำหลัก (คอลัมน์จำนวน เช่น โมดัลตัดสต็อก POS) ส่วนการพิมพ์เป็นทางรอง'>
+                  <NumInput stepper="split" value={numVal} onChange={setNumVal} className="w-24" min={6} max={20} step={1} />
+                </DemoRow>
                   <PriceInput
                     className="max-w-[160px]"
                     value={priceVal}

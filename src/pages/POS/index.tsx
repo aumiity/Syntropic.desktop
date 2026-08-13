@@ -21,8 +21,10 @@ import { UnitPickerDialog } from '@/components/ui/unit-picker-dialog'
 import { QtyDialog } from '@/components/ui/qty-dialog'
 import { DiscountDialog } from '@/components/ui/discount-dialog'
 import { LotPickerDialog } from '@/components/ui/lot-picker-dialog'
+import { ChoiceCard } from '@/components/ui/choice-card'
+import { NumInput } from '@/components/ui/num-input'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import dayjs from 'dayjs'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Product, ProductUnit, ProductLot, Customer, DrugAllergy, SalesSettings, ReceiptSettings, Setting, SaleForPrint } from '@/types'
@@ -108,6 +110,15 @@ interface ProductWithDetails extends Product {
   lots: ProductLot[]
   units: ProductUnit[]
 }
+
+// Preset reasons offered in the adjust-stock rail. The `label` IS the string
+// persisted to `stock_movements.reason` — keep these exact words stable so old
+// records stay groupable; `desc` is UI-only.
+const ADJUST_REASONS = [
+  { label: 'ใช้ภายใน',      desc: 'เบิกใช้เอง / ตัวอย่าง' },
+  { label: 'เสียหาย/แตกหัก', desc: 'ชำรุด เสื่อมสภาพ หมดอายุ' },
+  { label: 'สูญหาย',        desc: 'นับไม่ครบ / หาไม่พบ' },
+] as const
 
 const resolveSalePrice = (
   src: { price_retail: number; price_wholesale1?: number | null },
@@ -290,7 +301,6 @@ export default function POSPage() {
   const [adjustList, setAdjustList] = useState<AdjustLineItem[]>([])
   const [adjustReason, setAdjustReason] = useState('')
   const [adjustSaving, setAdjustSaving] = useState(false)
-  const [adjustQtyRowIdx, setAdjustQtyRowIdx] = useState<number | null>(null)
   const overrideAdjust = useManagerOverride()
   const adjustInputRef = useRef<HTMLInputElement>(null)
   const adjustSearchInputRef = useRef<HTMLInputElement>(null)
@@ -742,7 +752,6 @@ export default function POSPage() {
     setAdjustSearchOpen(false)
     setAdjustQuery(''); setAdjustResults([]); setAdjustMultiplier(null)
     setAdjustList([]); setAdjustReason('')
-    setAdjustQtyRowIdx(null)
   }
 
   // Typing/scanning in the adjust search bar drives the shared ProductSearchDialog.
@@ -794,9 +803,14 @@ export default function POSPage() {
     setTimeout(() => adjustInputRef.current?.focus(), 50)
   }
 
+  // Qty is edited inline by the row's <NumInput stepper>. Integers only (see
+  // [[feedback_integer_qty_inputs]]); the input's own max already clamps to the
+  // stock available for that row, so `overflow` here is the belt-and-braces path
+  // (e.g. two rows of the same product drawing from one lot pool).
   const setAdjustRowQty = (idx: number, qty: number) => {
-    if (!Number.isFinite(qty) || qty < 1) return
-    const draft = adjustList.map((it, i) => i === idx ? { ...it, qty } : it)
+    const n = Math.floor(qty)
+    if (!Number.isFinite(n) || n < 1) return
+    const draft = adjustList.map((it, i) => i === idx ? { ...it, qty: n } : it)
     const { rows, overflow } = recomputeAdjustAllocations(draft)
     if (overflow) { toast('จำนวนเกินสต็อกคงเหลือ', 'error'); return }
     setAdjustList(rows)
@@ -2055,152 +2069,208 @@ export default function POSPage() {
       />
 
       <Dialog open={showAdjust} onOpenChange={(v) => { if (!v) closeAdjust() }}>
-        <DialogContent size="3xl" divided onClose={closeAdjust} className="h-[74vh] grid-rows-[auto_1fr_auto] [&>[data-slot=dialog-header]]:-mx-4 [&>[data-slot=dialog-header]]:px-6 [&>[data-slot=dialog-footer]]:-mx-4 [&>[data-slot=dialog-footer]]:px-6">
+        <DialogContent size="full" divided onClose={closeAdjust} className="h-[82vh] grid-rows-[auto_1fr_auto] [&>[data-slot=dialog-header]]:-mx-4 [&>[data-slot=dialog-header]]:px-6 [&>[data-slot=dialog-footer]]:-mx-4 [&>[data-slot=dialog-footer]]:px-6">
           <DialogHeader>
-            <DialogTitle>
-              ตัดสต็อก
-            </DialogTitle>
+            <DialogTitle>ตัดสต็อก</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              ตัดสินค้าออกจากคลัง พร้อมบันทึกสาเหตุไว้ตรวจสอบย้อนหลัง · ระบบเลือกล็อตที่หมดอายุก่อนให้อัตโนมัติ (FEFO)
+            </p>
           </DialogHeader>
 
-          <DialogBody className="flex flex-col p-0 gap-0 overflow-hidden min-h-0">
-            {/* Add-product search bar — opens the shared ProductSearchDialog.
-                pt-1 (not pt-0) keeps the input's 1px focus ring from being
-                clipped by DialogBody's overflow-hidden top edge. */}
-            <div className="px-1 pb-3 pt-1 shrink-0 w-96">
-              <SearchInput
-                ref={adjustInputRef}
-                placeholder="ค้นหาสินค้า / สแกนบาร์โค้ด / รหัสสินค้า"
-                value={adjustQuery}
-                onChange={e => handleAdjustSearch(e.target.value)}
-                onKeyDown={handleAdjustMultiplierKey}
-                onFocus={() => { if (adjustQuery.trim()) setAdjustSearchOpen(true) }}
-                wrapperClassName="w-full"
-                className="h-8 rounded-lg text-sm"
-                autoComplete="off"
-              />
-            </div>
-
-            {/* Cart-style table — the scroll zone */}
-            <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-center w-10">#</TableHead>
-                    <TableHead className="min-w-[280px]">รายการ</TableHead>
-                    <TableHead className="text-center min-w-10">หน่วย</TableHead>
-                    <TableHead className="text-center min-w-10">จำนวน</TableHead>
-                    <TableHead className="w-20">ล็อต</TableHead>
-                    <TableHead className="text-center min-w-14">วันหมดอายุ</TableHead>
-                    <TableHead className="text-right min-w-10">มูลค่าทุน</TableHead>
-                    <TableHead className="text-center w-12" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {adjustList.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-16">
-                        <PackageMinus className="size-10 mx-auto mb-2 opacity-30" />
-                        ยังไม่มีรายการตัด — สแกนหรือค้นหาสินค้าด้านบนเพื่อเพิ่ม
-                      </TableCell>
-                    </TableRow>
-                  ) : adjustList.map((item, idx) => {
-                    const multiLot = item.allocations.length > 1
-                    const firstAlloc = item.allocations[0]
-                    const expiry = firstAlloc?.expiry_date ? dayjs(firstAlloc.expiry_date).format('DD/MM/YYYY') : null
-                    return (
-                      <TableRow key={`${item.product_id}-${item.unit_id}`} className="[&_td]:py-1.5">
-                        <TableCell className="text-center text-sm text-muted-foreground">{idx + 1}</TableCell>
-                        <TableCell className="max-w-0">
-                          <div className="font-semibold text-sm text-foreground whitespace-nowrap overflow-x-clip overflow-y-visible" title={item.product_name}>{item.product_name}</div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center justify-center h-7 px-2 text-sm text-muted-foreground">{item.unit_name}</span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button variant="primary-soft" size="sm" onClick={() => setAdjustQtyRowIdx(idx)}
-                            className="h-7 min-w-7 px-1.5 rounded-md font-semibold">
-                            {item.qty}
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          {/* Lot is FEFO-automated — read-only. Multi-lot rows expose the
-                              split in a tooltip so the value is still auditable. */}
-                          {multiLot ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="text-xs text-muted-foreground cursor-default">
-                                  FEFO · {item.allocations.length} ล็อต
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="space-y-0.5 text-xs">
-                                  {item.allocations.map(a => (
-                                    <div key={a.lot_id}>Lot {a.lot_number || '—'}{a.expiry_date ? ` · ${dayjs(a.expiry_date).format('DD/MM/YYYY')}` : ''} × {a.base_qty}</div>
-                                  ))}
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">{firstAlloc?.lot_number || '—'}</span>
-                          )}
-                        </TableCell>
-                        {/* allocations are FEFO-ordered (earliest expiry first), so
-                            firstAlloc is the lot being consumed first — that's the one
-                            date worth surfacing. Multi-lot rows carry the full
-                            per-lot breakdown in the ล็อต tooltip beside this cell. */}
-                        <TableCell className="text-center text-sm text-muted-foreground">
-                          {expiry ?? '—'}
-                        </TableCell>
-                        <TableCell className="text-right text-sm font-bold text-foreground">{formatCurrency(item.line_total)}</TableCell>
-                        <TableCell>
-                          <div className="flex justify-center">
-                            <Button size="icon-lg" variant="elevated-destructive-soft" onClick={() => removeAdjustRow(idx)} title="ลบรายการ">
-                              <Trash2 />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Footer status bar — count + total cost */}
-            <div className="px-5 h-10 bg-card border-t border-border flex items-center justify-between gap-3 text-sm shrink-0">
-              <span className="text-muted-foreground">{adjustList.length.toLocaleString()} รายการ</span>
-              <span className="text-muted-foreground">
-                มูลค่าทุนรวม
-                <span className="text-lg font-extrabold text-foreground ml-2">
-                  {formatCurrency(adjustList.reduce((s, i) => s + i.line_total, 0))}
-                </span>
-              </span>
-            </div>
-
-            {/* Reason band */}
-            <div className="shrink-0 border-t border-border bg-muted/30 px-4 py-3 space-y-2">
-              <span className="text-sm font-semibold text-foreground">สาเหตุการตัด <span className="text-destructive">*</span></span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {['ใช้ภายใน', 'เสียหาย/แตกหัก', 'สูญหาย'].map(reason => (
-                  <Button key={reason}
-                    variant={adjustReason === reason ? 'amber-soft' : 'elevated'}
-                    size="sm"
-                    onClick={() => setAdjustReason(r => r === reason ? '' : reason)}
-                    className={`h-8 rounded-md border ${adjustReason === reason ? 'border-transparent' : ''}`}>
-                    {reason}
-                  </Button>
-                ))}
-                <Input
-                  placeholder="หรือระบุสาเหตุเอง..."
-                  value={adjustReason}
-                  onChange={e => setAdjustReason(e.target.value)}
-                  className="h-8 flex-1 min-w-[140px] text-sm"
+          {/* Two zones: the list on the left, a decision rail on the right that
+              never scrolls away (reason + running totals). The confirm pair stays
+              in <DialogFooter> per the dialog contract, with the "what's still
+              missing" hint sitting right beside it. */}
+          <DialogBody className="grid grid-cols-[minmax(0,1fr)_19rem] p-0 gap-0 overflow-hidden min-h-0">
+            {/* ── LEFT: scan bar + line list ── */}
+            <div className="flex flex-col min-h-0 min-w-0 border-r border-border">
+              {/* pt-1 (not pt-0) keeps the input's focus ring from being clipped
+                  by DialogBody's overflow-hidden top edge. */}
+              <div className="px-1 pb-3 pt-1 shrink-0 w-96">
+                <SearchInput
+                  ref={adjustInputRef}
+                  placeholder="สแกนบาร์โค้ด หรือพิมพ์ชื่อ / รหัสสินค้า"
+                  value={adjustQuery}
+                  onChange={e => handleAdjustSearch(e.target.value)}
+                  onKeyDown={handleAdjustMultiplierKey}
+                  onFocus={() => { if (adjustQuery.trim()) setAdjustSearchOpen(true) }}
+                  wrapperClassName="w-full"
+                  autoComplete="off"
                 />
               </div>
+
+              <div className="flex-1 min-h-0 [&>[data-slot=table-container]]:h-full [&>[data-slot=table-container]]:overflow-auto [&>[data-slot=table-container]]:scrollbar-thin [&>[data-slot=table-container]]:[scrollbar-gutter:stable]">
+                <Table className="border-l-[16px] border-r-[6px] border-card">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[200px]">รายการ</TableHead>
+                      <TableHead className="text-center min-w-16">หน่วย</TableHead>
+                      <TableHead className="text-center min-w-28">จำนวนที่ตัด</TableHead>
+                      <TableHead className="min-w-24">คงเหลือหลังตัด</TableHead>
+                      <TableHead className="text-right min-w-20">มูลค่าทุน</TableHead>
+                      <TableHead className="w-12" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {adjustList.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-16">
+                          <PackageMinus className="size-10 mx-auto mb-2 opacity-30" />
+                          <div className="text-sm font-semibold text-foreground">ยังไม่มีรายการที่จะตัด</div>
+                          <div className="text-xs mt-1">สแกนบาร์โค้ดที่ช่องด้านบนได้เลย หรือพิมพ์ชื่อสินค้าเพื่อค้นหา</div>
+                        </TableCell>
+                      </TableRow>
+                    ) : adjustList.map((item, idx) => {
+                      // Stock maths in the row's OWN unit. `otherBase` = what the
+                      // other rows of this product already claim, so two rows of
+                      // one product never each show the full pool.
+                      const baseStock = (item.product.lots ?? []).reduce((s, l) => s + l.qty_on_hand, 0)
+                      const otherBase = adjustList.reduce((s, r, i) =>
+                        i !== idx && r.product_id === item.product_id ? s + r.base_qty : s, 0)
+                      const availUnit  = Math.floor(Math.max(0, baseStock - otherBase) / item.qty_per_base)
+                      const beforeUnit = Math.floor(baseStock / item.qty_per_base)
+                      const afterUnit  = Math.floor(Math.max(0, baseStock - otherBase - item.base_qty) / item.qty_per_base)
+                      // allocations are FEFO-ordered, so [0] is the lot consumed
+                      // first — the one date worth surfacing on the row.
+                      const firstAlloc = item.allocations[0]
+                      const multiLot = item.allocations.length > 1
+                      const expiryLevel = getProductExpiryLevel(item.product, salesSettings)
+                      return (
+                        <TableRow key={`${item.product_id}-${item.unit_id}`} className="[&_td]:py-1.5">
+                          {/* pr-4 pulls the clip edge in so a long name never
+                              kisses the หน่วย column. overflow-x-clip (not
+                              truncate) because truncate eats Thai tone marks. */}
+                          <TableCell className="max-w-0 pr-4">
+                            <div className="font-semibold text-sm text-foreground overflow-x-clip overflow-y-visible whitespace-nowrap" title={item.product_name}>
+                              {item.product_name}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+                              {multiLot ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="info-soft" className="cursor-default">FEFO {item.allocations.length} ล็อต</Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="space-y-0.5 text-xs">
+                                      {item.allocations.map(a => (
+                                        <div key={a.lot_id}>
+                                          ล็อต {a.lot_number || '-'}{a.expiry_date ? ` · ${formatDate(a.expiry_date)}` : ''} × {a.base_qty}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <span>ล็อต {firstAlloc?.lot_number || '-'}</span>
+                              )}
+                              <span>·</span>
+                              <span className={expiryLevel ? `font-semibold ${alertColorClass(expiryLevel)}` : ''}>
+                                {firstAlloc?.expiry_date ? `หมดอายุ ${formatDate(firstAlloc.expiry_date)}` : 'ไม่ระบุวันหมดอายุ'}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-center text-sm text-muted-foreground">{item.unit_name}</TableCell>
+
+                          <TableCell className="text-center">
+                            <NumInput
+                              stepper="split"
+                              value={item.qty}
+                              onChange={(n) => setAdjustRowQty(idx, n)}
+                              min={1}
+                              max={availUnit}
+                              step={1}
+                              className="w-24 mx-auto"
+                            />
+                          </TableCell>
+
+                          {/* The whole point of the redesign: you can see what the
+                              shelf looks like AFTER this write-off, before saving. */}
+                          <TableCell>
+                            <div className="flex items-center gap-1.5 text-sm">
+                              <span className="text-muted-foreground">{beforeUnit}</span>
+                              <ChevronRight className="size-3.5 text-border-strong" />
+                              <span className={`font-bold ${afterUnit === 0 ? 'text-warning-soft-foreground' : 'text-foreground'}`}>{afterUnit}</span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-right text-sm font-bold text-foreground">{formatCurrency(item.line_total)}</TableCell>
+
+                          <TableCell>
+                            <div className="flex justify-center">
+                              <Button size="icon-lg" variant="elevated-destructive-soft" onClick={() => removeAdjustRow(idx)} tooltip="ลบรายการ">
+                                <Trash2 />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
+
+            {/* ── RIGHT: decision rail ── */}
+            <aside className="flex flex-col min-h-0 overflow-y-auto scrollbar-thin bg-muted/40">
+              <div className="p-4 space-y-2 border-b border-border">
+                <div className="text-xs font-bold text-foreground-subtle">
+                  สาเหตุการตัด <span className="text-destructive">*</span>
+                </div>
+                {ADJUST_REASONS.map(r => (
+                  <ChoiceCard
+                    key={r.label}
+                    title={r.label}
+                    desc={r.desc}
+                    selected={adjustReason === r.label}
+                    onClick={() => setAdjustReason(prev => prev === r.label ? '' : r.label)}
+                    className="w-full p-3 pr-9"
+                  />
+                ))}
+                <Input
+                  placeholder="หรือพิมพ์สาเหตุเอง..."
+                  value={ADJUST_REASONS.some(r => r.label === adjustReason) ? '' : adjustReason}
+                  onChange={e => setAdjustReason(e.target.value)}
+                />
+              </div>
+
+              {/* mt-auto parks the running totals at the foot of the rail, right
+                  above the confirm pair — the numbers you check last sit closest
+                  to the button you press last. */}
+              <div className="mt-auto p-4 space-y-1.5 border-t border-border">
+                <div className="text-xs font-bold text-foreground-subtle">สรุป</div>
+                <div className="flex items-baseline justify-between text-sm text-muted-foreground">
+                  จำนวนรายการ <span className="font-bold text-foreground">{adjustList.length}</span>
+                </div>
+                <div className="flex items-baseline justify-between text-sm text-muted-foreground">
+                  ล็อตที่ถูกตัด <span className="font-bold text-foreground">{adjustList.reduce((s, i) => s + i.allocations.length, 0)}</span>
+                </div>
+                <div className="flex items-baseline justify-between border-t border-border pt-2 mt-2">
+                  <span className="text-sm text-muted-foreground">มูลค่าทุนรวม</span>
+                  <span className="text-xl font-extrabold text-foreground">
+                    {formatCurrency(adjustList.reduce((s, i) => s + i.line_total, 0))}
+                  </span>
+                </div>
+              </div>
+            </aside>
           </DialogBody>
 
-          <DialogFooter>
+          <DialogFooter className="sm:items-center">
+            {/* Says out loud why ยืนยัน is greyed out — the old dialog just
+                disabled the button and left the user hunting. */}
+            {adjustList.length === 0 ? (
+              <span className="mr-auto flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-muted-foreground">
+                <Info className="size-3.5" /> ยังไม่มีรายการ สแกนหรือค้นหาสินค้าเพื่อเพิ่ม
+              </span>
+            ) : !adjustReason.trim() ? (
+              <span className="mr-auto flex items-center gap-1.5 rounded-md bg-warning-soft px-2.5 py-1.5 text-xs font-semibold text-warning-soft-foreground">
+                <AlertTriangle className="size-3.5" /> เลือกสาเหตุการตัดก่อน จึงจะยืนยันได้
+              </span>
+            ) : (
+              <span className="mr-auto flex items-center gap-1.5 rounded-md bg-success-soft px-2.5 py-1.5 text-xs font-semibold text-success">
+                <Check className="size-3.5" /> พร้อมยืนยัน · {adjustReason.trim()}
+              </span>
+            )}
             <Button variant="elevated" size="xl" onClick={closeAdjust}>ยกเลิก</Button>
             <Button
               size="xl"
@@ -2208,7 +2278,7 @@ export default function POSPage() {
               onClick={handleConfirmAdjust}
               disabled={adjustList.length === 0 || !adjustReason.trim() || adjustSaving}
             >
-              {adjustSaving ? 'กำลังบันทึก...' : 'ยืนยัน'}
+              {adjustSaving ? 'กำลังบันทึก...' : 'ยืนยันตัดสต็อก'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2494,31 +2564,6 @@ export default function POSPage() {
           )
         }}
       />
-
-      {/* Adjust — inline qty editor (FEFO auto re-runs on apply) */}
-      {adjustQtyRowIdx !== null && (() => {
-        const row = adjustList[adjustQtyRowIdx]
-        if (!row) return null
-        // Stock available for THIS row's unit = (product base stock − what other
-        // rows of the same product already consume) ÷ qty_per_base.
-        const baseStock = (row.product.lots ?? []).reduce((s, l) => s + l.qty_on_hand, 0)
-        const otherBase = adjustList.reduce((s, r, i) =>
-          i !== adjustQtyRowIdx && r.product_id === row.product_id ? s + r.base_qty : s, 0)
-        const availUnit = Math.floor(Math.max(0, baseStock - otherBase) / row.qty_per_base)
-        const costPerUnit = row.qty > 0 ? row.line_total / row.qty : 0
-        return (
-          <QtyDialog
-            open
-            onClose={() => setAdjustQtyRowIdx(null)}
-            itemName={row.product_name}
-            unitName={row.unit_name}
-            initialQty={row.qty}
-            unitPrice={costPerUnit}
-            stockQty={availUnit}
-            onApply={(qty) => setAdjustRowQty(adjustQtyRowIdx, qty)}
-          />
-        )
-      })()}
 
       {/* ── SUCCESS DIALOG ── */}
       <ConfirmDialog
