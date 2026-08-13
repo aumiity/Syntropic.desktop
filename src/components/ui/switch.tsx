@@ -69,9 +69,9 @@ function Switch({
 // `framed="input"` is the top-bar variant: a borderless h-8 bg-input pill that
 // blends with the search Input next to it in the table-card top bar (reads as
 // one continuous control row, not a popped-out chip). Use whenever a Toggle
-// lives in a top bar beside a search field. h-8 matches the other bar controls
-// being retuned in the 2026-07 redesign (search Input, DateInput/DateRangePicker/
-// Combobox/NativeSelect) — the h-9 rule is PAUSED (see CLAUDE.md), don't revert.
+// lives in a top bar beside a search field. h-8 = the field-control height every
+// other bar control uses (search Input, DateInput/DateRangePicker/Combobox/
+// NativeSelect) — locked 2026-07-24, do NOT bump it back to h-9.
 function Toggle({ checked, onChange, label, size, variant = "default", framed, disabled, className }: {
   checked: boolean
   onChange: (v: boolean) => void

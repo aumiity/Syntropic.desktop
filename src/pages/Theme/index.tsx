@@ -897,7 +897,7 @@ export default function Theme() {
                     />
                   </div>
                 </DemoRow>
-                <DemoRow label="With empty/all row (filter mode) — h-9 เท่ากับ Input / DateInput / DateRangePicker">
+                <DemoRow label="With empty/all row (filter mode) — h-8 เท่ากับ Input / DateInput / DateRangePicker">
                   <div className="w-72">
                     <Combobox
                       items={comboItems}
@@ -1045,11 +1045,11 @@ export default function Theme() {
                 <DemoRow label="Toggle framed — pill for dialogs / tinted bg (h-12, bg-card, border, rounded-lg)">
                   <Toggle framed size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่พักใช้งาน" />
                 </DemoRow>
-                <DemoRow label='Toggle framed="input" — top-bar variant: borderless h-9 bg-input, blends with the search Input beside it'>
+                <DemoRow label='Toggle framed="input" — top-bar variant: borderless h-8 bg-input, blends with the search Input beside it'>
                   <div className="flex items-center gap-3 w-80 rounded-card bg-card p-2">
                     <div className="relative flex-1 min-w-0">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                      <Input placeholder="ค้นหา..." className="h-9 pl-9 rounded-lg text-sm bg-input" />
+                      <Input placeholder="ค้นหา..." radius="lg" className="pl-9 text-sm bg-input" />
                     </div>
                     <Toggle framed="input" size="lg" checked={switchOn} onChange={setSwitchOn} label="แสดงที่ปิดใช้งาน" className="shrink-0 text-muted-foreground" />
                   </div>
@@ -1101,18 +1101,19 @@ export default function Theme() {
                     )}
                   </div>
                 </DemoRow>
-                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip'>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-8) — สำหรับ filter strip'>
                   <DateInput
                     variant="elevated"
                     value={dateVal}
                     onChange={setDateVal}
-                    className="h-9 w-44"
+                    className="w-44"
                   />
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
                   รับ / ส่งค่าเป็น ISO <code>yyyy-mm-dd</code>.
                   แสดงผลเป็น <code>dd/mm/yyyy</code>. มี calendar picker ในตัว.
-                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์ SearchInput/Select/DateRangePicker.
+                  filter strip ใช้ <code>variant="elevated"</code> เฉย ๆ — ความสูง <code>h-8</code> เป็นค่าเริ่มต้นของ field
+                  ทุกตัวอยู่แล้ว (แมตช์ SearchInput/Select/DateRangePicker) <strong>อย่าใส่ <code>className="h-9"</code> ทับ</strong>.
                 </p>
               </Section>
 
@@ -1134,19 +1135,20 @@ export default function Theme() {
                     )}
                   </div>
                 </DemoRow>
-                <DemoRow label='Elevated (bg-card + border + shadow, h-9) — สำหรับ filter strip ของ list table'>
+                <DemoRow label='Elevated (bg-card + border + shadow, h-8) — สำหรับ filter strip ของ list table'>
                   <DateRangePicker
                     variant="elevated"
                     from={rangeFrom}
                     to={rangeTo}
                     onChange={(f, t) => { setRangeFrom(f); setRangeTo(t) }}
-                    className="h-9 w-60"
+                    className="w-60"
                   />
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
                   มี preset วันนี้ / เมื่อวาน / 7 วัน / 30 วัน / เดือนนี้ / เดือนที่แล้ว / ปีนี้ / ทั้งหมด.
                   ใช้ในหน้า <strong>filter / list ทั่วไป</strong> (Manage/Sales, Manage/Purchases, Expiry) —
-                  filter strip ใช้ <code>variant="elevated" className="h-9"</code> ให้แมตช์กับ SearchInput/Select.
+                  filter strip ใช้ <code>variant="elevated"</code> เฉย ๆ — ความสูง <code>h-8</code> มาจากค่าเริ่มต้นของ field
+                  (แมตช์กับ SearchInput/Select) <strong>ไม่ต้อง pin ความสูงเอง</strong>.
                 </p>
               </Section>
 
@@ -1592,7 +1594,7 @@ export default function Theme() {
                     <div className="mt-1 space-y-0.5 pl-3">
                       <div>· border สี card อยู่บน <code>&lt;table&gt;</code> = <code>border-l-[16px] border-r-[6px]</code> → เนื้อหา inset จากขอบ ส่วน scrollbar อยู่ริมขอบนอก</div>
                       <div>· container ต้องมี <code>[scrollbar-gutter:stable]</code> ด้วย → จองรางกว้าง 10px ไว้เสมอ ขวาจึงเป็น 6+10 = 16px เท่าซ้ายทั้งตอนมีและไม่มี scrollbar (ถ้าไม่จอง ตารางที่แถวไม่ล้นจะเหลือขวาแค่ 6px)</div>
-                      <div>· หัวคอลัมน์: <code>h-9</code> · <code>bg-muted</code> · <code>border-b</code> · <code>text-foreground</code> · sticky (เกิน 10 แถวจึง scroll)</div>
+                      <div>· หัวคอลัมน์: <code>h-10</code> (ค่าเริ่มต้นของ <code>TableHead</code>) · <code>bg-muted</code> · <code>border-b</code> · <code>text-foreground</code> · sticky (เกิน 10 แถวจึง scroll)</div>
                       <div>· แถว: hover = <code>bg-muted</code> · เส้นคั่น = <code>border-border</code> · container <code>max-h-[440px] scrollbar-thin</code></div>
                     </div>
                   </li>
@@ -1730,7 +1732,7 @@ export default function Theme() {
                       Beyond 10 rows the body scrolls (scrollbar-thin). */}
                   <Table containerClassName="max-h-[440px] [scrollbar-gutter:stable]" className="border-l-[16px] border-r-[6px] border-card">
                     <TableHeader>
-                      <TableRow className="h-9">
+                      <TableRow>
                         {showColName && <SortableTableHead field="name" sort={tableSort} onToggle={toggleTableSort} className="min-w-[220px]">ชื่อสินค้า</SortableTableHead>}
                         {showColCategory && <TableHead className="min-w-40">หมวดหมู่</TableHead>}
                         {showColPrice && <SortableTableHead field="price" sort={tableSort} onToggle={toggleTableSort} className="min-w-32">ราคา (฿)</SortableTableHead>}
@@ -1832,7 +1834,7 @@ export default function Theme() {
                   </span>
                 </DemoRow>
                 <p className="text-sm text-muted-foreground">
-                  ปุ่ม <code className="bg-muted px-1 rounded">elevated</code> icon (h-9 w-9) เปิด popover เลือกอย่างเดียว —
+                  ปุ่ม <code className="bg-muted px-1 rounded">elevated</code> icon (<code className="bg-muted px-1 rounded">h-8 w-8</code> เท่ากับ field ในแถบ) เปิด popover เลือกอย่างเดียว —
                   ค่าเริ่มต้น <code className="bg-muted px-1 rounded">'all'</code> (โชว์ทั้งหมด) แล้วเลือกแคบเป็น{' '}
                   <code className="bg-muted px-1 rounded">'enabled'</code> /{' '}
                   <code className="bg-muted px-1 rounded">'disabled'</code> ได้. ใช้ทุกตาราง list ที่มีสถานะเปิด/ปิด

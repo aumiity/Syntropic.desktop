@@ -777,7 +777,7 @@ export default function PurchasePage() {
                               value={invoiceNo}
                               readOnly
                               tabIndex={-1}
-                              className="h-9 text-sm font-semibold cursor-default"
+                              className="text-sm font-semibold cursor-default"
                             />
                           </div>
                         </div>
@@ -812,7 +812,7 @@ export default function PurchasePage() {
                               value={supplierInvoiceNo}
                               onChange={e => setSupplierInvoiceNo(e.target.value)}
                               placeholder="PO-123456"
-                              className="h-9 text-sm"
+                              className="text-sm"
                             />
                           </div>
                         </div>
@@ -825,7 +825,7 @@ export default function PurchasePage() {
                             value={orderDate}
                             onChange={v => { setOrderDate(v); setDateErrors(e => ({ ...e, order: false })) }}
                             error={dateErrors.order}
-                            className="h-9 text-sm"
+                            className="text-sm"
                           />
                         </div>
 
@@ -837,7 +837,7 @@ export default function PurchasePage() {
                             value={receiveDate}
                             onChange={v => { setReceiveDate(v); setDateErrors(e => ({ ...e, receive: false })) }}
                             error={dateErrors.receive}
-                            className="h-9 text-sm"
+                            className="text-sm"
                           />
                         </div>
                       </div>
@@ -1120,7 +1120,7 @@ export default function PurchasePage() {
                         <div className="space-y-2.5">
                           <div>
                             <label className="text-sm font-semibold text-muted-foreground mb-1 block">วันครบกำหนด <span className="text-destructive">*</span></label>
-                            <DateInput variant="elevated" value={dueDate} onChange={v => { setDueDate(v); setDateErrors(e => ({ ...e, due: false })) }} error={dateErrors.due} className="h-9 text-sm" />
+                            <DateInput variant="elevated" value={dueDate} onChange={v => { setDueDate(v); setDateErrors(e => ({ ...e, due: false })) }} error={dateErrors.due} className="text-sm" />
                             <div className="flex gap-1 mt-1.5">
                               {[15, 30, 60, 90].map(d => (
                                 <Button
@@ -1145,7 +1145,7 @@ export default function PurchasePage() {
                           </label>
                           {isPaid && (
                             <div className="space-y-1.5">
-                              <DateInput variant="elevated" value={paidDate} onChange={v => { setPaidDate(v); setDateErrors(e => ({ ...e, paid: false })) }} error={dateErrors.paid} className="h-9 text-sm" />
+                              <DateInput variant="elevated" value={paidDate} onChange={v => { setPaidDate(v); setDateErrors(e => ({ ...e, paid: false })) }} error={dateErrors.paid} className="text-sm" />
                               <div className="flex gap-1">
                                 <Button
                                   type="button"

@@ -680,7 +680,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       onFocus={() => { if (query.trim()) setSearchOpen(true) }}
                       placeholder="พิมพ์ชื่อ รหัส หรือยิงบาร์โค้ด เพื่อค้นหาสินค้า…"
                       wrapperClassName="w-full"
-                      className="h-9 text-base"
+                      className="text-base"
                       autoComplete="off"
                     />
                     <p className="text-sm text-foreground-subtle mt-3">พิมพ์ชื่อ รหัส หรือยิงบาร์โค้ด ระบบจะเปิดหน้าต่างค้นหาให้เลือกสินค้า แล้วจึงเลือกหน่วยที่รับเข้า</p>
@@ -748,22 +748,22 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">Lot No. <span className="text-destructive">*</span></label>
-                    <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} maxLength={30} placeholder="เช่น A2401" className="h-9" />
+                    <Input autoFocus value={row.lot_number} onChange={e => patch({ lot_number: e.target.value })} maxLength={30} placeholder="เช่น A2401" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันผลิต</label>
                     {matchedLot ? (
-                      <div className="h-9 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.manufactured_date ? formatDate(matchedLot.manufactured_date) : '—'}</div>
+                      <div className="h-8 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.manufactured_date ? formatDate(matchedLot.manufactured_date) : '—'}</div>
                     ) : (
-                      <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} className="h-9" />
+                      <DateInput value={row.manufactured_date} onChange={v => patch({ manufactured_date: v })} />
                     )}
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-muted-foreground mb-1.5">วันหมดอายุ {!matchedLot && <span className="text-destructive">*</span>}</label>
                     {matchedLot ? (
-                      <div className="h-9 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.expiry_date ? formatDate(matchedLot.expiry_date) : '—'}</div>
+                      <div className="h-8 px-3 flex items-center bg-muted border border-border rounded-md text-sm text-muted-foreground">{matchedLot.expiry_date ? formatDate(matchedLot.expiry_date) : '—'}</div>
                     ) : (
-                      <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} className="h-9" />
+                      <DateInput value={row.expiry_date} onChange={v => patch({ expiry_date: v })} />
                     )}
                   </div>
                 </div>
@@ -893,7 +893,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={row.qty}
                       onChange={e => lineMath('qty', toIntegerInput(e.target.value))}
                       onFocus={e => e.currentTarget.select()}
-                      placeholder="0" className="h-9 text-base font-bold text-center"
+                      placeholder="0" className="text-base font-bold text-center"
                     />
                   </div>
                   <div>
@@ -903,7 +903,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={row.cost_price}
                       onChange={e => lineMath('cost_price', stripCommas(e.target.value))}
                       onBlur={() => { const n = parseFloat(row.cost_price); if (isFinite(n)) lineMath('cost_price', n.toFixed(2)) }}
-                      placeholder="0.00" className="h-9 text-base font-bold text-center"
+                      placeholder="0.00" className="text-base font-bold text-center"
                     />
                   </div>
                   <div>
@@ -913,7 +913,7 @@ export function AddProductWizard({ open, onClose, onConfirm, editing }: AddProdu
                       value={row.total}
                       onChange={e => lineMath('total', stripCommas(e.target.value))}
                       onBlur={() => { const n = parseFloat(row.total); if (isFinite(n)) lineMath('total', n.toFixed(2)) }}
-                      placeholder="0.00" className="h-9 text-base font-bold text-center"
+                      placeholder="0.00" className="text-base font-bold text-center"
                     />
                   </div>
                 </div>

@@ -10,7 +10,7 @@ Root font-size (`html { font-size: … }` in `src/index.css`, **currently 18px**
 **Why:** he tunes it for his eyes; every change rescales the whole UI because Tailwind `h-9`/`h-12`/`text-sm`/`size-4`/`gap-*`/`p-*` are rem units that track the root.
 
 **How to apply:**
-- Height/spacing rules (bar `h-12` / control `h-9`, etc.) are font-relative and **must NOT be edited when the font changes** — bar and control scale together, ratio holds at every size.
+- Height/spacing rules (table-card bar `h-14` top / `h-12` bottom, field control `h-8`, etc. — see [[control-height-h9-revert]]) are font-relative and **must NOT be edited when the font changes** — bar and control scale together, ratio holds at every size.
 - **Never hardcode px to "pin" a size back** (e.g. `h-[36px]` to undo the 40.5px a button becomes at 18px) — that one element stops scaling and desyncs from everything around it.
 - px figures in docs/comments ("`h-9` = 36px") are illustrative at a 16px root, NOT the rule. The rule is the rem class name.
 - px is correct only where it must NOT scale with font: print sheets (A4/slip/label, px/pt), 1-2px borders, 10px scrollbar, chart heights, window chrome (TitleBar).
