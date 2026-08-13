@@ -769,10 +769,26 @@ export default function Theme() {
                   <Input className="max-w-[180px]" placeholder="Disabled" disabled />
                   <Input className="max-w-[180px]" placeholder="Invalid" aria-invalid="true" />
                 </DemoRow>
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">ความสูง = <code>h-8</code> ทุกตัว ทุกที่</strong> — Input / SearchInput /
+                  Select / SelectTrigger / NativeSelect / Combobox / DateInput / DateRangePicker
+                  และปุ่มไอคอน StatusFilter (<code>h-8 w-8</code>); Textarea เป็นข้อยกเว้นเดียว (หลายบรรทัด =
+                  <code>min-h-16</code>). เป็นค่า default ของ primitive อยู่แล้ว
+                  ทั้งในฟอร์มและใน filter strip — <strong className="text-foreground">ห้าม pin ความสูงเองด้วย{' '}
+                  <code>className="h-9"</code></strong> (ตัวนั้นจะสูงกว่าเพื่อนข้าง ๆ).
+                  <span className="block mt-1">
+                    <code>h-9</code> เป็นของ <strong className="text-foreground">Button</strong> เท่านั้น
+                    (คนละ ladder: <code>default h-8</code> / <code>lg h-9</code> / <code>xl h-10</code>) —
+                    ปุ่มไอคอนที่ยืนในแถบตารางจึงต้อง override <code>h-8 w-8 p-0</code> เอง.
+                  </span>
+                </p>
               </Section>
 
               {/* ── NUM INPUT ── */}
               <Section title="NumInput" path="src/components/ui/num-input.tsx">
+                <DemoRow label='stepper="split" — − / + ขนาบค่าที่จัดกลาง; ใช้เมื่อ ±1 คือการกระทำหลัก (คอลัมน์จำนวน เช่น โมดัลตัดสต็อก POS) ส่วนการพิมพ์เป็นทางรอง'>
+                  <NumInput stepper="split" value={numVal} onChange={setNumVal} className="w-24" min={6} max={20} step={1} />
+                </DemoRow>
                 <DemoRow label="stepper — number field + ▲▼ (press-and-hold auto-repeat); clamps to min/max, keeps a local text buffer so 0 is deletable">
                   <NumInput stepper value={numVal} onChange={setNumVal} className="w-20" min={6} max={20} step={1} />
                   <span className="text-sm text-muted-foreground">ค่า: {numVal} pt</span>
@@ -786,9 +802,6 @@ export default function Theme() {
               {/* ── PRICE INPUT ── */}
               <Section title="PriceInput" path="src/components/ui/price-input.tsx">
                 <DemoRow label="Currency (decimals=2) — ชิดขวา,, ว่าง→0 เมื่อ blur">
-                <DemoRow label='stepper="split" — − / + ขนาบค่าที่จัดกลาง; ใช้เมื่อ ±1 คือการกระทำหลัก (คอลัมน์จำนวน เช่น โมดัลตัดสต็อก POS) ส่วนการพิมพ์เป็นทางรอง'>
-                  <NumInput stepper="split" value={numVal} onChange={setNumVal} className="w-24" min={6} max={20} step={1} />
-                </DemoRow>
                   <PriceInput
                     className="max-w-[160px]"
                     value={priceVal}
